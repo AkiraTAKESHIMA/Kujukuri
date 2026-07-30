@@ -9,7 +9,8 @@ program main
         makeRemappingTables, &
         remap              , &
         findChannelPix     , &
-        makeNetworkMesh    , &
+        make1secNetworkMesh, &
+        scaleUpNetworkMesh , &
         trimBasin
   implicit none
   character(CLEN_KEY) :: task
@@ -20,7 +21,6 @@ program main
   character(CLEN_KEY) :: name_src
   character(CLEN_KEY) :: resl_src
   character(CLEN_KEY) :: var
-  integer :: bsnId
   logical :: overwrite
 
   character(CLEN_PROC), parameter :: PRCNAM = 'program make_mesh_data'
@@ -49,13 +49,23 @@ program main
 
   ! Main 1.a.2
   !-------------------------------------------------------------
-  case( 'makeNetworkMesh' )
+  case( 'make1secNetworkMesh' )
     call addarg('-uid', '', 'all', .false., 'Network ID')
     call parsearg(istart=2)
 
     uid = arg_char('-uid')
 
-    call makeNetworkMesh(uid)
+    call make1secNetworkMesh(uid)
+
+  ! Main 1.a.3
+  !-------------------------------------------------------------
+  case( 'scaleUpNetworkMesh' )
+    call addarg('resl', '', 'Target resolution')
+    call parsearg(istart=2)
+
+    resl = arg_char('resl')
+
+    call scaleUpNetworkMesh(resl)
 
   ! Main 1.b.1
   !-------------------------------------------------------------
@@ -97,15 +107,15 @@ program main
     call addarg('basinType', 's', 'Type of J-FlwDir basin')
     call addarg('resl', 's', 'Resolution of J-FlwDir mesh')
     call addarg('var', 's', 'Variable')
-    call addarg('bsnId', 0, 'Basin ID')
+    call addarg('uid', 's', 'Basin/Network/NetworkSet ID')
     call parsearg(istart=2)
 
     basinType = arg_char('basinType')
     resl = arg_char('resl')
     var = arg_char('var')
-    bsnId = arg_int4('bsnId')
+    uid = arg_char('uid')
 
-    call trimBasin(basinType, resl, var, bsnId)
+    call trimBasin(basinType, resl, var, uid)
 
   !
   !-------------------------------------------------------------

@@ -21,7 +21,8 @@ module mod_make_mesh_data
   public :: makeRemappingTables
   public :: remap
   public :: findChannelPix
-  public :: makeNetworkMesh
+  public :: make1secNetworkMesh
+  public :: scaleUpNetworkMesh
   public :: trimBasin
   !-------------------------------------------------------------
   ! Private module variables (type)
@@ -101,6 +102,14 @@ module mod_make_mesh_data
   character(CLEN_PROC), parameter :: MODNAM = 'mod_make_mesh_data'
 
   real(8), parameter :: THRESH_FRAC_VALID = 0.5d0
+
+  integer(1), parameter :: STAT_NWKPIX__ISCT        = 2_1
+  integer(1), parameter :: STAT_NWKPIX__REACH       = 1_1
+  integer(1), parameter :: STAT_NWKPIX__ISCT_OTHER  = -1_1
+  integer(1), parameter :: STAT_NWKPIX__REACH_OTHER = -2_1
+  integer(1), parameter :: STAT_NWKPIX__OUT         = -3_1
+  integer(1), parameter :: STAT_NWKPIX__OCEAN       = -9_1
+  integer(1), parameter :: STAT_NWKPIX__UNKNOWN     = -99_1
 
   character(CLEN_WFMT), parameter :: WFMT_LON = 'es20.13'
   character(CLEN_WFMT), parameter :: WFMT_LAT = 'es20.13'
@@ -1104,7 +1113,7 @@ end subroutine calc_lineleng_in_meshes
 !===============================================================
 !
 !===============================================================
-subroutine makeNetworkMesh(uid)
+subroutine make1secNetworkMesh(uid)
   use c2_jflw_const, only: &
         set_resolution, &
         DGT_GXY
@@ -1118,7 +1127,7 @@ subroutine makeNetworkMesh(uid)
         get_f_lst_networks_chpix  , &
         get_f_lst_networks_mesh
   implicit none
-  character(CLEN_PATH), parameter :: PRCNAM = 'makeNetworkMesh'
+  character(CLEN_PATH), parameter :: PRCNAM = 'make1secNetworkMesh'
   character(*), intent(in) :: uid
 
   type(nwkattr_), pointer :: lst_nwkattr(:), nwkattr
@@ -1170,14 +1179,14 @@ subroutine makeNetworkMesh(uid)
   !
   !-------------------------------------------------------------
   if( uid == 'all' )then
-    f = get_f_lst_networks_mesh()
+    f = get_f_lst_networks_mesh(RESOLUTION_1SEC)
     call logmsg('Writing '//str(f))
     open(newunit=un, file=f, status='replace')
     write(un,"(a)") 'networks '//str(n)
     write(un,"(a)") 'i uid gxs gxe gys gye west east south north'
 
     do i = 1, n
-      call make_network_mesh(&
+      call make_1sec_network_mesh(&
           lst_nwkattr, i, &
           gxs, gxe, gys, gye)
 
@@ -1195,7 +1204,7 @@ subroutine makeNetworkMesh(uid)
 
     do i = 1, n
       if( lst_nwkattr(i)%uid == uid )then
-        call make_network_mesh(&
+        call make_1sec_network_mesh(&
             lst_nwkattr, i, &
             gxs, gxe, gys, gye)
         exit
@@ -1206,11 +1215,11 @@ subroutine makeNetworkMesh(uid)
   deallocate(lst_nwkattr)
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
-end subroutine makeNetworkMesh
+end subroutine make1secNetworkMesh
 !===============================================================
 !
 !===============================================================
-subroutine make_network_mesh(&
+subroutine make_1sec_network_mesh(&
     lst_nwkattr, jNwk_self, &
     gxs, gxe, gys, gye)
   use c2_jflw_const
@@ -1227,7 +1236,7 @@ subroutine make_network_mesh(&
         get_f_network_chpix  , &
         get_f_network_mesh
   implicit none
-  character(CLEN_PATH), parameter :: PRCNAM = 'make_network_mesh'
+  character(CLEN_PATH), parameter :: PRCNAM = 'make_1sec_network_mesh'
   type(nwkattr_), intent(inout), target :: lst_nwkattr(:)
   integer, intent(in) :: jNwk_self
   integer, intent(out) :: gxs, gxe, gys, gye
@@ -1258,16 +1267,6 @@ subroutine make_network_mesh(&
 
   character(CLEN_PATH) :: f
   integer :: un
-
-  integer(1), parameter :: STAT_NWKPIX__UNKNOWN     = 0_1
-  integer(1), parameter :: STAT_NWKPIX__ISCT        = 2_1
-  integer(1), parameter :: STAT_NWKPIX__REACH       = 1_1
-  integer(1), parameter :: STAT_NWKPIX__ISCT_OTHER  = -2_1
-  integer(1), parameter :: STAT_NWKPIX__REACH_OTHER = -1_1
-  integer(1), parameter :: STAT_NWKPIX__OUT         = -3_1
-  integer(1), parameter :: STAT_NWKPIX__OCEAN       = -9_1
-
-  integer, parameter :: GXY_OUT_MARGIN = 10
 
   call logbgn(PRCNAM, MODNAM)
   !-------------------------------------------------------------
@@ -1364,7 +1363,7 @@ subroutine make_network_mesh(&
 
   call logext()
   !-------------------------------------------------------------
-  ! Relect intersections of channels
+  ! Reflect intersections of channels
   !-------------------------------------------------------------
   call logent('Reflecting intersections of channels')
 
@@ -1534,6 +1533,30 @@ subroutine make_network_mesh(&
 
   call logext()
   !-------------------------------------------------------------
+  ! Fill the map with the valid status
+  !-------------------------------------------------------------
+  call logent('Filling the map with the valid status')
+
+  do igy = gys, gye
+  do igx = gxs, gxe
+    if( fdrmap(igx,igy) <= 0_1 )then
+      nwkmap(igx,igy) = STAT_NWKPIX__OCEAN
+    elseif( nwkmap(igx,igy) == STAT_NWKPIX__UNKNOWN )then
+      is_ok = reached_nwk(igx, igy)
+    endif
+  enddo  ! igx/
+  enddo  ! igy/
+
+  !print*, gxe-gxs+1, gye-gys+1
+  !call traperr( wbin(nwkmap(gxs:gxe,gys:gye), 'tmp/nwkmap.bin', replace=.true.) )
+
+  if( any(nwkmap(gxs:gxe,gys:gye) == STAT_NWKPIX__UNKNOWN) )then
+    call errend(msg_unexpected_condition()//&
+        '\n  any(nwkmap == UNKNOWN)')
+  endif
+
+  call logext()
+  !-------------------------------------------------------------
   ! Get the outer edge
   !-------------------------------------------------------------
   call logent('Getting the outer edge of network mesh')
@@ -1541,7 +1564,7 @@ subroutine make_network_mesh(&
   nEdgePix = max(gxe_outer-gxs_outer+1, gye_outer-gys_outer+1) * 4
   allocate(lst_gx(nEdgePix))
   allocate(lst_gy(nEdgePix))
-print*, gxs_outer, gxe_outer, gys_outer, gye_outer
+  !print*, gxs_outer, gxe_outer, gys_outer, gye_outer
 
   nEdgePix = 0
   do igy = gys_outer+1, gye_outer-1
@@ -1573,18 +1596,12 @@ print*, gxs_outer, gxe_outer, gys_outer, gye_outer
   !-------------------------------------------------------------
   call logent('Outputting')
 
-  ! Arguments (out)
-  gxs = max(minval(lst_gx) - GXY_OUT_MARGIN, 1)
-  gxe = min(maxval(lst_gx) + GXY_OUT_MARGIN, NGX)
-  gys = max(minval(lst_gy) - GXY_OUT_MARGIN, 1)
-  gye = min(maxval(lst_gy) + GXY_OUT_MARGIN, NGY)
-
-  call logmsg('('//str((/gxe-gxs+1,gye-gys+1/),dgt(maxval(shape(nwkmap))),',')//') '//&
+  call logmsg('('//str((/gxe-gxs+1,gye-gys+1/),dgt(maxval(shape(nwkmap))),', ')//') '//&
               '['//str((/gxs,gxe/),DGT_GXY,':')//&
               ','//str((/gys,gye/),DGT_GXY,':')//']')
   call logmsg(sBBox(west_of_gx(gxs),east_of_gx(gxe),south_of_gy(gye),north_of_gy(gys)))
 
-  f = get_f_network_mesh(nwkattr_self%uid)
+  f = get_f_network_mesh(RESOLUTION_1SEC, nwkattr_self%uid)
   call logmsg('Writing '//str(f))
   call traperr( wbin(nwkmap(gxs:gxe,gys:gye), f, replace=.true.) )
 
@@ -1703,7 +1720,155 @@ logical function reached_nwk(gx, gy) result(res)
   endselect
 end function reached_nwk
 !---------------------------------------------------------------
-end subroutine make_network_mesh
+end subroutine make_1sec_network_mesh
+!===============================================================
+!
+!===============================================================
+!
+!
+!
+!
+!
+!===============================================================
+!
+!===============================================================
+subroutine scaleUpNetworkMesh(resl)
+  use c1_grid, only: &
+        get_cellsize_in_sec
+  use c2_jflw_const, &
+        set_resolution => set_resolution
+  use c2_jflw_grid, only: &
+        west_of_gx , &
+        east_of_gx , &
+        south_of_gy, &
+        north_of_gy
+  use c2_strnk_io, only: &
+        get_f_lst_networks_mesh
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'scaleUpNetworkMesh'
+  character(*), intent(in) :: resl
+
+  integer :: ratio
+  integer :: nNwk, jNwk
+  character :: c_
+  character(DGT_NWKUID) :: uid
+  integer :: gxs_in, gxe_in, gys_in, gye_in
+  real(8) :: west_in, east_in, south_in, north_in
+  integer :: gxs, gxe, gys, gye
+
+  character(CLEN_PATH) :: f_in, f
+  integer :: un_in, un
+
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  call set_resolution(resl)
+  ratio = get_cellsize_in_sec(resl)
+  call logmsg('Ratio to 1sec: '//str(ratio))
+
+  f = get_f_lst_networks_mesh(resl)
+  call logmsg('Writing '//str(f))
+  open(newunit=un, file=f, status='replace')
+  write(un,"(a)") 'networks '//str(nNwk)
+  write(un,"(a)") 'i uid gxs gxe gys gye west east south north'
+
+  f_in = get_f_lst_networks_mesh(RESOLUTION_1SEC)
+  open(newunit=un_in, file=f_in, status='old')
+  read(un_in,*) c_, nNwk
+  read(un_in,*)
+
+  do jNwk = 1, nNwk
+    read(un_in,*) &
+      c_, uid, &
+      gxs_in, gxe_in, gys_in, gye_in, &
+      west_in, east_in, south_in, north_in
+
+    call logmsg('('//str(jNwk)//') '//str(uid))
+
+    call scale_up_network_mesh(&
+      resl, ratio, uid, gxs_in, gxe_in, gys_in, gye_in, &
+      gxs, gxe, gys, gye)
+
+    write(un,"(a)") &
+      str(jNwk,dgt(nNwk))//' '//str(uid)//' '//&
+      str((/gxs,gxe,gys,gye/),DGT_GXY)//' '//&
+      sBBox(west_of_gx(gxs),east_of_gx(gxe),south_of_gy(gye),north_of_gy(gys),&
+            d=' ', b='')
+  enddo  ! jNwk/
+
+  close(un_in)
+  close(un)
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
+end subroutine scaleUpNetworkMesh
+!===============================================================
+!
+!===============================================================
+subroutine scale_up_network_mesh(&
+    resl, ratio, uid, ghxs, ghxe, ghys, ghye, &
+    gxs, gxe, gys, gye)
+  use c2_strnk_io, only: &
+        get_f_network_mesh
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'scale_up_network_mesh'
+  character(*), intent(in) :: resl
+  integer, intent(in) :: ratio
+  character(*), intent(in) :: uid
+  integer, intent(in) :: ghxs, ghxe, ghys, ghye
+  integer, intent(out) :: gxs, gxe, gys, gye
+
+  integer(1), allocatable :: nwkmap(:,:)
+  integer(1), allocatable :: nwkmap_in(:,:)
+  integer :: igx, igy
+  integer :: ghxs_this, ghxe_this, ghys_this, ghye_this
+  character(CLEN_PATH) :: f_in, f
+
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  gxs = (ghxs-1) / ratio + 1
+  gxe = (ghxe-1) / ratio + 1
+  gys = (ghys-1) / ratio + 1
+  gye = (ghye-1) / ratio + 1
+  call logmsg(str(RESOLUTION_1SEC)//' ['//str((/ghxs,ghxe/),':')//', '//str((/ghys,ghye/),':')//']')
+  call logmsg(str(resl)//' ['//str((/gxs,gxe/),':')//', '//str((/gys,gye/),':')//']')
+
+  allocate(nwkmap_in(ghxs:ghxe,ghys:ghye))
+  f_in = get_f_network_mesh(RESOLUTION_1SEC, uid)
+  call traperr( rbin(nwkmap_in, f_in) )
+
+  allocate(nwkmap(gxs:gxe,gys:gye))
+  do igy = gys, gye
+    call get_range(igy, ghys_this, ghye_this, ghys, ghye)
+    do igx = gxs, gxe
+      call get_range(igx, ghxs_this, ghxe_this, ghxs, ghxe)
+      nwkmap(igx,igy) = maxval(nwkmap_in(ghxs_this:ghxe_this,ghys_this:ghye_this))
+    enddo  ! igx/
+  enddo  ! igy/
+
+  f = get_f_network_mesh(resl, uid)
+  call traperr( wbin(nwkmap, f, replace=.true.) )
+
+  deallocate(nwkmap)
+  deallocate(nwkmap_in)
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
+!---------------------------------------------------------------
+contains
+!---------------------------------------------------------------
+subroutine get_range(igx, ghxs_this, ghxe_this, ghxs, ghxe)
+  implicit none
+  integer, intent(in) :: igx
+  integer, intent(out) :: ghxs_this, ghxe_this
+  integer, intent(in) :: ghxs, ghxe
+
+  ghxs_this = max((igx-1) * ratio + 1, ghxs)
+  ghxe_this = min(igx * ratio, ghxe)
+end subroutine get_range
+!---------------------------------------------------------------
+end subroutine scale_up_network_mesh
 !===============================================================
 !
 !===============================================================
@@ -1756,7 +1921,7 @@ end subroutine make_network_set
 !===============================================================
 !
 !===============================================================
-subroutine trimBasin(basinType, resl, var, bsnId)
+subroutine trimBasin(basinType, resl, var, uid)
   use c3_jflw_const, &
         jflw_set_resolution => jflw_set_resolution
   implicit none
@@ -1764,7 +1929,7 @@ subroutine trimBasin(basinType, resl, var, bsnId)
   character(*), intent(in) :: basinType
   character(*), intent(in) :: resl
   character(*), intent(in) :: var
-  integer     , intent(in) :: bsnId
+  character(*), intent(in) :: uid
 
   call logbgn(PRCNAM, MODNAM)
   !-------------------------------------------------------------
@@ -1781,27 +1946,30 @@ subroutine trimBasin(basinType, resl, var, bsnId)
 
   endselect
 
-  call trim_basin(basinType, resl, bsnId, var)
+  call trim_basin(basinType, resl, uid, var)
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
 end subroutine trimBasin
 !===============================================================
 !
 !===============================================================
-subroutine trim_basin(basinType, resl, bsnId, var)
+subroutine trim_basin(basinType, resl, uid, var)
   use c3_jflw_const
   use c3_jflw_io, only: &
        jflw_get_f_map_basin, &
        jflw_read_basin_range_from_each, &
        jflw_read_map_from_tile, &
        jflw_read_basin_map_from_tile
+  use c3_strnk_io, only: &
+       strnk_get_f_network_mesh
   implicit none
   character(CLEN_PATH), parameter :: PRCNAM = 'trim_basin'
   character(*), intent(in) :: basinType
   character(*), intent(in) :: resl
-  integer     , intent(in) :: bsnId
+  character(*), intent(in) :: uid
   character(*), intent(in) :: var
 
+  integer :: bsnId
   integer(4), pointer :: bsnmap(:,:)
   integer(1), pointer :: i1map(:,:)
   integer(4), pointer :: i4map(:,:)
@@ -1810,7 +1978,7 @@ subroutine trim_basin(basinType, resl, bsnId, var)
   integer(4) :: i4miss
   integer :: gxs, gxe, gys, gye
   real(8) :: west, east, south, north
-  character(CLEN_PATH) :: f_bsn, f_var
+  character(CLEN_PATH) :: f_msk, f_var
 
   call logbgn(PRCNAM, MODNAM)
   !-------------------------------------------------------------
@@ -1826,7 +1994,9 @@ subroutine trim_basin(basinType, resl, bsnId, var)
   !-------------------------------------------------------------
   ! Case: J-FlwDir basin map
   case( 'bsn' )
-    f_bsn = jflw_get_f_map_basin(resl, 'bsn', bsnId)
+    bsnId = int4_char(uid)
+
+    f_msk = jflw_get_f_map_basin(resl, 'bsn', bsnId)
     f_var = jflw_get_f_map_basin(resl, var, bsnId)
 
     call jflw_read_basin_range_from_each(&
@@ -1855,13 +2025,8 @@ subroutine trim_basin(basinType, resl, bsnId, var)
   !-------------------------------------------------------------
   ! Case: Network mesh
   case( 'nwk' )
-!    f = joint_get_f_map_nwk(resl, var, bsnId)
+    f_msk = strnk_get_f_network_mesh(resl, uid)
 
-!    call joint_read_basin_range_from_each(&
-!        resl, bsnId, &
-!        gxs, gxe, gys, gye, west, east, south, north)
-
-!    call joint_read_nwk_map(bsnmap, gxs, gys)
   !-------------------------------------------------------------
   ! Case: ERROR
   case default

@@ -436,13 +436,15 @@ end function get_f_lst_networks_chpix
 !===============================================================
 !
 !===============================================================
-character(CLEN_PATH) function get_f_lst_networks_mesh() result(f)
+character(CLEN_PATH) function get_f_lst_networks_mesh(&
+    resl) result(f)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'get_f_lst_networks_mesh'
+  character(*), intent(in) :: resl
 
   call logbgn(PRCNAM, MODNAM, '-p')
   !-------------------------------------------------------------
-  f = joined(DIR_PRD, 'network_mesh/all.txt')
+  f = joined(DIR_PRD, 'network_mesh/'//str(resl)//'/all.txt')
 
   call traperr( mkdir(dirname(f)) )
   !-------------------------------------------------------------
@@ -489,14 +491,16 @@ end function get_f_network_chpix
 !===============================================================
 !
 !===============================================================
-character(CLEN_PATH) function get_f_network_mesh(uid) result(f)
+character(CLEN_PATH) function get_f_network_mesh(&
+    resl, uid) result(f)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'get_f_network_chpix'
+  character(*), intent(in) :: resl
   character(*), intent(in) :: uid
 
   call logbgn(PRCNAM, MODNAM, '-p')
   !-------------------------------------------------------------
-  f = joined(DIR_PRD, 'network_mesh/'//str(uid)//'.bin')
+  f = joined(DIR_PRD, 'network_mesh/'//str(resl)//'/'//str(uid)//'.bin')
 
   call traperr( mkdir(dirname(f)) )
   !-------------------------------------------------------------

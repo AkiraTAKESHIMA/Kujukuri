@@ -3,7 +3,7 @@ include $(TOPSRCDIR)/Mkinclude
 
 .SUFFIXES: .f90
 %.o: %.f90
-	$(FC) $(FCFLAGS) -c $< -I$(MODDIR)
+	$(FC) $(FCFLAGS) -c $< -I$(SPRINGMODDIR)
 %.mod: %.f90 %.o
 	@:
 
@@ -17,13 +17,13 @@ mod_set.o\
 mod_river.o\
 main.o
 
-TARGET = main
+TARGET = main.exe
 
 all:
 	$(MAKE) $(OBJS)
 	$(MAKE) $(TARGET)
 
-$(TARGET): $(OBJS) $(LIB)
+$(TARGET): $(OBJS) $(SPRINGLIB)
 	$(FC) $(FCFLAGS) -o $@ $^
 
 clean:
