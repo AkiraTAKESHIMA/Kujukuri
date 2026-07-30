@@ -1,0 +1,37 @@
+#==============================================================
+#
+#==============================================================
+FC = gfortran
+
+#FCFLAGS_COMMON = -fmax-stack-var-size=100000000000
+FCFLAGS_COMMON = -frecursive
+
+FCFLAGS_FAST  = $(FCFLAGS_COMMON)\
+                -O2
+
+FCFLAGS_DEBUG = $(FCFLAGS_COMMON)\
+                -O0 -Wall -g\
+                -fcheck=bounds,do,mem,pointer,recursion\
+                -frecord-marker=4\
+                -fmax-errors=5\
+                -ffpe-trap=invalid,zero,overflow,underflow
+
+CC = gcc
+
+CCFLAGS_FAST  = -O2
+CCFLAGS_DEBUG = -O0 -Wall -g
+#==============================================================
+#
+#==============================================================
+MAKE = make
+INSTALL = install
+AR = ar
+ARFLAGS = rv
+RANLIB = ranlib
+
+MKDIR = mkdir
+MKDIRFLAGS = -p
+RM = rm
+RMFLAGS = -f
+CP = cp
+CPFLAGS = -f
