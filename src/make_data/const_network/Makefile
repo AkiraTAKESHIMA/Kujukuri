@@ -1,9 +1,10 @@
-TOPSRCDIR = ..
+TOPSRCDIR = ../..
 include $(TOPSRCDIR)/Mkinclude
+include $(TOPSRCDIR)/make_data/Mkinclude
 
 .SUFFIXES: .f90
 %.o: %.f90
-	$(FC) $(FCFLAGS) -c $< -I$(MODDIR) -I$(CMNDIR1) -I$(CMNDIR2) -I$(CMNDIR3)
+	$(FC) $(FCFLAGS) -c $< -I$(SPRINGMODDIR) -I$(CMNDIR1) -I$(CMNDIR2) -I$(CMNDIR3)
 %.mod: %.f90 %.o
 	@:
 
@@ -20,13 +21,13 @@ mod_modify_channeldir.o\
 mod_modify_flwdir.o\
 main.o
 
-TARGET = main
+TARGET = main.exe
 
 all:
 	$(MAKE) $(OBJS)
 	$(MAKE) $(TARGET)
 
-$(TARGET): $(OBJS) $(CMNDIR3)/*.o $(CMNDIR2)/*.o $(CMNDIR1)/*.o $(LIB)
+$(TARGET): $(OBJS) $(CMNDIR3)/*.o $(CMNDIR2)/*.o $(CMNDIR1)/*.o $(SPRINGLIB)
 	$(FC) $(FCFLAGS) -o $@ $^
 
 clean:

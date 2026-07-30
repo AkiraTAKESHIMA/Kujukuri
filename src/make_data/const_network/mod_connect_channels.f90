@@ -416,7 +416,6 @@ subroutine postConnectChannels()
   type(shp_) :: shp_node
   type(dbf_) :: dbf_node
   type(dbf_record_), pointer :: rec
-  type(dbf_field_), pointer :: field_stream(:)
 
   integer :: itx, ity
   logical, allocatable :: is_tile_exist(:,:)
@@ -1630,6 +1629,7 @@ subroutine read_network_shp(nwk, read_node_attr, read_stream_codes)
   logical, intent(in), optional :: read_node_attr
   logical, intent(in), optional :: read_stream_codes
 
+  type(dbf_) :: dbf
   logical :: read_node_attr_
   logical :: read_stream_codes_
   logical :: read_dbf
@@ -1661,7 +1661,7 @@ subroutine read_network_shp(nwk, read_node_attr, read_stream_codes)
 
     if( read_dbf )then
       call traperr( dbf_open(f_shp) )
-      call traperr( dbf_get_field(field_stream) )
+      call traperr( dbf_get_info(dbf) )
     endif
 
     do iiEnt = 1, nwkrgn%mEnt
@@ -1673,7 +1673,7 @@ subroutine read_network_shp(nwk, read_node_attr, read_stream_codes)
       call traperr( shp_get_entity(tbe%irEnt, tbe%ent) )
 
       if( read_dbf )then
-        call traperr( dbf_get_record(tbe%irEnt, field_stream, rec) )
+        call traperr( dbf_get_record(tbe%irEnt, dbf%field, rec) )
       endif
 
       if( read_node_attr_ )then
@@ -1698,9 +1698,10 @@ subroutine read_network_shp(nwk, read_node_attr, read_stream_codes)
 
     if( read_dbf )then
       call traperr( dbf_close() )
-      deallocate(field_stream)
+      call dbf_clear_all(dbf)
     endif
   enddo  ! iiRegion/
+
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
 end subroutine read_network_shp

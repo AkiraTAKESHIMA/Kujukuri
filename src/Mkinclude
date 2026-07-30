@@ -6,49 +6,38 @@ TERMINAL_WIDTH = 128
 #==============================================================
 # Directories
 #==============================================================
-LIBDIR        = $(TOPSRCDIR)/lib
-LIBDIR_CONST  = $(LIBDIR)/lib_const
-LIBDIR_BASE   = $(LIBDIR)/lib_base
-LIBDIR_TIME   = $(LIBDIR)/lib_time
-LIBDIR_LOG    = $(LIBDIR)/lib_log
-LIBDIR_UTIL   = $(LIBDIR)/lib_util
-LIBDIR_RANDOM = $(LIBDIR)/lib_random
-LIBDIR_ARRAY  = $(LIBDIR)/lib_array
-LIBDIR_MATH   = $(LIBDIR)/lib_math
-LIBDIR_STATS  = $(LIBDIR)/lib_stats
-LIBDIR_PROJ   = $(LIBDIR)/lib_proj
-LIBDIR_IO     = $(LIBDIR)/lib_io
-LIBDIR_PNG    = $(LIBDIR)/lib_png
-MODDIR = $(LIBDIR)/mod
+SPRINGDIR = $(TOPSRCDIR)/SPRING
 
-CMNDIR = $(TOPSRCDIR)/cmn
-CMNDIR1 = $(CMNDIR)/1
-CMNDIR2 = $(CMNDIR)/2
-CMNDIR3 = $(CMNDIR)/3
+SPRINGLIBDIR        = $(SPRINGDIR)/lib
+SPRINGLIBDIR_CONST  = $(SPRINGLIBDIR)/lib_const
+SPRINGLIBDIR_BASE   = $(SPRINGLIBDIR)/lib_base
+SPRINGLIBDIR_TIME   = $(SPRINGLIBDIR)/lib_time
+SPRINGLIBDIR_LOG    = $(SPRINGLIBDIR)/lib_log
+SPRINGLIBDIR_UTIL   = $(SPRINGLIBDIR)/lib_util
+SPRINGLIBDIR_RANDOM = $(SPRINGLIBDIR)/lib_random
+SPRINGLIBDIR_ARRAY  = $(SPRINGLIBDIR)/lib_array
+SPRINGLIBDIR_MATH   = $(SPRINGLIBDIR)/lib_math
+SPRINGLIBDIR_STATS  = $(SPRINGLIBDIR)/lib_stats
+SPRINGLIBDIR_PROJ   = $(SPRINGLIBDIR)/lib_proj
+SPRINGLIBDIR_IO     = $(SPRINGLIBDIR)/lib_io
+SPRINGLIBDIR_PNG    = $(SPRINGLIBDIR)/lib_png
+SPRINGMODDIR = $(SPRINGLIBDIR)/mod
+
+SPRINGCMNDIR = $(SPRINGDIR)/cmn
+SPRINGCMNDIR1 = $(SPRINGCMNDIR)/1
+SPRINGCMNDIR2 = $(SPRINGCMNDIR)/2
+SPRINGCMNDIR3 = $(SPRINGCMNDIR)/3
 #==============================================================
 # Library
 #==============================================================
-LIB = $(LIBDIR)/lib.a
+SPRINGLIB = $(SPRINGLIBDIR)/lib.a
 #==============================================================
 # Include system dependency
 #==============================================================
-ifdef ILS_SYS
-  include $(TOPSRCDIR)/../../../sysdep/Makedef.$(ILS_SYS)
-  TOPDIR = $(TOPSRCDIR)/../../../..
-else
-  include $(TOPSRCDIR)/sysdep/Makedef.$(SPRING_SYS)
-endif
+include $(TOPSRCDIR)/sysdep/Makedef.$(SPRING_SYS)
 #==============================================================
 # Set compile options
 #==============================================================
-ifdef ILS_SYS
-  SPRING_DEBUG=$(ILS_DEBUG)
-  FCFLAGS_FAST  = $(FFLAGS_SPRING_FAST)
-  FCFLAGS_DEBUG = $(FFLAGS_SPRING_DEBUG)
-  CCFLAGS_FAST  = $(CFLAGS_FAST)
-  CCFLAGS_DEBUG = $(CFLAGS_DEBUG)
-endif
-
 ifeq ($(SPRING_DEBUG), T)
   FCFLAGS = $(FCFLAGS_DEBUG)
   CCFLAGS = $(CCFLAGS_DEBUG)

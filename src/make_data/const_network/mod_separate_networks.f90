@@ -113,12 +113,12 @@ subroutine separateNetworks(uid_in)
         DGT_WSCODE
   use c2_strnk_const, only: &
         DGT_NWK_SAME_WSCODE, &
-        DGT_NWKGID
+        DGT_NWKUID
   use c2_strnk_io, only: &
         get_f_tmp_networks_lst      , &
         get_f_tmp_network_channel   , &
         get_f_tmp_network_separation, &
-        get_f_lst_networks          , &
+        get_f_lst_networks_channel  , &
         get_f_network_channel
   use mod_util, only: &
         comma_json, &
@@ -153,7 +153,7 @@ subroutine separateNetworks(uid_in)
 
   integer, parameter :: MUL_WSCODE = 10 ** DGT_NWK_SAME_WSCODE
   integer, parameter :: NLIM_SAME_WSCODE = 10 ** (DGT_NWK_SAME_WSCODE) - 1
-  integer, parameter :: DGT_NWKGID_BODY = DGT_NWKGID - 1
+  integer, parameter :: DGT_NWKGID_BODY = DGT_NWKUID - 1
 
   call logbgn(PRCNAM, MODNAM)
   !-------------------------------------------------------------
@@ -419,7 +419,7 @@ subroutine separateNetworks(uid_in)
   !-------------------------------------------------------------
   call logent('Outputting')
 
-  f = get_f_lst_networks()
+  f = get_f_lst_networks_channel()
   call logmsg('Writing '//str(f))
   open(newunit=un, file=f, status='replace')
   write(un,"(1x,a)") 'networks '//str(nNwk)

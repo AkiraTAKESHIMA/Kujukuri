@@ -447,7 +447,7 @@ close(un)
     else
       nwknode%elv = interp_bilinear(&
           real(elv_ll,8), real(elv_lr,8), real(elv_ul,8), real(elv_ur,8), &
-          dlon/GRIDSIZE_LON, dlat/GRIDSIZE_LAT)
+          GRIDSIZE_LON, GRIDSIZE_LAT, dlon, dlat)
       if( nwknode%elv < 0.d0 )then
         call logmsg('elv('//str((/elv_ll,elv_lr,elv_ul,elv_ur/),'es10.3',',')//&
                     ') -> '//str(nwknode%elv,'es10.3')//&

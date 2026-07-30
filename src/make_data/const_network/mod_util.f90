@@ -292,7 +292,7 @@ real(8) function calc_elv(&
   else
     elv = interp_bilinear(&
         real(elv_ll,8), real(elv_lr,8), real(elv_ul,8), real(elv_ur,8), &
-        dlon, dlat)
+        GRIDSIZE_LON, GRIDSIZE_LAT, dlon, dlat)
     if( elv < min(real(elv_ll,8), real(elv_lr,8), &
                   real(elv_ul,8), real(elv_ur,8)) .or. &
         elv > max(real(elv_ll,8), real(elv_lr,8), &
