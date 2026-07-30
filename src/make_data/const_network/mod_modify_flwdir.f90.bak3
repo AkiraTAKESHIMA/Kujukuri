@@ -1,0 +1,782 @@
+module mod_modify_flwdir
+  use lib_const
+  use lib_base
+  use lib_log
+  use lib_util
+  use lib_array
+  use lib_math
+  use lib_io
+  use mod_util, only: &
+        nwk_rgn_
+  implicit none
+  private
+  !-------------------------------------------------------------
+  ! Public procedures
+  !-------------------------------------------------------------
+  public :: modifyFlwdir
+  !-------------------------------------------------------------
+  ! Private module variables
+  !-------------------------------------------------------------
+  character(CLEN_PROC), parameter :: MODNAM = 'mod_modify_flwdir'
+  !-------------------------------------------------------------
+  ! Private module variables (types)
+  !-------------------------------------------------------------
+  type network_
+    character(:), allocatable :: gid
+    integer :: nRegion
+    type(nwk_rgn_), pointer :: region(:)
+    integer :: nEnt
+    type(shp_entity_), pointer :: entity(:)
+    real(8) :: west, east, south, north
+    integer :: gxs, gxe, gys, gye
+    real(8) :: leng
+  end type
+
+  type tbl_isct_
+    integer :: n
+    integer, pointer :: gx(:), gy(:)
+    real(8), pointer :: leng(:)
+    real(8), pointer :: frac(:)
+  end type
+
+  type tbl_updated_
+    integer :: n
+    integer, pointer :: gx(:), gy(:)
+  end type
+
+  type tbl_bif_
+    integer :: n
+    integer, pointer :: gx(:), gy(:)
+    integer(1), pointer :: fdr(:)
+    real(8), pointer :: frac(:)
+  end type
+
+  !-------------------------------------------------------------
+  ! Private module variables
+  !-------------------------------------------------------------
+  integer(1), parameter :: STAT_GRID__EMPTY    = 0_1
+  integer(1), parameter :: STAT_GRID__OCCUPIED = 1_1
+  integer(1), parameter :: STAT_GRID__SHARED   = 2_1
+
+  integer :: dgt_irEnt
+  integer :: dgt_gid
+  integer :: dgt_nNwk
+  !-------------------------------------------------------------
+contains
+!===============================================================
+!
+!===============================================================
+subroutine modifyFlwdir(gid)
+  use c2_jflw_const, &
+        set_resolution => set_resolution
+  use c2_jflw_grid, only: &
+        gxs_of_lon, &
+        gxe_of_lon, &
+        gys_of_lat, &
+        gye_of_lat
+  use c2_strnk_io, only: &
+        strnk_get_f_network => get_f_network
+  use mod_util, only: &
+        get_fmt_network
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'modifyFlwdir'
+  character(*), intent(in) :: gid
+
+  type(network_), pointer :: network(:), nwk
+  integer :: nNwk, iNwk
+
+  character(CLEN_PATH) :: f
+  integer :: un
+  integer :: i_
+  character :: c_
+
+  call logbgn(PRCNAM, MODNAM)
+  !-------------------------------------------------------------
+  ! Init.
+  !-------------------------------------------------------------
+  call set_resolution(RESOLUTION_1SEC)
+
+  call get_fmt_network(dgt_irEnt, dgt_gid)
+  !-------------------------------------------------------------
+  ! Read network list
+  !-------------------------------------------------------------
+  f = strnk_get_f_network('all')
+  open(newunit=un, file=f, status='old')
+  read(un,*) c_, nNwk
+
+  dgt_nNwk = dgt(nNwk)
+  allocate(network(nNwk))
+
+  read(un,*)
+  do iNwk = 1, nNwk
+    nwk => network(iNwk)
+    allocate(character(dgt_gid) :: nwk%gid)
+
+    read(un,*) &
+        i_, nwk%gid, nwk%nEnt, nwk%leng, &
+        nwk%west, nwk%east, nwk%south, nwk%north
+    nwk%gxs = gxs_of_lon(nwk%west)
+    nwk%gxe = gxe_of_lon(nwk%east)
+    nwk%gys = gys_of_lat(nwk%north)
+    nwk%gye = gye_of_lat(nwk%south)
+  enddo  ! iNwk/
+
+  close(un)
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  do iNwk = 1, nNwk
+    if( gid /= '' .and. network(iNwk)%gid /= gid ) cycle
+    call modify_flwdir_one(network, iNwk)
+  enddo
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
+end subroutine modifyFlwdir
+!===============================================================
+!
+!===============================================================
+subroutine modify_flwdir_one(network, iNwk)
+  use c2_jflw_const
+  use mod_util, only: &
+        read_network, &
+        search_nearest_2
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'modify_flwdir_one'
+  type(network_), intent(inout), target :: network(:)
+  integer, intent(in) :: iNwk
+
+  type(network_), pointer :: nwk, nwk2
+  type(tbl_isct_) :: tbl_isct, tbl_isct2, tbl_isct2_tmp
+  integer(1), allocatable :: gridstatmap(:,:)
+  integer :: iNwk2
+  integer :: n
+  integer :: i, is, ie
+  integer :: stat
+
+  character(CLEN_PATH) :: f
+  integer :: un
+
+  call logbgn(PRCNAM, MODNAM)
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  nwk => network(iNwk)
+
+  call logmsg('Network '//str(nwk%gid)//&
+      ' ('//str(iNwk)//'/'//str(size(network))//')'//&
+      ' ('//str((/nwk%gxs,nwk%gxe/),DGT_GXY,':')//','//&
+      str((/nwk%gys,nwk%gye/),DGT_GXY,':')//')')
+
+  call read_network(&
+      nwk%gid, & ! in
+      nwk%nRegion, nwk%nEnt, & ! out
+      nwk%region, nwk%entity) ! out
+
+  allocate(gridstatmap(nwk%gxs:nwk%gxe, nwk%gys:nwk%gye))
+  gridstatmap(:,:) = STAT_GRID__EMPTY
+
+  call init_tbl_isct(tbl_isct)
+  call calc_channel_length_in_grids(&
+      nwk%entity, nwk%gxs, nwk%gxe, nwk%gys, nwk%gye, &  ! in
+      tbl_isct, gridstatmap, &  ! inout
+      .true.)  ! in
+  call organize_tbl_isct(tbl_isct)
+  call logmsg('Intersecting grids: '//str(tbl_isct%n))
+  !-------------------------------------------------------------
+  ! Calc. intersection of other networks
+  !-------------------------------------------------------------
+  call init_tbl_isct(tbl_isct2)
+
+  call init_tbl_isct(tbl_isct2_tmp)
+
+  do iNwk2 = 1, size(network)
+    if( iNwk2 == iNwk ) cycle
+
+    nwk2 => network(iNwk2)
+
+    if( nwk2%gxe < nwk%gxs .or. nwk2%gxs > nwk%gxe .or. &
+        nwk2%gye < nwk%gys .or. nwk2%gys > nwk%gye ) cycle
+
+    call read_network(&
+        nwk2%gid, & ! in
+        nwk2%nRegion, nwk2%nEnt, & ! out
+        nwk2%region, nwk2%entity) ! out
+    !-----------------------------------------------------------
+    ! Calc. intersection of the other network
+    !-----------------------------------------------------------
+    tbl_isct2_tmp%n = 0
+    call calc_channel_length_in_grids(&
+        nwk2%entity, nwk%gxs, nwk%gxe, nwk%gys, nwk%gye, &  ! in
+        tbl_isct2_tmp, gridstatmap, &  ! inout
+        .false.)  ! in
+    call logmsg('Nwk('//str(iNwk2,dgt_nNwk)//') Intersecting grids: '//str(tbl_isct2_tmp%n))
+
+    if( tbl_isct2_tmp%n == 0 )then
+      deallocate(nwk2%region)
+      call free_lst_entity(nwk2%entity)
+      nullify(nwk2)
+      cycle
+    endif
+    !-----------------------------------------------------------
+    ! Update intersection table
+    !-----------------------------------------------------------
+    if( tbl_isct2%n + tbl_isct2_tmp%n > size(tbl_isct2%gx) )then
+      n = max(tbl_isct2%n + tbl_isct2_tmp%n, size(tbl_isct2%gx)*2)
+      call realloc(tbl_isct2%gx, n, clear=.false.)
+      call realloc(tbl_isct2%gy, n, clear=.false.)
+      call realloc(tbl_isct2%leng, n, clear=.false.)
+    endif
+    tbl_isct2%gx(tbl_isct2%n+1:tbl_isct2%n+tbl_isct2_tmp%n) = tbl_isct2_tmp%gx(:tbl_isct2_tmp%n)
+    tbl_isct2%gy(tbl_isct2%n+1:tbl_isct2%n+tbl_isct2_tmp%n) = tbl_isct2_tmp%gy(:tbl_isct2_tmp%n)
+    tbl_isct2%leng(tbl_isct2%n+1:tbl_isct2%n+tbl_isct2_tmp%n) = tbl_isct2_tmp%leng(:tbl_isct2_tmp%n)
+    call add(tbl_isct2%n, tbl_isct2_tmp%n)
+    !-----------------------------------------------------------
+    ! Clear data of the other network
+    !-----------------------------------------------------------
+    deallocate(nwk2%region)
+    call free_lst_entity(nwk2%entity)
+    nullify(nwk2)
+    !-----------------------------------------------------------
+  enddo  ! iNwk2/
+
+  call clear_tbl_isct(tbl_isct2_tmp)
+
+  if( tbl_isct2%n == 0 )then
+    call logmsg('Total of grids intersecting with other networks: 0')
+
+    call clear_tbl_isct(tbl_isct2)
+    call clear_tbl_isct(tbl_isct)
+
+    deallocate(gridstatmap)
+
+    deallocate(nwk%region)
+    call free_lst_entity(nwk%entity)
+    nullify(nwk)
+
+    call logret(PRCNAM, MODNAM)
+    return
+  endif
+
+  call organize_tbl_isct(tbl_isct2)
+  call logmsg('Total of grids intersecting with other networks: '//str(tbl_isct2%n))
+  !-------------------------------------------------------------
+  ! Calc. fraction of channel length in each grid
+  !-------------------------------------------------------------
+  call logent('Calculating frac. of channel leng. in each grid')
+
+  allocate(tbl_isct%frac(tbl_isct%n))
+  tbl_isct%frac(:) = 0.d0
+
+  do i = 1, tbl_isct2%n
+    call search_nearest_2(&
+        tbl_isct2%gx(i), tbl_isct2%gy(i), tbl_isct%gx, tbl_isct%gy, &
+        is, ie, stat)
+    if( stat /= 0 )then
+      call errend('(gx,gy) was not found.')
+    endif
+    tbl_isct%frac(i) = tbl_isct%leng(i) / (tbl_isct%leng(i) + tbl_isct2%leng(i))
+  enddo
+
+  call logext()
+  !-------------------------------------------------------------
+  ! Make a new flwdir map
+  !-------------------------------------------------------------
+
+
+
+  !-------------------------------------------------------------
+  ! Output
+  !-------------------------------------------------------------
+  call logent('Outputting')
+
+  !open(newunit=un, file=f, status='replace')
+
+  call logext()
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  call clear_tbl_isct(tbl_isct2)
+  call clear_tbl_isct(tbl_isct)
+
+  deallocate(gridstatmap)
+
+  deallocate(nwk%region)
+  call free_lst_entity(nwk%entity)
+  nullify(nwk)
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
+end subroutine modify_flwdir_one
+!===============================================================
+!
+!===============================================================
+subroutine calc_channel_length_in_grids(&
+    entity, &
+    gxs_domain, gxe_domain, gys_domain, gye_domain, &
+    tbl_isct, gridstatmap, is_self)
+  use c2_jflw_grid, only: &
+        gxs_of_lon , &
+        gxe_of_lon , &
+        gys_of_lat , &
+        gye_of_lat , &
+        west_of_gx , &
+        east_of_gx , &
+        south_of_gy, &
+        north_of_gy
+  use mod_util, only: &
+        apprx_isct_with_meridian, &
+        apprx_isct_with_parallel
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'calc_channel_length_in_grids'
+  type(shp_entity_), intent(in), target :: entity(:)
+  integer, intent(in) :: gxs_domain, gxe_domain, gys_domain, gye_domain
+  type(tbl_isct_), intent(inout) :: tbl_isct
+  integer(1), intent(inout) :: gridstatmap(gxs_domain:,gys_domain:)
+  logical, intent(in) :: is_self
+
+  integer :: jEnt
+  integer :: jPt
+  type(shp_entity_), pointer :: ent
+  type(shp_part_), pointer :: part
+  integer :: gxs, gxe, gys, gye, igx, igy
+  real(8) :: wlon, wlat, elon, elat
+  real(8) :: clon_west, clat_west, clon_east, clat_east, &
+             dlon_west, dlat_west, dlon_east, dlat_east
+  real(8) :: leng
+
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  do jEnt = 1, size(entity)
+    ent => entity(jEnt)
+    part => ent%part(1)
+
+    gxs = gxs_of_lon(ent%xmin)
+    gxe = gxe_of_lon(ent%xmax)
+    gys = gys_of_lat(ent%ymax)
+    gye = gye_of_lat(ent%ymin)
+
+    if( gxe < gxs_domain .or. gxs > gxe_domain .or. &
+        gye < gys_domain .or. gys > gye_domain ) cycle
+
+    do jPt = 1, part%nPoint-1
+      if( part%x(jPt) < part%x(jPt+1) )then
+        wlon = part%x(jPt)
+        elon = part%x(jPt+1)
+        wlat = part%y(jPt)
+        elat = part%y(jPt+1)
+      else
+        wlon = part%x(jPt+1)
+        elon = part%x(jPt)
+        wlat = part%y(jPt+1)
+        elat = part%y(jPt)
+      endif
+
+      gxs = gxs_of_lon(wlon)
+      gxe = gxe_of_lon(elon)
+      gys = gys_of_lat(wlat)
+      gye = gye_of_lat(elat)
+
+      !-------------------------------------------------------
+      ! Case: north to south
+      if( wlat > elat )then
+        gys = gys_of_lat(wlat)
+        gye = gye_of_lat(elat)
+        !-----------------------------------------------------
+        ! Case: BBox of edge intersects multiple basins
+        do igy = gys, gye
+          if( igy == gys )then
+            clat_west = wlat
+            clon_west = wlon
+          else
+            clat_west = clat_east
+            clon_west = clon_east
+          endif
+          if( igy == gye )then
+            clat_east = elat
+            clon_east = elon
+          else
+            clat_east = south_of_gy(igy)
+            clon_east = apprx_isct_with_parallel(&
+                wlon, wlat, elon, elat, clat_east)
+          endif
+
+          if( igy < gys_domain .or. igy > gye_domain ) cycle
+
+          gxs = gxs_of_lon(clon_west)
+          gxe = gxe_of_lon(clon_east)
+          do igx = gxs, gxe
+            if( igx == gxs )then
+              dlon_west = clon_west
+              dlat_west = clat_west
+            else
+              dlon_west = dlon_east
+              dlat_west = dlat_east
+            endif
+            if( igx == gxe )then
+              dlon_east = clon_east
+              dlat_east = clat_east
+            else
+              dlon_east = east_of_gx(igx)
+              !dlat_east = apprx_isct_with_meridian(&
+              !    wlon, wlat, elon, elat, dlon_east)
+              call traperr( intersection_sphere_normal_meridian(&
+                     wlon*d2r, wlat*d2r, elon*d2r, elat*d2r, dlon_east*d2r, dlat_east) )
+              dlat_east = dlat_east * r2d
+            endif
+
+            if( igx < gxs_domain .or. igx > gxe_domain ) cycle
+
+            leng = dist_sphere(&
+                dlon_west*d2r, dlat_west*d2r, &
+                dlon_east*d2r, dlat_east*d2r)
+
+            call update_tbl_isct(&
+                tbl_isct, gridstatmap(igx,igy), igx, igy, leng, is_self)
+          enddo  ! igx/
+        enddo  ! igy/
+      !-----------------------------------------------------
+      ! Case: south to north
+      else
+        gys = gys_of_lat(elat)
+        gye = gye_of_lat(wlat)
+
+        do igy = gye, gys, -1
+          if( igy == gye )then
+            clat_west = wlat
+            clon_west = wlon
+          else
+            clat_west = clat_east
+            clon_west = clon_east
+          endif
+          if( igy == gys )then
+            clat_east = elat
+            clon_east = elon
+          else
+            clat_east = north_of_gy(igy)
+            clon_east = apprx_isct_with_parallel(&
+                wlon, wlat, elon, elat, clat_east)
+          endif
+
+          if( igy < gys_domain .or. igy > gye_domain ) cycle
+
+          gxs = gxs_of_lon(clon_west)
+          gxe = gxe_of_lon(clon_east)
+          do igx = gxs, gxe
+            if( igx == gxs )then
+              dlon_west = clon_west
+              dlat_west = clat_west
+            else
+              dlon_west = dlon_east
+              dlat_west = dlat_east
+            endif
+            if( igx == gxe )then
+              dlon_east = clon_east
+              dlat_east = clat_east
+            else
+              dlon_east = east_of_gx(igx)
+              !dlat_east = apprx_isct_with_meridian(&
+              !    wlon, wlat, elon, elat, dlon_east)
+              call traperr( intersection_sphere_normal_meridian(&
+                     wlon*d2r, wlat*d2r, elon*d2r, elat*d2r, dlon_east*d2r, dlat_east) )
+              dlat_east = dlat_east * r2d
+            endif
+
+            if( igx < gxs_domain .or. igx > gxe_domain ) cycle
+
+            leng = dist_sphere(&
+                dlon_west*d2r, dlat_west*d2r, &
+                dlon_east*d2r, dlat_east*d2r)
+
+            call update_tbl_isct(&
+                tbl_isct, gridstatmap(igx,igy), igx, igy, leng, is_self)
+          enddo  ! igx/
+        enddo  ! igy/
+
+      endif
+    enddo  ! jPt/
+  enddo  ! jEnt/
+
+  nullify(part)
+  nullify(ent)
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
+end subroutine calc_channel_length_in_grids
+!===============================================================
+!
+!===============================================================
+subroutine update_tbl_isct(&
+    tbl, stat, gx, gy, leng, is_self)
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'update_tbl_isct'
+  type(tbl_isct_), intent(inout) :: tbl
+  integer(1), intent(inout) :: stat
+  integer, intent(in) :: gx, gy
+  real(8), intent(in) :: leng
+  logical, intent(in) :: is_self
+
+  !-------------------------------------------------------------
+  ! Case: Intersection with target network
+  if( is_self )then
+    stat = STAT_GRID__OCCUPIED
+  !-------------------------------------------------------------
+  ! Case: Intersection with other network
+  else
+    if( stat == STAT_GRID__EMPTY ) return
+
+    stat = STAT_GRID__SHARED
+  endif
+  !---------------------------------------------------------------
+  !
+  !---------------------------------------------------------------
+  if( tbl%n == size(tbl%gx) )then
+    call realloc(tbl%gx, tbl%n*2, clear=.false.)
+    call realloc(tbl%gy, tbl%n*2, clear=.false.)
+    call realloc(tbl%leng, tbl%n*2, clear=.false.)
+  endif
+  call add(tbl%n)
+  tbl%gx(tbl%n) = gx
+  tbl%gy(tbl%n) = gy
+  tbl%leng(tbl%n) = leng
+  !-------------------------------------------------------------
+end subroutine update_tbl_isct
+!===============================================================
+!
+!===============================================================
+subroutine organize_tbl_isct(tbl)
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'organize_tbl_isct'
+  type(tbl_isct_), intent(inout) :: tbl
+
+  integer, allocatable :: arg(:)
+  integer :: is, ie, iis, iie
+
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  call realloc(tbl%gx, tbl%n, clear=.false.)
+  call realloc(tbl%gy, tbl%n, clear=.false.)
+  call realloc(tbl%leng, tbl%n, clear=.false.)
+
+  allocate(arg(tbl%n))
+  call argsort(tbl%gx, arg)
+  call sort(tbl%gx, arg)
+  call sort(tbl%gy, arg)
+  call sort(tbl%leng, arg)
+
+  tbl%n = 0
+  ie = 0
+  do while( ie < size(tbl%gx) )
+    is = ie + 1
+    ie = is
+    do while( ie < size(tbl%gx) )
+      if( tbl%gx(ie+1) /= tbl%gx(is) ) exit
+      ie = ie + 1
+    enddo  ! ie/
+    call argsort(tbl%gy(is:ie), arg(is:ie))
+    call sort(tbl%gy(is:ie), arg(is:ie))
+    call sort(tbl%leng(is:ie), arg(is:ie))
+
+    iie = is - 1
+    do while( iie < ie )
+      iis = iie + 1
+      iie = iis
+      do while( iie < ie )
+        if( tbl%gy(iie+1) /= tbl%gy(iis) ) exit
+        iie = iie + 1
+      enddo
+
+      call add(tbl%n)
+      tbl%gx(tbl%n) = tbl%gx(iis)
+      tbl%gy(tbl%n) = tbl%gy(iis)
+      tbl%leng(tbl%n) = sum(tbl%leng(iis:iie))
+    enddo
+  enddo  ! is, ie/
+
+  deallocate(arg)
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
+end subroutine organize_tbl_isct
+!===============================================================
+!
+!===============================================================
+!
+!
+!
+!
+!
+!===============================================================
+!
+!===============================================================
+subroutine calcUpperArea
+
+
+end subroutine calcUpperArea
+!===============================================================
+!
+!===============================================================
+subroutine calc_upper_area_one
+  use c2_jflw_const
+  use c2_jflw_grid, only: &
+        get_nextxy
+  use mod_util, only: &
+        search_nearest_2
+  implicit none
+  integer :: gxs, gxe, gys, gye, gx, gy, igx, igy
+  integer :: gxx, gyy
+  integer :: iGrid
+  logical :: is_updated
+  integer(1), allocatable :: fdrmap(:,:)
+  integer(4), allocatable :: upgmap(:,:)
+  real(8)   , allocatable :: upamap(:,:)
+  integer(1), allocatable :: map_fdrtyp(:,:)
+  real(8), allocatable :: map_upainc(:,:)
+  logical(1), allocatable :: map_updated(:,:)
+  type(tbl_updated_) :: tbl_updated
+  type(tbl_bif_) :: tbl_bif
+  integer :: iBifs, iBife, iBif
+  integer :: stat
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  tbl_updated%n = 0
+  do igy = gys, gye
+  do igx = gxs, gxe
+    if( upgmap(igx,igy) /= 1 ) cycle
+    call add(tbl_updated%n)
+  enddo  ! igx/
+  enddo  ! igy/
+
+  allocate(tbl_updated%gx(tbl_updated%n))
+  allocate(tbl_updated%gy(tbl_updated%n))
+
+  tbl_updated%n = 0
+  do igy = gys, gye
+  do igx = gxs, gxe
+    if( upgmap(igx,igy) /= 1 ) cycle
+    call add(tbl_updated%n)
+    tbl_updated%gx(tbl_updated%n) = igx
+    tbl_updated%gy(tbl_updated%n) = igy
+  enddo  ! igx/
+  enddo  ! igy/
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  do while( is_updated )
+    do iGrid = 1, tbl_updated%n
+      gx = tbl_updated%gx(iGrid)
+      gy = tbl_updated%gy(iGrid)
+
+      selectcase( map_fdrtyp(gx,gy) )
+      case( FDRTYPE__MISS )
+        continue
+      case( FDRTYPE__OUTLET )
+        continue
+      case( FDRTYPE__NORMAL )
+        call get_nextxy(gx, gy, fdrmap(gx,gy), gxx, gyy)
+
+        call update_next(&
+            gxx, gyy, map_upainc(gx,gy), &
+            upamap(gxx,gyy), map_upainc(gxx,gyy), map_updated(gxx,gyy), &
+            tbl_updated)
+
+        map_upainc(gx,gy) = 0.d0
+        map_updated(gx,gy) = .false.
+      case( FDRTYPE__BIFURCATION )
+        call search_nearest_2(gx, gy, tbl_bif%gx, tbl_bif%gy, iBifs, iBife, stat)
+        if( stat /= 0 )then
+          call errend('(gx,gy) was not found.')
+        endif
+
+        do iBif = iBifs, iBife
+          call get_nextxy(igx, igy, tbl_bif%fdr(iBif), gxx, gyy)
+
+          call update_next(&
+              gxx, gyy, map_upainc(gx,gy)*tbl_bif%frac(iBif), &
+              upamap(gxx,gyy), map_upainc(gxx,gyy), map_updated(gxx,gyy), &
+              tbl_updated)
+        enddo  ! iBuf/
+
+        map_upainc(gx,gy) = 0.d0
+        map_updated(gx,gy) = .false.
+      endselect
+    enddo  ! iGrid/
+  enddo
+
+
+
+end subroutine calc_upper_area_one
+!===============================================================
+!
+!===============================================================
+subroutine update_next(&
+    gx_next, gy_next, upainc, &
+    upa_next, upainc_next, is_updated_next, tbl_updated)
+  implicit none
+  integer, intent(in) :: gx_next, gy_next
+  real(8), intent(in) :: upainc
+  real(8), intent(inout) :: upa_next
+  real(8), intent(inout) :: upainc_next
+  logical(1), intent(inout) :: is_updated_next
+  type(tbl_updated_), intent(inout) :: tbl_updated
+
+  call add(upa_next, upainc)
+  call add(upainc_next, upainc)
+
+  if( is_updated_next ) return
+
+  is_updated_next = .true.
+  call add(tbl_updated%n)
+  tbl_updated%gx(tbl_updated%n) = gx_next
+  tbl_updated%gy(tbl_updated%n) = gy_next
+end subroutine update_next
+!
+!
+!
+!
+!
+!===============================================================
+!
+!===============================================================
+subroutine init_tbl_isct(tbl)
+  implicit none
+  type(tbl_isct_), intent(out) :: tbl
+
+  tbl%n = 0
+  allocate(tbl%gx(1024))
+  allocate(tbl%gy(1024))
+  allocate(tbl%leng(1024))
+  nullify(tbl%frac)
+end subroutine init_tbl_isct
+!===============================================================
+!
+!===============================================================
+subroutine clear_tbl_isct(tbl)
+  implicit none
+  type(tbl_isct_), intent(inout) :: tbl
+
+  tbl%n = 0
+  call realloc(tbl%gx, 0)
+  call realloc(tbl%gy, 0)
+  call realloc(tbl%leng, 0)
+  call realloc(tbl%frac, 0)
+end subroutine clear_tbl_isct
+!===============================================================
+!
+!===============================================================
+subroutine free_lst_entity(lst)
+  implicit none
+  type(shp_entity_), pointer :: lst(:)
+
+  integer :: i
+
+  do i = 1, size(lst)
+    call shp_clear_entity(lst(i))
+  enddo
+  deallocate(lst)
+end subroutine free_lst_entity
+!===============================================================
+!
+!===============================================================
+end module mod_modify_flwdir

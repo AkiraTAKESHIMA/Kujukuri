@@ -1,0 +1,33 @@
+#==============================================================
+#
+#==============================================================
+FC = singularity run /export/home/atakeshima/imageshare/oneapi-hpckit_latest.sif ifort
+
+FCFLAGS_FAST  = -O2 -g -assume byterecl
+FCFLAGS_DEBUG = -O0 -check all -check noarg_temp_created -warn all -CB\
+                -gen_interfaces -traceback -g\
+                -heap-arrays\
+                -assume byterecl\
+                -assume realloc_lhs -fstack-protector\
+                -assume protect_parens\
+                -fpe0 -ftrapuv
+
+CC = singularity run /export/home/atakeshima/imageshare/oneapi-hpckit_latest.sif icc
+
+CCFLAGS_FAST  = -O2 -std=c99 -no-multibyte-chars
+CCFLAGS_DEBUG = -O0 -g -debug all -std=c99 -no-multibyte-chars
+#==============================================================
+#
+#==============================================================
+MAKE = make
+INSTALL = install
+AR = ar
+ARFLAGS = rv
+RANLIB = ranlib
+
+MKDIR = mkdir
+MKDIRFLAGS = -p
+RM = rm
+RMFLAGS = -f
+CP = cp
+CPFLAGS = -f

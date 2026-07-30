@@ -1,0 +1,526 @@
+module mod_modify_flwdir
+  use lib_const
+  use lib_base
+  use lib_log
+  use lib_util
+  use lib_array
+  use lib_math
+  use lib_io
+  use c1_const
+  use c3_strnk_const
+  use mod_util, only: &
+      nwk_rgn_
+  implicit none
+  private
+  !-------------------------------------------------------------
+  ! Public procedures
+  !-------------------------------------------------------------
+  public :: modifyFlwdir
+  !-------------------------------------------------------------
+  ! Private module variables
+  !-------------------------------------------------------------
+  character(CLEN_PROC), parameter :: MODNAM = 'mod_modify_flwdir'
+
+  ! i: global index
+  ! j: local index in the channel
+
+  type node_conn_
+    integer :: iNode
+    !real(8) :: angle
+  end type
+
+  type node_attr_
+    integer :: iNode
+    integer :: gx, gy
+    real(8) :: elv
+    integer :: nConn
+    integer :: nConn_down, nConn_up, nConn_uncertain
+    type(node_conn_), pointer :: node_conn(:)  !(nConn)
+    integer, pointer :: iNode_conn_down(:)  !(nConn_down)
+    integer, pointer :: iNode_conn_up(:)  !(nConn_up)
+    integer, pointer :: iNode_conn_uncertain(:)  !(nConn_uncertain)
+    integer(1) :: direction  ! flow direction to other side
+    integer(1) :: stat_src
+    logical(1) :: was_completed
+  end type
+
+  type ent_attr_
+    type(node_attr_), pointer :: node(:)  !(2)
+    real(8) :: leng
+    real(8) :: elv_down
+    real(8) :: slope
+    integer(1) :: direction  ! node1 to node2
+    logical(1) :: was_investd
+  end type
+
+  type nwk_
+    character(:), allocatable :: gid
+    integer :: mRegion
+    type(nwk_rgn_), pointer :: region(:)
+    integer :: nEnt
+    type(shp_entity_), pointer :: entity(:)
+    type(dbf_record_), pointer :: record(:)
+    type(ent_attr_), pointer :: ent_attr(:)
+    real(8) :: west, east, south, north
+    integer(1) :: direction
+  end type
+
+  type tbl_node_
+    integer :: n
+    real(8)   , pointer :: lon(:), lat(:)
+    integer   , pointer :: iEnt(:)
+    integer   , pointer :: jPt(:)
+    logical(1), pointer :: reached_outlet(:)
+  end type
+
+  integer(1), parameter :: CHANNEL_DIRECTION__NORMAL    = 1_1
+  integer(1), parameter :: CHANNEL_DIRECTION__REVERSED  = 2_1
+  integer(1), parameter :: CHANNEL_DIRECTION__UNCERTAIN = 3_1
+  integer(1), parameter :: CHANNEL_DIRECTION__UNDEF     = -9_1
+
+  integer(1), parameter :: NODE_DIRECTION__DOWN      = 1_1
+  integer(1), parameter :: NODE_DIRECTION__UP        = 2_1
+  integer(1), parameter :: NODE_DIRECTION__UNCERTAIN = 3_1
+  integer(1), parameter :: NODE_DIRECTION__UNDEF     = -9_1
+
+  integer(1), parameter :: NODE_STAT_SRC__YES       = 1_1
+  integer(1), parameter :: NODE_STAT_SRC__NO        = 2_1
+  integer(1), parameter :: NODE_STAT_SRC__UNCERTAIN = 3_1
+
+  real(8), parameter :: SLOPE_MISS = -1d20
+  real(8), parameter :: DIRECTION_SLOPE_THRESH = 1d-3
+  real(8), parameter :: DIRECTION_LENG_THRESH = 1d3
+
+  character(CLEN_WFMT), parameter :: WFMT_ELV = 'f7.2'
+
+  integer :: dgt_irEnt, dgt_gid
+  integer :: dgt_nEnt
+  integer :: dgt_nNode
+  !-------------------------------------------------------------
+contains
+!===============================================================
+!
+!===============================================================
+subroutine modifyFlwdir(gid)
+  use c2_jflw_const, &
+        set_resolution => set_resolution
+  use c2_jflw_const
+  use c2_jflw_grid, only: &
+        center_of_gx, &
+        center_of_gy, &
+        gxs_of_lon, &
+        gxe_of_lon, &
+        gys_of_lat, &
+        gye_of_lat
+  use mod_util, only: &
+        get_fmt_network, &
+        read_network   , &
+        jPt2jNode      , &
+        jNode2jPt      , &
+        search_lonlat  , &
+        get_entity_length, &
+        slonlat
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'modifyFlwdir'
+  character(*), intent(in) :: gid
+
+  type(nwk_) :: nwk
+  type(shp_entity_), pointer :: ent
+  type(shp_part_)  , pointer :: part
+  type(ent_attr_)  , pointer :: ent_attr
+  type(node_attr_) , pointer :: node_attr
+  type(dbf_record_), pointer :: rec
+  type(tbl_node_) :: tbl_node
+
+  integer(4), pointer :: bsnmap(:,:)  !(gxs:gxe,gys:gye)
+  real(4)   , pointer :: elvmap(:,:)
+  integer(1), pointer :: fdrmap(:,:)
+  integer :: gxs, gxe, gys, gye
+  integer :: iEnt
+  integer :: jPt
+  integer :: nNode, iNode
+  integer :: jNode
+  integer :: is, ie
+  integer :: nodeType
+  integer, allocatable :: arg(:)
+
+  integer :: iConn
+  integer :: iEnt2, jNode2
+  type(shp_entity_), pointer :: ent2
+  type(ent_attr_)  , pointer :: ent_attr2
+  type(node_attr_), pointer :: node_attr2
+
+  integer :: nNode_src, nNode_out, nNode_inter
+  real(8) :: nodeelv_src_min  , nodeelv_src_max  , &
+             nodeelv_out_min  , nodeelv_out_max  , &
+             nodeelv_inter_min, nodeelv_inter_max
+
+  integer :: un
+
+  call logbgn(PRCNAM, MODNAM)
+  !-------------------------------------------------------------
+  ! Initialize
+  !-------------------------------------------------------------
+  call logent('Initializing')
+
+  call set_resolution(RESOLUTION_1SEC)
+
+  call get_fmt_network(dgt_irEnt, dgt_gid)
+
+  call logext()
+  !-------------------------------------------------------------
+  ! Read network data
+  !-------------------------------------------------------------
+  call logent('Reading network data')
+
+  allocate(character(1) :: nwk%gid)
+  nwk%gid = trim(gid)
+
+  call read_network(&
+      nwk%gid, &
+      nwk%mRegion, nwk%nEnt, &
+      nwk%region, nwk%entity, nwk%record, &
+      nwk%west, nwk%east, nwk%south, nwk%north)
+
+  call logmsg('BBox: ['//str((/nwk%west,nwk%east/),'f12.7',',')//&
+              ','//str((/nwk%south,nwk%north/),'f11.7',',')//']')
+
+  dgt_nEnt = dgt(nwk%nEnt)
+
+  call logext()
+  !-------------------------------------------------------------
+  ! Prep. maps
+  !-------------------------------------------------------------
+  call logent('Preparing maps')
+
+  call prep_maps(&
+      nwk%west, nwk%east, nwk%south, nwk%north, & ! in
+      gxs, gxe, gys, gye, & ! out
+      bsnmap, elvmap, fdrmap) ! out
+
+  call logext()
+  !-------------------------------------------------------------
+  ! Make a list of nodes
+  !-------------------------------------------------------------
+  call logent('Making a list of nodes')
+
+  nNode = nwk%nEnt * 2
+  dgt_nNode = dgt(nNode)
+
+  allocate(tbl_node%lon(nNode))
+  allocate(tbl_node%lat(nNode))
+  allocate(tbl_node%iEnt(nNode))
+  allocate(tbl_node%jPt(nNode))
+
+  iNode = 0
+  do iEnt = 1, nwk%nEnt
+    part => nwk%entity(iEnt)%part(1)
+    do jNode = 1, 2
+      jPt = jNode2jPt(jNode, part%nPoint)
+      call add(iNode)
+      tbl_node%lon(iNode) = part%x(jPt)
+      tbl_node%lat(iNode) = part%y(jPt)
+      tbl_node%iEnt(iNode) = iEnt
+      tbl_node%jPt(iNode) = jPt
+    enddo  ! jNode/
+  enddo  ! iEnt/
+
+  allocate(arg(nNode))
+  call argsort(tbl_node%lon, arg)
+  call sort(tbl_node%lon, arg)
+  call sort(tbl_node%lat, arg)
+  call sort(tbl_node%iEnt, arg)
+  call sort(tbl_node%jPt, arg)
+  ie = 0
+  do while( ie < nNode )
+    is = ie + 1
+    ie = is
+    do while( ie < nNode )
+      if( tbl_node%lon(ie+1) /= tbl_node%lon(is) ) exit
+      ie = ie + 1
+    enddo
+    if( ie == is ) cycle
+    call argsort(tbl_node%lat(is:ie), arg(is:ie))
+    call sort(tbl_node%lat(is:ie), arg(is:ie))
+    call sort(tbl_node%iEnt(is:ie), arg(is:ie))
+    call sort(tbl_node%jPt(is:ie), arg(is:ie))
+  enddo
+  deallocate(arg)
+
+  call logext()
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  allocate(nwk%ent_attr(nwk%nEnt))
+  do iEnt = 1, nwk%nEnt
+    ent_attr => nwk%ent_attr(iEnt)
+    allocate(ent_attr%node(2))
+  enddo  ! iEnt/
+
+  do iNode = 1, nNode
+    iEnt = tbl_node%iEnt(iNode)
+    jNode = jPt2jNode(tbl_node%jPt(iNode))
+    nwk%ent_attr(iEnt)%node(jNode)%iNode = iNode
+  enddo  ! iNode/
+  !-------------------------------------------------------------
+  ! Report summary of nodes
+  !-------------------------------------------------------------
+  nNode_src   = 0
+  nNode_out   = 0
+  nNode_inter = 0
+  nodeelv_src_min   =  1d20
+  nodeelv_src_max   = -1d20
+  nodeelv_out_min   =  1d20
+  nodeelv_out_max   = -1d20
+  nodeelv_inter_min =  1d20
+  nodeelv_inter_max = -1d20
+  do iEnt = 1, nwk%nEnt
+    ent => nwk%entity(iEnt)
+    rec => nwk%record(iEnt)
+
+    do jNode = 1, 2
+
+      selectcase( nodeType )
+      case( STRNK_NODETYPE__SOURCE )
+        call add(nNode_src)
+      case( STRNK_NODETYPE__OUTLET )
+        call add(nNode_out)
+      case( STRNK_NODETYPE__INTERMEDIATE )
+        call add(nNode_inter)
+      case default
+        call errend(msg_invalid_value('nodeType', nodeType))
+      endselect
+    enddo  ! jNode/
+  enddo  ! iEnt/
+
+  call logmsg('Nodes src  : '//str(nNode_src,dgt_nNode)//&
+              ' (elv: '//str((/nodeelv_src_min,nodeelv_src_max/),'f10.3',' - ')//')'//&
+            '\n      out  : '//str(nNode_out,dgt_nNode)//&
+              ' (elv: '//str((/nodeelv_out_min,nodeelv_out_max/),'f10.3',' - ')//')'//&
+            '\n      inter: '//str(nNode_inter,dgt_nNode)//&
+              ' (elv: '//str((/nodeelv_inter_min,nodeelv_inter_max/),'f10.3',' - ')//')')
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
+end subroutine modifyFlwdir
+!===============================================================
+!
+!===============================================================
+
+!===============================================================
+!
+!===============================================================
+!===============================================================
+!
+!===============================================================
+subroutine prep_maps(&
+    west, east, south, north, &
+    gxs, gxe, gys, gye, &
+    bsnmap, elvmap, fdrmap)
+  use c2_jflw_const
+  use c2_jflw_grid, only: &
+        gxs_of_lon, &
+        gxe_of_lon, &
+        gys_of_lat, &
+        gye_of_lat
+  use c2_jflw_io, only: &
+        read_map_from_tile, &
+        get_f_lst_tile
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'prep_maps'
+  real(8), intent(in) :: west, east, south, north
+  integer, intent(out) :: gxs, gxe, gys, gye
+  integer(4), pointer :: bsnmap(:,:)  ! out
+  real(4)   , pointer :: elvmap(:,:)  ! out
+  integer(1), pointer :: fdrmap(:,:)  ! out
+
+  integer :: nBsn_x, nBsn_tmp, nBsn
+  integer :: iBsn_x, iBsn
+  integer :: bsnId_prev, bsnId
+  integer, pointer :: lst_bsnId_x(:), lst_bsnId(:)
+  integer, pointer :: arg(:)
+  integer :: i, is, ie
+  integer :: gxs_bsn, gxe_bsn, gys_bsn, gye_bsn
+  integer :: igx, igy
+  integer :: mTile, iTile
+
+  character(CLEN_PATH) :: f
+  integer :: un
+  integer :: i_
+
+  call logbgn(PRCNAM, MODNAM)
+  !-------------------------------------------------------------
+  ! Make basin id list
+  !-------------------------------------------------------------
+  call logent('Making a list of basin ids')
+
+  gxs = gxs_of_lon(west)
+  gxe = gxe_of_lon(east)
+  gys = gys_of_lat(north)
+  gye = gye_of_lat(south)
+  call logmsg('gxy (tmp): ['//str((/gxs,gxe/),DGT_GXY,':')//&
+                         ','//str((/gys,gye/),DGT_GXY,':')//']')
+
+  allocate(bsnmap(gxs:gxe,gys:gye))
+
+  call read_map_from_tile(&
+      'bsn', DTYPE_INT4, BSN_MISS, gxs, gxe, gys, gye, bsnmap)
+
+  nBsn = 0
+  allocate(lst_bsnId(gxe-gxs+1))
+
+  allocate(lst_bsnId_x(gxe-gxs+1))
+  allocate(arg(gxe-gxs+1))
+  do igy = gys, gye
+    bsnId_prev = BSN_MISS
+    nBsn_tmp = 0
+    do igx = gxs, gxe
+      bsnId = bsnmap(igx,igy)
+      if( bsnId == BSN_MISS ) cycle
+      if( bsnId /= bsnId_prev )then
+        bsnId_prev = bsnId
+        call add(nBsn_tmp)
+        lst_bsnId_x(nBsn_tmp) = bsnId
+      endif
+    enddo  ! igx/
+
+    call sort(lst_bsnId_x(:nBsn_tmp))
+    nBsn_x = 0
+    ie = 0
+    do while( ie < nBsn_tmp )
+      is = ie + 1
+      ie = is
+      do while( ie < nBsn_tmp )
+        if( lst_bsnId_x(ie+1) /= lst_bsnId_x(is) ) exit
+        ie = ie + 1
+      enddo
+      if( nBsn_x == size(lst_bsnId_x) )then
+        call realloc(lst_bsnId_x, nBsn_x*2, clear=.false.)
+      endif
+      call add(nBsn_x)
+      lst_bsnId_x(nBsn_x) = lst_bsnId_x(is)
+    enddo
+
+    if( nBsn_x == 0 ) cycle
+
+    if( nBsn == 0 )then
+      !call logmsg('gy '//str(igy,DGT_GXY)//' nBsn '//str(nBsn)//' -> '//str(nBsn_x))
+      nBsn = nBsn_x
+      lst_bsnId(:nBsn) = lst_bsnId_x(:nBsn)
+      do i = 1, nBsn
+        arg(i) = i
+      enddo
+      cycle
+    endif
+
+    nBsn_tmp = nBsn
+    do iBsn_x = 1, nBsn_x
+      call search(lst_bsnId_x(iBsn_x), lst_bsnId(:nBsn), arg(:nBsn), i)
+      if( i == 0 )then
+        if( nBsn_tmp == size(lst_bsnId) )then
+          call realloc(lst_bsnId, nBsn*2, clear=.false.)
+        endif
+        call add(nBsn_tmp)
+        lst_bsnId(nBsn_tmp) = lst_bsnId_x(iBsn_x)
+      endif
+    enddo  ! iBsn_x/
+    if( nBsn_tmp > nBsn )then
+      !call logmsg('gy '//str(igy,DGT_GXY)//' nBsn '//str(nBsn)//' -> '//str(nBsn_tmp))
+      nBsn = nBsn_tmp
+      call realloc(arg, max(nBsn*2, size(arg)))
+      call argsort(lst_bsnId(:nBsn), arg(:nBsn))
+    endif
+  enddo  ! igy/
+  deallocate(arg)
+
+  call realloc(lst_bsnId, nBsn, clear=.false.)
+  call sort(lst_bsnId)
+  call logmsg('Basin id: '//str(lst_bsnId(:2),', ')//', ..., '//str(lst_bsnId(nBsn-1:),', '))
+
+  call logext()
+  !-------------------------------------------------------------
+  ! Prepare maps of basin id and elevation
+  !-------------------------------------------------------------
+  call logent('Preparing maps')
+
+  ! Margin
+  gxs = max(gxs - 1, 1)
+  gxe = min(gxe + 1, NGX)
+  gys = max(gys - 1, 1)
+  gye = min(gye + 1, NGY)
+
+  f = get_f_lst_tile('basin_range')
+  open(newunit=un, file=f, status='old')
+  read(un,*)
+  bsnId = 0
+  do iBsn = 1, nBsn
+    do while( bsnId < lst_bsnId(iBsn) )
+      read(un,*) bsnId, mTile, i_, i_, gxs_bsn, gxe_bsn, gys_bsn, gye_bsn
+      read(un,*) ! BBox
+      do iTile = 1, mTile
+        read(un,*)
+      enddo
+    enddo
+    gxs = min(gxs, gxs_bsn)
+    gxe = max(gxe, gxe_bsn)
+    gys = min(gys, gys_bsn)
+    gye = max(gye, gye_bsn)
+  enddo  ! iBsn/
+
+  call logmsg('gxy (new): ['//str((/gxs,gxe/),DGT_GXY,':')//&
+                         ','//str((/gys,gye/),DGT_GXY,':')//']')
+
+  deallocate(bsnmap)
+  allocate(bsnmap(gxs:gxe,gys:gye))
+  call read_map_from_tile(&
+      'bsn', DTYPE_INT4, BSN_MISS, gxs, gxe, gys, gye, bsnmap)
+
+  allocate(elvmap(gxs:gxe,gys:gye))
+  call read_map_from_tile(&
+      'elv', DTYPE_REAL, ELV_MISS, gxs, gxe, gys, gye, elvmap)
+
+  allocate(fdrmap(gxs:gxe,gys:gye))
+  call read_map_from_tile(&
+      'dir', DTYPE_INT1, FDR_MISS, gxs, gxe, gys, gye, fdrmap)
+
+  bsnId = BSN_MISS
+  do igy = gys, gye
+  do igx = gxs, gxe
+    bsnId = bsnmap(igx,igy)
+    if( bsnId == BSN_MISS ) cycle
+    if( bsnId /= bsnId_prev )then
+      call search(bsnId, lst_bsnId, iBsn)
+    endif
+    if( iBsn == 0 ) bsnmap(igx,igy) = BSN_MISS
+  enddo  ! igx/
+  enddo  ! igy/
+
+  call logext()
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
+end subroutine prep_maps
+!===============================================================
+!
+!===============================================================
+real(8) function get_elv(&
+    gx, gy, bsnmap, elvmap, iEnt, jNode) result(elv)
+  use c2_jflw_const
+  implicit none
+  integer, intent(in) :: gx, gy
+  integer, pointer :: bsnmap(:,:) ! in
+  real(4), pointer :: elvmap(:,:) ! in
+  integer, intent(in) :: iEnt, jNode
+
+  if( bsnmap(gx,gy) == BSN_MISS )then
+    elv = 0.d0
+  else
+    elv = elvmap(gx, gy)
+    if( elv == ELV_MISS )then
+      call errend('elv == ELV_MISS'//&
+                '\n  ent('//str(iEnt)//') node('//str(jNode)//')')
+    endif
+  endif
+end function get_elv
+!===============================================================
+!
+!===============================================================
+end module mod_modify_flwdir

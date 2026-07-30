@@ -1,0 +1,34 @@
+#==============================================================
+#
+#==============================================================
+FC = ifort
+
+FCFLAGS_COMMON = -assume byterecl -fopenmp -heap-arrays
+FCFLAGS_FAST  = $(FCFLAGS_COMMON)\
+                -O2
+FCFLAGS_DEBUG = $(FCFLAGS_COMMON)\
+                -O0 -check all -check noarg_temp_created -warn all -CB\
+                -gen_interfaces -traceback -g\
+                -assume realloc_lhs -fstack-protector\
+                -assume protect_parens\
+                -fpe0 -ftrapuv
+
+CC = icc
+
+CCFLAGS_FAST  = -O2 -std=c99 -no-multibyte-chars
+CCFLAGS_DEBUG = -O0 -g -debug all -std=c99 -no-multibyte-chars
+#==============================================================
+#
+#==============================================================
+MAKE = make
+INSTALL = install
+AR = ar
+ARFLAGS = rv
+RANLIB = ranlib
+
+MKDIR = mkdir
+MKDIRFLAGS = -p
+RM = rm
+RMFLAGS = -f
+CP = cp
+CPFLAGS = -f
