@@ -28,11 +28,11 @@ subroutine sub_slo_ij2idx(sts, a, a_idx)
   implicit none
   type(static_slope_), intent(in) :: sts
   real(8), intent(in) :: a(:,:)  !(nx,ny)
-  real(8), intent(out) :: a_idx(:)  !(nSlo)
+  real(8), intent(out) :: a_idx(:)  !(nGrid)
 
   integer :: k
 
-  do k = 1, sts%nSlo
+  do k = 1, sts%nGrid
     a_idx(k) = a(sts%idx2i(k),sts%idx2j(k))
   enddo
 end subroutine sub_slo_ij2idx
@@ -42,13 +42,13 @@ end subroutine sub_slo_ij2idx
 subroutine sub_slo_idx2ij(sts, a_idx, a)
   implicit none
   type(static_slope_), intent(in) :: sts
-  real(8), intent(in) :: a_idx(:)  !(nSlo)
+  real(8), intent(in) :: a_idx(:)  !(nGrid)
   real(8), intent(out) :: a(:,:)  !(nx,ny)
 
   integer :: k
 
   a(:,:) = 0.d0
-  do k = 1, sts%nSlo
+  do k = 1, sts%nGrid
     a(sts%idx2i(k),sts%idx2j(k)) = a_idx(k)
   enddo
 end subroutine sub_slo_idx2ij
@@ -58,13 +58,13 @@ end subroutine sub_slo_idx2ij
 subroutine sub_slo_idx2ij4(sts, a_idx, a)
   implicit none
   type(static_slope_), intent(in) :: sts
-  real(8), intent(in) :: a_idx(:,:)  !(i4,nSlo)
-  real(8), intent(out) :: a(:,:,:)  !(i4,nx,ny)
+  real(8), intent(in) :: a_idx(:,:)  !(4,nGrid)
+  real(8), intent(out) :: a(:,:,:)  !(4,nx,ny)
 
   integer :: k
 
   a(:,:,:) = 0.d0
-  do k = 1, sts%nSlo
+  do k = 1, sts%nGrid
     a(:,sts%idx2i(k),sts%idx2j(k)) = a_idx(:,k)
   enddo
 end subroutine sub_slo_idx2ij4

@@ -19,7 +19,7 @@ module mod_forcing
   !-------------------------------------------------------------
   character(CLEN_PROC), parameter :: MODNAM = 'mod_forcing'
 
-  real(4), allocatable :: qp_real(:,:)
+  real(4), allocatable :: prcp(:,:)
 
   integer :: un_prcp
   !-------------------------------------------------------------
@@ -36,7 +36,7 @@ subroutine open_file_prcp(config, grid)
        form='unformatted', access='direct', recl=4_8*grid%nx*grid%ny, &
        action='read', status='old')
 
-  allocate(qp_real(grid%nx, grid%ny))
+  allocate(prcp(grid%nx, grid%ny))
 end subroutine open_file_prcp
 !===============================================================
 !
@@ -46,21 +46,38 @@ subroutine close_file_prcp()
 
   close(un_prcp)
 
-  deallocate(qp_real)
+  deallocate(prcp)
 end subroutine close_file_prcp
 !===============================================================
 !
 !===============================================================
-subroutine read_prcp(it, qp)
+subroutine read_prcp(config, static, time, forcing)
+  use mod_util, only: &
+    sub_slo_ij2idx
   implicit none
-  integer, intent(in) :: it
-  real(8), intent(out) :: qp(:,:)  !(nx,ny)
+  type(config_), intent(in) :: config
+  type(static_), intent(in) :: static
+  type(time_), intent(inout) :: time
+  type(forcing_), intent(inout) :: forcing
 
-  read(un_prcp, rec=it) qp_real
-  qp = real(qp_real, 8)
+  if( time%t_now < time%t_forcing_next ) return
+
+  time%t_forcing_next = time%t_forcing_next + time%dt_forcing
+  time%count_forcing = time%count_forcing + 1
+
+  !call logmsg('forcing t step: '//str(time%count_forcing))
+  read(un_prcp, rec=time%count_forcing) prcp
+
+  where( prcp == config%input%forcing%prcp_miss )
+    prcp = 0.0
+  endwhere
+
+  forcing%prcp = real(prcp, 8)
 
   ! [mm/h] -> [m/s]
-  qp(:,:) = qp(:,:) / (3.6d2 * 1d3)
+  forcing%prcp(:,:) = forcing%prcp(:,:) / (3.6d2 * 1d3)
+
+  call sub_slo_ij2idx(static%slope, forcing%prcp, forcing%prcp_idx)
 end subroutine read_prcp
 !===============================================================
 !

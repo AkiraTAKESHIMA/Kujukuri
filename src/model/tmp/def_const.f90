@@ -53,5 +53,8 @@ module def_const
        dc3=c3-18575.d0/48384.d0,dc4=c4-13525.d0/55296.d0,dc5=-277.d0/14336.d0, &
        dc6=c6-.25d0)
 
-!  real(8), save :: errmax
+  logical :: debug = .false.
+  integer :: x_debug = 52
+  integer :: y_debug = 60
+  integer :: k_debug
 end module def_const

@@ -94,7 +94,7 @@ subroutine run()
   integer :: it
   integer :: it_prcp
   integer(8) :: dt_accum
-  integer, allocatable :: time_now(:)  !(5)
+  integer, allocatable :: time_now(:)  !(6)
 
   integer :: k
   !, kk
@@ -112,7 +112,7 @@ subroutine run()
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
-  allocate(time_now(5))
+  allocate(time_now(6))
 
   allocate(qp_real(nx,ny))
   allocate(qp(nx,ny))
@@ -248,8 +248,8 @@ subroutine run()
     if( mod(dt_accum, int(dt_prcp)) == 0 ) call add(it_prcp)
     call add(dt_accum, int(dt))
     call add(it)
-    call logmsg('time: '//str(time_now(1),-4)//'/'//&
-                str(time_now(2:3),-2,'/')//' '//&
+    call logmsg('time: '//str(time_now(1),-4)//'-'//&
+                str(time_now(2:3),-2,'-')//'T'//&
                 str(time_now(4:5),-2,':')//&
                 ' t_prcp: '//str(it_prcp))
 

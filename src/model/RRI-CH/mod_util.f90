@@ -72,10 +72,11 @@ subroutine stime2time(stime, time)
   integer, intent(out) :: time(:)
 
   read(stime(:4),*) time(1)  ! year
-  read(stime(5:6),*) time(2)  ! month
-  read(stime(7:8),*) time(3)  ! day
-  read(stime(9:10),*) time(4)  ! hour
-  read(stime(11:12),*) time(5)  ! minutes
+  read(stime(6:7),*) time(2)  ! month
+  read(stime(9:10),*) time(3)  ! day
+  read(stime(12:13),*) time(4)  ! hour
+  read(stime(15:16),*) time(5)  ! minutes
+  read(stime(18:19),*) time(6)  ! seconds
 end subroutine stime2time
 !===============================================================
 !
@@ -94,33 +95,34 @@ end function get_dt_minutes
 !===============================================================
 !
 !===============================================================
-subroutine progress_time(time, dt_sec)
+subroutine progress_time(time, dt)
   implicit none
   integer, intent(inout) :: time(:)
-  integer, intent(in) :: dt_sec  ! seconds
+  integer, intent(in) :: dt  ! [sec]
 
   integer :: daymax
-  integer :: dt  ! minutes
 
-  dt = dt_sec / 60
+  time(6) = time(6) + dt
+  if( time(6) > 60 )then
+    time(5) = time(5) + time(6) / 60  ! minuts
+    time(6) = mod(time(6), 60)
+    if( time(5) > 59 )then
+      time(4) = time(4) + time(5) / 60  ! hour
+      time(5) = mod(time(5), 60)
 
-  time(5) = time(5) + dt
-  if( time(5) > 59 )then
-    time(4) = time(4) + time(5) / 60  ! hour
-    time(5) = mod(time(5), 60)
+      if( time(4) > 23 )then
+        time(3) = time(3) + time(4) / 24  ! day
+        time(4) = mod(time(4), 24)
 
-    if( time(4) > 23 )then
-      time(3) = time(3) + time(4) / 24  ! day
-      time(4) = mod(time(4), 24)
+        daymax = days(time(1), time(2))
+        if( time(3) > daymax )then
+          time(2) = time(2) + 1  ! month
+          time(3) = time(3) - daymax
 
-      daymax = days(time(1), time(2))
-      if( time(3) > daymax )then
-        time(2) = time(2) + 1  ! month
-        time(3) = time(3) - daymax
-
-        if( time(2) > 12 )then
-          time(1) = time(1) + 1  ! year
-          time(2) = mod(time(2), 12)
+          if( time(2) > 12 )then
+            time(1) = time(1) + 1  ! year
+            time(2) = mod(time(2), 12)
+          endif
         endif
       endif
     endif

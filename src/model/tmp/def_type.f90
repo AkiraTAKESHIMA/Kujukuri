@@ -22,9 +22,9 @@ module def_type
   end type
 
   type adaptive_rk_
-    integer :: error_tolerance
-    integer :: dt_min_river
-    integer :: dt_min_slope
+    real(8) :: dt_min_slope
+    real(8) :: dt_min_river
+    real(8) :: error_tolerance
   end type
 
   type domain_
@@ -80,7 +80,9 @@ module def_type
   end type
 
   type input_forcing_
+    integer :: interval
     character(CLEN_PATH) :: file_prcp  ! precipitation
+    real(4) :: prcp_miss
   end type
 
   type input_
@@ -148,8 +150,8 @@ module def_type
 
   type static_slope_
     integer :: nx, ny
-    integer :: nSlo
-    integer :: lmax
+    integer :: nGrid
+    integer :: nDir
     integer, pointer :: idx2i(:)
     integer, pointer :: idx2j(:)
     integer, pointer :: ij2idx(:,:)
@@ -279,15 +281,20 @@ module def_type
     real(8) :: t_end
     real(8) :: t_now
     real(8) :: t_next
+    real(8) :: t_forcing_next
     real(8) :: dt_model
     real(8) :: dt_river
     real(8) :: dt_slope
+    real(8) :: dt_forcing
+    integer :: count_model
+    integer :: count_forcing
   end type
   !-------------------------------------------------------------
   ! State
   !-------------------------------------------------------------
   type state_slope_
     real(8), pointer :: hs_idx(:)
+    real(8), pointer :: hs(:,:)
   end type
 
   type state_river_
@@ -325,28 +332,37 @@ module def_type
   !-------------------------------------------------------------
   ! Solver
   !-------------------------------------------------------------
-  type solver_rk45_
+  type solver_adaptive_rk45_
+    real(8) :: dt_min_slope
+    real(8) :: dt_min_river
     real(8) :: error_tolerance
   end type
 
   type solver_
-    type(solver_rk45_) :: rk45
+    type(solver_adaptive_rk45_) :: adaptive_rk45
   end type
   !-------------------------------------------------------------
   ! Workspace
   !-------------------------------------------------------------
+  type workspace_slope_
+    real(8), pointer :: hs_idx(:)
+    real(8), pointer :: qs_idx(:,:)
+  end type
+
   type workspace_river_
     real(8), pointer :: hr_idx(:)
-    real(8), pointer :: qr_idx(:)
+    real(8), pointer :: qr_idx(:,:)
   end type
 
   type workspace_rk45_submodel_
-    integer :: n
+    integer :: nGrid
+    integer :: nDir
     real(8), pointer :: y5(:)
     real(8), pointer :: y4(:)
     real(8), pointer :: yt(:)
+    real(8), pointer :: yerr(:)
     real(8), pointer :: k1(:), k2(:), k3(:), k4(:), k5(:), k6(:)
-    real(8), pointer :: q1(:), q2(:), q3(:), q4(:), q5(:), q6(:)
+    real(8), pointer :: q1(:,:), q2(:,:), q3(:,:), q4(:,:), q5(:,:), q6(:,:)
   end type
 
   type workspace_rk45_
@@ -356,7 +372,7 @@ module def_type
 
   type workspace_
     type(workspace_river_) :: river
-    !type(workspace_slope_) :: slope
+    type(workspace_slope_) :: slope
     type(workspace_rk45_) :: rk45
   end type
 end module def_type

@@ -17,7 +17,8 @@ program main
         connectChannels    , &
         postConnectChannels
   use mod_separate_networks, only: &
-        separateNetworks
+        separateNetworks, &
+        makeModelNetworkData
   use mod_modify_channeldir, only: &
         modifyChannelDir
   use mod_modify_flwdir, only: &
@@ -32,6 +33,8 @@ program main
   character(32) :: uid
   character(CLEN_KEY) :: resolution
   character(CLEN_KEY) :: resl_in, resl_out
+  real(8) :: leng
+  character(CLEN_PATH) :: name_leng
 
   character(CLEN_PROC), parameter :: PRCNAM = 'program const_river'
 
@@ -49,7 +52,7 @@ program main
   !-------------------------------------------------------------
   selectcase( task )
 
-  ! Main Step 1. Find connection of channels and make groups
+  ! Main Step 1. Reconstruct networks
   !-------------------------------------------------------------
   case( 'connectChannels' )
     call connectChannels()
@@ -58,11 +61,22 @@ program main
     call postConnectChannels()
 
   case( 'separateNetworks' )
-    call addarg('-tmpuid', '', '', .false., 'Temporal network index')
+    call addarg('-tmpuid', '', '', .false., 'Temporal network id')
     call parsearg(istart=2)
     uid = arg_char('-tmpuid')
 
     call separateNetworks(uid)
+
+  case( 'makeModelNetworkData' )
+    call addarg('name_leng', 's', 'Product name')
+    call addarg('leng', 0.d0, 'Standard length of divided sections')
+    call addarg('-uid', '', '', .false., 'Network id')
+    call parsearg(istart=2)
+    name_leng = arg_char('name_leng')
+    leng = arg_dble('leng')
+    uid = arg_char('-uid')
+  
+    call makeModelNetworkData(name_leng, leng, uid)
 
   ! Main Step 2. Modify flow direction
   !-------------------------------------------------------------

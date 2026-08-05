@@ -70,3 +70,5 @@ Testing/
 # Input data or experimental results
 dat/
 run/
+tmp/
+configs/

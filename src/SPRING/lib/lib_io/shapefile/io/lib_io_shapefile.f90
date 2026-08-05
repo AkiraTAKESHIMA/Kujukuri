@@ -434,19 +434,28 @@ integer function shp_get_entity(iEntity, entity) result(info)
            entity%mmin, entity%mmax)
   if( read_error() ) return
 
-  allocate(panPartStart(entity%nPart))
+  if( entity%nPart == 0 )then
+    entity%nPart = 1
 
-  info = c_shpgetpanpartstart(iEntity-1, panPartStart)
-  if( read_error() ) return
+    entity%part_is_allocated = .true.
+    allocate(entity%part(entity%nPart))
 
-  entity%part_is_allocated = .true.
-  allocate(entity%part(entity%nPart))
-  do iPart = 1, entity%nPart-1
-    entity%part(iPart)%nPoint = panPartStart(iPart+1) - panPartStart(iPart)
-  enddo
-  entity%part(entity%nPart)%nPoint = entity%nPoint - panPartStart(entity%nPart)
+    entity%part(1)%nPoint = entity%nPoint
+  else
+    allocate(panPartStart(entity%nPart))
 
-  deallocate(panPartStart)
+    info = c_shpgetpanpartstart(iEntity-1, panPartStart)
+    if( read_error() ) return
+
+    entity%part_is_allocated = .true.
+    allocate(entity%part(entity%nPart))
+    do iPart = 1, entity%nPart-1
+      entity%part(iPart)%nPoint = panPartStart(iPart+1) - panPartStart(iPart)
+    enddo
+    entity%part(entity%nPart)%nPoint = entity%nPoint - panPartStart(entity%nPart)
+
+    deallocate(panPartStart)
+  endif
   !-------------------------------------------------------------
   ! Read coordinate data
   !-------------------------------------------------------------

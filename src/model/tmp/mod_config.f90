@@ -21,15 +21,16 @@ contains
 !===============================================================
 !
 !===============================================================
-subroutine prepare_static_data(config, time, grid, static)
+subroutine prepare_static_data(config, time, grid, solver, static)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'prepare_static_data'
   type(config_), intent(out) :: config
   type(time_), intent(out) :: time
   type(grid_), intent(out) :: grid
+  type(solver_), intent(out) :: solver
   type(static_), intent(out) :: static
 
-  call logbgn(PRCNAM, MODNAM)
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
@@ -38,6 +39,8 @@ subroutine prepare_static_data(config, time, grid, static)
   call setup_time(config, time)
 
   call setup_grid(config, grid, static%slope)
+
+  call setup_solver(config, solver)
 
   call load_input_data(config, grid, static)
 
@@ -62,7 +65,7 @@ subroutine read_config(config)
   integer :: un
   character(1) :: c_
 
-  call logbgn(PRCNAM, MODNAM)
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
@@ -105,7 +108,7 @@ subroutine read_config(config)
   read(un,*) c_, config%domain%nx
   read(un,*) c_, config%domain%ny
   !-------------------------------------------------------------
-  ! Input
+  ! Static data
   !-------------------------------------------------------------
   read(un,*)
   read(un,*) c_, config%input%topography%file_elv
@@ -114,8 +117,13 @@ subroutine read_config(config)
   read(un,*)
   read(un,*) c_, config%input%river%network%file_network
   read(un,*) c_, config%input%river%network%allow_channels_outside_domain
+  !-------------------------------------------------------------
+  ! Forcing data
+  !-------------------------------------------------------------
   read(un,*)
+  read(un,*) c_, config%input%forcing%interval
   read(un,*) c_, config%input%forcing%file_prcp
+  read(un,*) c_, config%input%forcing%prcp_miss
   !-------------------------------------------------------------
   ! River parameters
   !-------------------------------------------------------------
@@ -231,7 +239,7 @@ subroutine setup_time(config, time)
 
   integer :: year_start
 
-  call logbgn(PRCNAM, MODNAM)
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
@@ -253,6 +261,8 @@ subroutine setup_time(config, time)
   time%dt_river = config%timestep%river
   time%dt_slope = config%timestep%slope
 
+  time%dt_forcing = config%input%forcing%interval
+
   call logmsg('datetime start: '//str(time%datetime_start(1),-4)//'-'//&
     str(time%datetime_start(2:3),-2,'-')//'T'//str(time%datetime_start(5:7),-2,':')//&
     ' ('//str(time%t_start)//' sec from '//str(year_start)//'-01-01T00:00:00)')
@@ -272,7 +282,7 @@ subroutine setup_grid(config, grid, slope)
   type(grid_), intent(inout) :: grid
   type(static_slope_), intent(inout) :: slope
 
-  call logbgn(PRCNAM, MODNAM)
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
@@ -294,14 +304,25 @@ end subroutine setup_grid
 !===============================================================
 !
 !===============================================================
+subroutine setup_solver(config, solver)
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'setup_solver'
+  type(config_), intent(in) :: config
+  type(solver_), intent(inout) :: solver
+  
+  solver%adaptive_rk45%error_tolerance = config%adaptive_rk%error_tolerance
+end subroutine setup_solver
+!===============================================================
+!
+!===============================================================
 subroutine load_input_data(config, grid, static)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'load_input_data'
-  type(config_), intent(in)    :: config
+  type(config_), intent(in) :: config
   type(grid_), intent(inout) :: grid
   type(static_) , intent(inout) :: static
 
-  call logbgn(PRCNAM, MODNAM)
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
@@ -323,7 +344,7 @@ subroutine load_topography(config, grid, slope)
   type(grid_), intent(inout) :: grid
   type(static_slope_), intent(inout) :: slope
 
-  call logbgn(PRCNAM, MODNAM)
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
@@ -333,6 +354,10 @@ subroutine load_topography(config, grid, slope)
   slope%domain_mask => grid%domain_mask
 
   call traperr( rbin(slope%zs, config%input%topography%file_elv, dtype=DTYPE_REAL) )
+  ! DEBUG
+  !where( slope%zs > ZS_MISS_THRESH )
+  !  slope%zs = 1.d0
+  !endwhere
 
   where( slope%zs <= ZS_MISS_THRESH )
     slope%domain_mask = DOMAIN__OUTSIDE
@@ -352,7 +377,7 @@ subroutine load_landcover(config, slope)
   type(config_), intent(in) :: config
   type(static_slope_), intent(inout) :: slope
 
-  call logbgn(PRCNAM, MODNAM)
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
@@ -375,7 +400,7 @@ subroutine load_river_data(config, river)
   type(config_), intent(in) :: config
   type(static_river_), intent(out) :: river
 
-  call logbgn(PRCNAM, MODNAM)
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
@@ -401,7 +426,7 @@ subroutine load_river_network(config, river)
   integer :: un
   character :: c_
 
-  call logbgn(PRCNAM, MODNAM)
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
@@ -444,7 +469,7 @@ subroutine load_river_section(config, river)
   type(config_), intent(in) :: config
   type(static_river_), intent(inout) :: river
 
-  call logbgn(PRCNAM, MODNAM)
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
@@ -479,7 +504,7 @@ subroutine load_river_section_rectangular(config, river)
   integer :: un
   character :: c_
 
-  call logbgn(PRCNAM, MODNAM)
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
@@ -522,7 +547,7 @@ subroutine build_static_data(config, grid, static)
   type(grid_), intent(inout) :: grid
   type(static_), intent(inout) :: static
 
-  call logbgn(PRCNAM, MODNAM)
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
@@ -557,7 +582,7 @@ subroutine build_grid(grid)
 
   integer :: ix, iy
 
-  call logbgn(PRCNAM, MODNAM)
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
@@ -572,6 +597,9 @@ subroutine build_grid(grid)
     ) * (east_of_x(grid,ix)-west_of_x(grid,ix)) * d2r * EARTH_R**2
   enddo  ! ix/
   enddo  ! iy/
+
+  call logmsg('grid area mean: '//str(sum(grid%area,mask=grid%domain_mask/=DOMAIN__OUTSIDE)/&
+      count(grid%domain_mask/=DOMAIN__OUTSIDE)))
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
 end subroutine build_grid
@@ -599,59 +627,59 @@ subroutine build_slope_properties(config, grid, slope)
   integer :: lnd
   real(8) :: len
 
-  call logbgn(PRCNAM, MODNAM)
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
   param => config%param%slope
 
-  slope%nSlo = count(slope%domain_mask /= DOMAIN__OUTSIDE)
+  slope%nGrid = count(slope%domain_mask /= DOMAIN__OUTSIDE)
+  slope%nDir = 4
 
-  allocate(slope%idx2i(slope%nSlo))
-  allocate(slope%idx2j(slope%nSlo))
+  allocate(slope%idx2i(slope%nGrid))
+  allocate(slope%idx2j(slope%nGrid))
   allocate(slope%ij2idx(slope%nx,slope%ny))
 
-  allocate(slope%domain_mask_idx(slope%nSlo))
+  allocate(slope%domain_mask_idx(slope%nGrid))
 
-  allocate(slope%down_idx(slope%lmax,slope%nSlo))
-  allocate(slope%area_idx(slope%nSlo))
-  allocate(slope%dis_idx(slope%lmax,slope%nSlo))
-  allocate(slope%len_idx(slope%lmax,slope%nSlo))
-!  allocate(acc_slo_idx(nSlo))
-!  allocate(down_slo_1d_idx(nSlo))
-!  allocate(dis_slo_1d_idx(nSlo))
-!  allocate(len_slo_1d_idx(nSlo))
+  allocate(slope%down_idx(slope%nDir,slope%nGrid))
+  allocate(slope%area_idx(slope%nGrid))
+  allocate(slope%dis_idx(slope%nDir,slope%nGrid))
+  allocate(slope%len_idx(slope%nDir,slope%nGrid))
+!  allocate(acc_slo_idx(nGrid))
+!  allocate(down_slo_1d_idx(nGrid))
+!  allocate(dis_slo_1d_idx(nGrid))
+!  allocate(len_slo_1d_idx(nGrid))
 
-  allocate(slope%landuse_idx(slope%nSlo))
-  allocate(slope%zb_idx(slope%nSlo))
+  allocate(slope%landuse_idx(slope%nGrid))
+  allocate(slope%zb_idx(slope%nGrid))
 
-  allocate(slope%diffusion_idx(slope%nSlo))
-  allocate(slope%ns_idx(slope%nSlo))
-  allocate(slope%soildepth_idx(slope%nSlo))
-  allocate(slope%gammaa_idx(slope%nSlo))
+  allocate(slope%diffusion_idx(slope%nGrid))
+  allocate(slope%ns_idx(slope%nGrid))
+  allocate(slope%soildepth_idx(slope%nGrid))
+  allocate(slope%gammaa_idx(slope%nGrid))
 
-  allocate(slope%ksv_idx(slope%nSlo))
-  allocate(slope%faif_idx(slope%nSlo))
-  allocate(slope%infilt_limit_idx(slope%nSlo))
-  allocate(slope%ka_idx(slope%nSlo))
-  allocate(slope%km_idx(slope%nSlo))
-  allocate(slope%gammam_idx(slope%nSlo))
-  allocate(slope%beta_idx(slope%nSlo))
-  allocate(slope%da_idx(slope%nSlo))
-  allocate(slope%dm_idx(slope%nSlo))
-  allocate(slope%ksg_idx(slope%nSlo))
-  allocate(slope%gammag_idx(slope%nSlo))
-  allocate(slope%kg0_idx(slope%nSlo))
-  allocate(slope%fpg_idx(slope%nSlo))
-  allocate(slope%rgl_idx(slope%nSlo))
+  allocate(slope%ksv_idx(slope%nGrid))
+  allocate(slope%faif_idx(slope%nGrid))
+  allocate(slope%infilt_limit_idx(slope%nGrid))
+  allocate(slope%ka_idx(slope%nGrid))
+  allocate(slope%km_idx(slope%nGrid))
+  allocate(slope%gammam_idx(slope%nGrid))
+  allocate(slope%beta_idx(slope%nGrid))
+  allocate(slope%da_idx(slope%nGrid))
+  allocate(slope%dm_idx(slope%nGrid))
+  allocate(slope%ksg_idx(slope%nGrid))
+  allocate(slope%gammag_idx(slope%nGrid))
+  allocate(slope%kg0_idx(slope%nGrid))
+  allocate(slope%fpg_idx(slope%nGrid))
+  allocate(slope%rgl_idx(slope%nGrid))
 
   k = 0
-  slope%down_idx(:,:) = -1
   do iy = 1, slope%ny
   do ix = 1, slope%nx
     if( slope%domain_mask(ix,iy) == DOMAIN__OUTSIDE ) cycle
 
-    call add(k)
+    k = k + 1
     slope%idx2i(k) = ix
     slope%idx2j(k) = iy
     slope%ij2idx(ix,iy) = k
@@ -697,8 +725,10 @@ subroutine build_slope_properties(config, grid, slope)
   do ix = 1, slope%nx
     if( slope%domain_mask(ix,iy) == DOMAIN__OUTSIDE ) cycle
 
-    ! 8-direction: lmax = 4, 4-direction: lmax = 2
-    do l = 1, slope%lmax ! (1: right，2: down, 3: right down, 4: left down)
+    k = k + 1
+
+    ! 8-direction: nDir = 4, 4-direction: nDir = 2
+    do l = 1, slope%nDir ! (1: right，2: down, 3: right down, 4: left down)
       selectcase( l )
       case( 1 )
         xx = ix + 1
@@ -749,6 +779,14 @@ subroutine build_slope_properties(config, grid, slope)
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
+  if( debug )then
+    k_debug = slope%ij2idx(x_debug,y_debug)
+  endif
+  call logmsg('zs: '//str(slope%zs(x_debug,y_debug))//' zb: '//str(slope%zb_idx(k_debug))//&
+    ' soildepth: '//str(slope%soildepth_idx(k_debug)))
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
   nullify(param)
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -793,7 +831,7 @@ subroutine build_river_network(grid, river)
   logical :: is_outside
   character(:), allocatable :: msg
 
-  call logbgn(PRCNAM, MODNAM)
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
   ! Get grid index of points
   !-------------------------------------------------------------
@@ -1047,7 +1085,7 @@ subroutine build_river_section(river)
   character(CLEN_PROC), parameter :: PRCNAM = 'build_river_section'
   type(static_river_), intent(inout) :: river
 
-  call logbgn(PRCNAM, MODNAM)
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
@@ -1084,7 +1122,7 @@ subroutine build_river_section_rectangular(river)
   integer :: iCh
   integer :: iPt
 
-  call logbgn(PRCNAM, MODNAM)
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
@@ -1148,7 +1186,7 @@ subroutine build_river_topography(slope, river)
   integer :: iCh
   integer :: iMesh
 
-  call logbgn(PRCNAM, MODNAM)
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
@@ -1188,7 +1226,7 @@ subroutine build_slope_river_mapping(grid, river)
   type(grid_), intent(inout) :: grid
   type(static_river_), intent(inout) :: river
 
-  call logbgn(PRCNAM, MODNAM)
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
@@ -1213,7 +1251,7 @@ subroutine set_outlet_grid(grid, river)
   integer :: iCh
   integer :: iPt
 
-  call logbgn(PRCNAM, MODNAM)
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
@@ -1301,7 +1339,7 @@ subroutine build_slope_river_intersections(grid, river)
   real(8), pointer :: isct_ch_leng(:)
   integer, pointer :: arg(:)
 
-  call logbgn(PRCNAM, MODNAM)
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------

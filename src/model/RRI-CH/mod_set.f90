@@ -89,8 +89,8 @@ subroutine read_conf()
   read(un,*) c_, ddt_min_riv
   read(un,*) c_, ddt_min_slo
 
-  allocate(time_bgn(5))
-  allocate(time_end(5))
+  allocate(time_bgn(6))
+  allocate(time_end(6))
   call stime2time(stime_bgn, time_bgn)
   call stime2time(stime_end, time_end)
 

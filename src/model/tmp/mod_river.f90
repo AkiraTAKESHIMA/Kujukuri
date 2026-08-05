@@ -47,7 +47,7 @@ subroutine advance_river(&
     call hr2vr(static%river, river%hr_idx(iCh), iCh, river%vr_idx(iCh))
   enddo
 
-  call rk45(funcr, calc_state_sum, subst_state, associate_workspace_rk45, &
+  call rk45(funcr, increase_wlv, subst_wlv, associate_workspace_rk45, &
             static, state, forcing, tendency, time, &
             solver, &
             workspace)
@@ -61,25 +61,26 @@ end subroutine advance_river
 !===============================================================
 !
 !===============================================================
-subroutine funcr(static, state, forcing, vr_idx, fr_idx, qr_idx, workspace)
+subroutine funcr(&
+  static, forcing, &
+  vr_idx, fr_idx, qr_idx, &
+  workspace &
+)
   implicit none
-  type(static_), intent(in) :: static
-  type(state_), intent(in), target :: state
+  type(static_), intent(in), target :: static
   type(forcing_), intent(in) :: forcing
-  real(8), intent(in) :: vr_idx(:)
-  real(8), intent(out) :: fr_idx(:)
-  real(8), intent(out) :: qr_idx(:)
+  real(8), intent(in) :: vr_idx(:)  !(nCh)
+  real(8), intent(out) :: fr_idx(:)  !(nCh)
+  real(8), intent(out) :: qr_idx(:,:)  !(1,nCh)
   type(workspace_), intent(inout), target :: workspace
 
-  type(state_river_), pointer :: river
   type(workspace_river_), pointer :: wsr
   integer :: iCh
 
-  river => state%river
   wsr => workspace%river
 
   fr_idx(:) = 0.d0
-  qr_idx(:) = 0.d0
+  qr_idx(:,:) = 0.d0
 
   do iCh = 1, static%river%nCh
     call vr2hr(static%river, vr_idx(iCh), iCh, wsr%hr_idx(iCh))
@@ -87,20 +88,19 @@ subroutine funcr(static, state, forcing, vr_idx, fr_idx, qr_idx, workspace)
 
   call qr_calc(&
     static%river, wsr%hr_idx, & ! in
-    qr_idx, fr_idx) ! out
+    fr_idx, qr_idx) ! out
 
-  nullify(river)
   nullify(wsr)
 end subroutine funcr
 !===============================================================
 !
 !===============================================================
-subroutine qr_calc(static, hr_idx, qr_idx, fr_idx)
+subroutine qr_calc(static, hr_idx, fr_idx, qr_idx)
   implicit none
   type(static_river_), intent(in) :: static
   real(8), intent(in) :: hr_idx(:)
-  real(8), intent(out) :: qr_idx(:)
   real(8), intent(out) :: fr_idx(:)
+  real(8), intent(out) :: qr_idx(:,:)  !(1,nCh)
 
   type(channel_), pointer :: ch
   type(nd_), pointer :: nd
@@ -113,7 +113,7 @@ subroutine qr_calc(static, hr_idx, qr_idx, fr_idx)
   real(8) :: hw
   real(8) :: qr_temp
 
-  qr_idx(:) = 0.d0
+  qr_idx(:,:) = 0.d0
   fr_idx(:) = 0.d0
 
   do k = 1, static%nCh
@@ -143,7 +143,7 @@ subroutine qr_calc(static, hr_idx, qr_idx, fr_idx)
         call hq_riv(&
             static, dh, hw, ch%width, k, & ! in
             qr_temp) ! out
-        call add(qr_idx(k), qr_temp)
+        call add(qr_idx(1,k), qr_temp)
 
         call add(fr_idx(k), -qr_temp)
         call add(fr_idx(kk), qr_temp)
@@ -213,24 +213,24 @@ end subroutine vr2hr
 !===============================================================
 !
 !===============================================================
-subroutine calc_state_sum(state, dy, yt)
+subroutine increase_wlv(state, dy, yt)
   implicit none
   type(state_), intent(in) :: state
   real(8), intent(in) :: dy(:)
   real(8), intent(out) :: yt(:)
 
   yt(:) = state%river%hr_idx(:) + dy(:)
-end subroutine calc_state_sum
+end subroutine increase_wlv
 !===============================================================
 !
 !===============================================================
-subroutine subst_state(state, y)
+subroutine subst_wlv(state, y)
   implicit none
   type(state_), intent(inout) :: state
   real(8), intent(in) :: y(:)
 
   state%river%hr_idx(:) = y(:)
-end subroutine subst_state
+end subroutine subst_wlv
 !===============================================================
 !
 !===============================================================
@@ -277,7 +277,7 @@ subroutine allocate_workspace_river(static, workspace)
   type(workspace_river_), intent(inout) :: workspace
 
   allocate(workspace%hr_idx(static%nCh))
-  allocate(workspace%qr_idx(static%nCh))
+  allocate(workspace%qr_idx(1,static%nCh))
 end subroutine allocate_workspace_river
 !===============================================================
 !

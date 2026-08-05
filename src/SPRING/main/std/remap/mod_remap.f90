@@ -44,6 +44,7 @@ subroutine remap(s, t, rt)
   real(8), allocatable :: sval(:), tval(:)
   real(8), allocatable :: sval_2d(:,:), tval_2d(:,:)
   integer(1), allocatable :: tval_mask(:)
+  real(8) :: sval_miss
   integer :: iFile
   integer(8) :: sij, tij
   integer(8) :: rtij
@@ -94,6 +95,13 @@ subroutine remap(s, t, rt)
       tf => tfg%val(iFile)
       call logmsg('In : '//str(fileinfo(sf)))
       call logmsg('Out: '//str(fileinfo(tf)))
+
+      selectcase( sf%dtype )
+      case( DTYPE_REAL )
+        sval_miss = real(sfg%val_miss,4)  ! dble -> real -> dble
+      case default
+        sval_miss = real(sfg%val_miss,8)
+      endselect
       !---------------------------------------------------------
       ! Read input
       !---------------------------------------------------------
@@ -136,6 +144,8 @@ subroutine remap(s, t, rt)
                     '\nIndex '//str(rtm%tidx(rtij))//' of the target mesh is invalid.')
         endif
         tij = tg%idxarg(loc)
+
+        if( sval(sij) == sval_miss ) cycle
 
         tval(tij) = tval(tij) + sval(sij) * rtm%coef(rtij)
         tval_mask(tij) = 1_1

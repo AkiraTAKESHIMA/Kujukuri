@@ -641,22 +641,31 @@ subroutine check_keynum_relations()
     call errend('"fin_grdara" and "fin_grdwgt" must not be given at the same time.')
   endif
 
-  if( keynum('fin_grdidx') == 0 .and. &
-      keynum('fin_grdara') == 0 .and. &
-      keynum('fin_grdwgt') == 0 .and. &
-      (keynum('in_grid_sz') == 1 .or. &
-       keynum('in_grid_lb') == 1 .or. &
-       keynum('in_grid_ub') == 1) )then
-    call logwrn(msg_undesirable_input()//&
-              '\nAny value is given by the following keywords:'//&
-              '\n  "'//str('in_grid_sz')//'"'//&
-              '\n  "'//str('in_grid_lb')//'"'//&
-              '\n  "'//str('in_grid_ub')//'"'//&
-              '\nbut any value is not given by the following keywords:'//&
-              '\n  "'//str('fin_grdidx')//'"'//&
-              '\n  "'//str('fin_grdara')//'"'//&
-              '\n  "'//str('fin_grdwgt')//'"'//&
-              '\nThe inputs given by the former keywords are ignored.')
+!  if( keynum('fin_grdidx') == 0 .and. &
+!      keynum('fin_grdara') == 0 .and. &
+!      keynum('fin_grdwgt') == 0 .and. &
+!      (keynum('in_grid_sz') == 1 .or. &
+!       keynum('in_grid_lb') == 1 .or. &
+!       keynum('in_grid_ub') == 1) )then
+!    call logwrn(msg_undesirable_input()//&
+!              '\nAny value is given by the following keywords:'//&
+!              '\n  "'//str('in_grid_sz')//'"'//&
+!              '\n  "'//str('in_grid_lb')//'"'//&
+!              '\n  "'//str('in_grid_ub')//'"'//&
+!              '\nbut any value is not given by the following keywords:'//&
+!              '\n  "'//str('fin_grdidx')//'"'//&
+!              '\n  "'//str('fin_grdara')//'"'//&
+!              '\n  "'//str('fin_grdwgt')//'"'//&
+!              '\nThe inputs given by the former keywords are ignored.')
+!  endif
+  if( keynum('in_grid_sz') == 0 .and. &
+      (keynum('in_grid_lb') == 1 .or. keynum('in_grid_ub') == 1) )then
+    call errend('"in_grid_sz" must be given when "in_grid_lb" or "in_grid_ub" is given.')
+  endif
+
+  if( keynum('in_grid_lb') == 1 .neqv. keynum('in_grid_ub') == 1 )then
+    call logwrn('Both of "in_grid_lb" and "in_grid_ub" should be given '//&
+        'when either of them are given.')
   endif
   !-------------------------------------------------------------
   ! Missing value
@@ -1069,7 +1078,7 @@ subroutine read_settings_gs_polygon(a)
   call set_keynum('fin_grdwgt', 0, 1)
   call set_keynum('in_grid_sz', 0, 1)
   call set_keynum('in_grid_lb', 0, 1)
-  call set_keynum('in_grid_ub', 0, 1)
+  !call set_keynum('in_grid_ub', 0, 1)
 
   call set_keynum('idx_miss'   , 0, 1)
   call set_keynum('ara_miss'   , 0, 1)
@@ -1168,9 +1177,9 @@ subroutine read_settings_gs_polygon(a)
     case( 'in_grid_lb' )
       call read_value(fg_in%lb(1), pos=1)
       !call read_value(fg_in%lb(2), pos=2)
-    case( 'in_grid_ub' )
-      call read_value(fg_in%ub(1), pos=1)
-      !call read_value(fg_in%ub(2), pos=2)
+    !case( 'in_grid_ub' )
+    !  call read_value(fg_in%ub(1), pos=1)
+    !  !call read_value(fg_in%ub(2), pos=2)
     !-----------------------------------------------------------
     ! Missing value
     case( 'idx_miss' )
@@ -1307,23 +1316,23 @@ subroutine check_keynum_relations()
                 ' The input for "idx_bgn" is ignored.')
   endif
 
-  if( keynum('fin_grdidx') == 0 .and. &
-      keynum('fin_grdara') == 0 .and. &
-      keynum('fin_grdwgt') == 0 .and. &
-      (keynum('in_grid_sz') == 1 .or. &
-       keynum('in_grid_lb') == 1 .or. &
-       keynum('in_grid_ub') == 1) )then
-    call logwrn(msg_undesirable_input()//&
-              '\nAny value is given by the following keywords:'//&
-              '\n  "in_grid_sz"'//&
-              '\n  "in_grid_lb"'//&
-              '\n  "in_grid_ub"'//&
-              '\nbut any value is not given by the following keywords:'//&
-              '\n  "fin_grdidx"'//&
-              '\n  "fin_grdara"'//&
-              '\n  "fin_grdwgt"'//&
-              '\nThe inputs given by the former keywords are ignored.')
-  endif
+  !if( keynum('fin_grdidx') == 0 .and. &
+  !    keynum('fin_grdara') == 0 .and. &
+  !    keynum('fin_grdwgt') == 0 .and. &
+  !    (keynum('in_grid_sz') == 1 .or. &
+  !     keynum('in_grid_lb') == 1 .or. &
+  !     keynum('in_grid_ub') == 1) )then
+  !  call logwrn(msg_undesirable_input()//&
+  !            '\nAny value is given by the following keywords:'//&
+  !            '\n  "in_grid_sz"'//&
+  !            '\n  "in_grid_lb"'//&
+  !            '\n  "in_grid_ub"'//&
+  !            '\nbut any value is not given by the following keywords:'//&
+  !            '\n  "fin_grdidx"'//&
+  !            '\n  "fin_grdara"'//&
+  !            '\n  "fin_grdwgt"'//&
+  !            '\nThe inputs given by the former keywords are ignored.')
+  !endif
   !-------------------------------------------------------------
   ! Missing value
   !-------------------------------------------------------------

@@ -13,8 +13,9 @@ program main
   type(static_) :: static
   type(state_) :: state
   type(tendency_) :: tendency
+  type(solver_) :: solver
 
-  call prepare_static_data(config, time, grid, static)
+  call prepare_static_data(config, time, grid, solver, static)
 
-   call run(config, time, grid, static, state, tendency)
+   call run(config, time, grid, solver, static, state, tendency)
 end program main

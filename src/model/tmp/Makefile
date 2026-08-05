@@ -13,7 +13,9 @@ def_type.o\
 mod_mesh.o\
 mod_util.o\
 mod_config.o\
+mod_rk_org.o\
 mod_rk45.o\
+mod_slope.o\
 mod_river.o\
 mod_forcing.o\
 mod_driver.o\

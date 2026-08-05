@@ -43,9 +43,10 @@ module mod_make_mesh_data
 
   type node_
     real(8) :: lon, lat
-    !integer :: iNode
+    integer :: iNode
     integer :: typ
     real(8) :: elv
+    real(8) :: downleng
   end type
 
   type channel_
@@ -75,11 +76,12 @@ module mod_make_mesh_data
     character(:), allocatable :: uid
     real(8) :: west, east, south, north
     integer :: gxs, gxe, gys, gye
+    integer :: nWsys
+    type(watsys_), pointer :: wsys(:)
     integer :: nCh
     type(channel_), pointer :: channel(:)
     integer, pointer :: jCh(:)
-    integer :: nWsys
-    type(watsys_), pointer :: wsys(:)
+    integer :: nNode
   end type
 
   type chpix_
@@ -140,14 +142,145 @@ subroutine makeRemappingTables(&
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
-  if( lower(name_src) == 'nlni' )then
+  selectcase( name_src )
+  case( 'NLNI' )
     call make_rt_from_nlni(resl, resl_src, overwrite)
-  else
-    call errend('Invalid input.')
-  endif
+  case( 'J-FlwDir' )
+    call make_rt_from_jflw(resl, resl_src, overwrite)
+  case default
+    call errend('Invalid value in `name_src`: '//str(name_src))
+  endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
 end subroutine makeRemappingTables
+!===============================================================
+!
+!===============================================================
+subroutine make_rt_from_jflw(resl, resl_src, overwrite)
+  use c2_jflw_const, &
+    set_resolution => set_resolution
+  use c2_jflw_grid, only: &
+    west_of_tx, &
+    east_of_tx, &
+    south_of_ty, &
+    north_of_ty
+  use c2_jflw_io, only: &
+    tilename, &
+    get_dir_rt
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'make_rt_from_jflw'
+  character(*), intent(in) :: resl
+  character(*), intent(in) :: resl_src
+  logical, intent(in) :: overwrite
+
+  integer :: itx, ity
+  integer :: nx1, ny1
+  real(8) :: west1, east1, south1, north1
+  integer :: nx2, ny2
+  real(8) :: west2, east2, south2, north2
+  character(CLEN_PATH) :: dir
+  character(CLEN_PATH) :: f_conf, f_log
+  integer :: un
+
+  call logbgn(PRCNAM, MODNAM)
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  do ity = 1, NTY
+  do itx = 1, NTX
+!if( tilename(itx,ity) /= 'n36e140' ) cycle
+    call set_resolution(resl_src)
+
+    nx1 = NX
+    ny1 = NY
+    west1 = west_of_tx(itx)
+    east1 = east_of_tx(itx)
+    south1 = south_of_ty(ity)
+    north1 = north_of_ty(ity)
+
+    call set_resolution(resl)
+
+    nx2 = NX
+    ny2 = NY
+    west2 = west_of_tx(itx)
+    east2 = east_of_tx(itx)
+    south2 = south_of_ty(ity)
+    north2 = north_of_ty(ity)
+
+    dir = joined(get_dir_rt(resl_src, resl), tilename(itx,ity))
+    call traperr( mkdir(dir) )
+
+    if( access(joined(dir,'grid.bin'),' ') == 0 .and. .not. overwrite )then
+      call logmsg('File already exists: '//str(joined(dir,'grid.bin')))
+      cycle
+    endif
+
+    f_conf = joined(dir, 'conf')
+    call logmsg('Writing '//str(f_conf))
+    open(newunit=un, file=f_conf, status='replace')
+    call write_conf()
+    close(un)
+
+    f_log = joined(dir, 'log')
+    call logmsg('Log: '//str(f_log))
+    call execute_command_line(&
+        'srun '//PROG_SPRING_REMAP//' '//str(f_conf)//&
+        ' >'//str(f_log)//' 2>&1')
+  enddo  ! itx/
+  enddo  ! ity/
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
+!---------------------------------------------------------------
+contains
+!---------------------------------------------------------------
+subroutine write_conf()
+  implicit none
+
+  call w('#')
+  call w('path_report: "'//str(joined(dir,'report.txt'))//'"')
+  call w('')
+  call w('[mesh_latlon]')
+  call w('  nx: '//str(nx1))
+  call w('  ny: '//str(ny1))
+  call w('  west: '//str(west1))
+  call w('  east: '//str(east1))
+  call w('  south: '//str(south1))
+  call w('  north: '//str(north1))
+  call w('  is_south_to_north: .false.')
+  call w('[end]')
+  call w('')
+  call w('[mesh_latlon]')
+  call w('  nx: '//str(nx2))
+  call w('  ny: '//str(ny2))
+  call w('  west: '//str(west2))
+  call w('  east: '//str(east2))
+  call w('  south: '//str(south2))
+  call w('  north: '//str(north2))
+  call w('  is_south_to_north: .false.')
+  call w('[end]')
+  call w('')
+  call w('[remapping]')
+  call w('  dir: "'//str(dir)//'"')
+  call w('  fout_rt_sidx: "grid.bin", int8, rec=1')
+  call w('  fout_rt_tidx: "grid.bin", int8, rec=2')
+  call w('  fout_rt_area: "area.bin", dble')
+  call w('[end]')
+  call w('')
+  call w('[options]')
+  call w('  old_files: remove')
+  call w('  earth_geosys: WGS84')
+  call w('  earth_rtyp: volmetric')
+  call w('[end]')
+end subroutine write_conf
+!---------------------------------------------------------------
+subroutine w(s)
+  implicit none
+  character(*), intent(in) :: s
+
+  write(un,"(a)") s
+end subroutine w
+!---------------------------------------------------------------
+end subroutine make_rt_from_jflw
 !===============================================================
 ! NLNI to J-FlwDir
 !===============================================================
@@ -326,6 +459,7 @@ subroutine write_conf()
   call w('[options]')
   call w('  old_files: remove')
   call w('  earth_geosys: WGS84')
+  call w('  earth_rtyp: volmetric')
   call w('[end]')
 end subroutine write_conf
 !---------------------------------------------------------------
@@ -354,11 +488,13 @@ subroutine remap(&
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
-  selectcase( lower(name_src) )
+  selectcase( name_src )
 
-  case( 'nlni' )
-    call remap_nlni(&
-        resl, resl_src, var, overwrite)
+  case( 'NLNI' )
+    call remap_nlni(resl, resl_src, var, overwrite)
+
+  case( 'J-FlwDir' )
+    call remap_jflw(resl, resl_src, var, overwrite)
 
   case default
     call errend(msg_invalid_value('name_src', name_src))
@@ -619,6 +755,136 @@ subroutine remap_nlni(&
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
 end subroutine remap_nlni
+!===============================================================
+!
+!===============================================================
+subroutine remap_jflw(resl, resl_src, var, overwrite)
+  use c2_jflw_const
+  use c2_jflw_grid, only: &
+    gxs_of_tx, &
+    gys_of_ty
+  use c2_jflw_io, only: &
+    tilename, &
+    read_map_from_tile, &
+    get_f_map_tile, &
+    get_dir_rt
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'remap_jflw'
+  character(*), intent(in) :: resl
+  character(*), intent(in) :: resl_src
+  character(*), intent(in) :: var
+  logical, intent(in) :: overwrite
+
+  character(CLEN_KEY) :: dtype
+  real(4) :: miss
+  integer(8), allocatable :: sidx(:), tidx(:)
+  real(8), allocatable :: area(:)
+  real(4), allocatable :: srcmap(:,:), src1d(:)
+  real(8), allocatable :: tgt1d(:)
+  real(8), allocatable :: areasum(:)
+  integer :: nij, ij
+  integer :: nx1, ny1, nx2, ny2
+  integer :: itx, ity
+
+  character(CLEN_PATH) :: dir_rt
+  character(CLEN_PATH) :: f_report
+  character(CLEN_PATH) :: f_out
+  integer :: un
+  character :: c_
+
+  call logbgn(PRCNAM, MODNAM)
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  call set_resolution(resl_src)
+  nx1 = NX
+  ny1 = NY
+
+  call set_resolution(resl)
+  nx2 = NX
+  ny2 = NY
+
+  allocate(srcmap(nx1,ny1))
+  allocate(src1d(nx1*ny1))
+  allocate(tgt1d(nx2*ny2))
+  allocate(areasum(nx2*ny2))
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  selectcase( var )
+  case( 'elv' )
+    dtype = DTYPE_REAL
+    miss = ELV_MISS
+  case default
+    call errend(msg_invalid_value('var', var))
+  endselect
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  call set_resolution(resl_src)
+
+  do ity = 1, NTY
+  do itx = 1, NTX
+
+!if( tilename(itx,ity) /= 'n35e140' ) cycle
+
+    f_out = get_f_map_tile(resl, var, itx, ity)
+    if( .not. overwrite .and. access(f_out,' ') == 0 )then
+      call logmsg('File already exists: '//str(f_out))
+      cycle
+    endif
+
+    dir_rt = joined(get_dir_rt(resl_src, resl), tilename(itx,ity))
+    f_report = joined(dir_rt, 'report.txt')
+    open(newunit=un, file=f_report, status='old')
+    read(un,*)
+    read(un,*) c_, nij
+    close(un)
+
+    allocate(sidx(nij))
+    allocate(tidx(nij))
+    allocate(area(nij))
+    call traperr( rbin(sidx, joined(dir_rt,'grid.bin'), rec=1) )
+    call traperr( rbin(tidx, joined(dir_rt,'grid.bin'), rec=2) )
+    call traperr( rbin(area, joined(dir_rt,'area.bin')) )
+
+    call read_map_from_tile(&
+        resl_src, var, dtype, miss, &
+        gxs_of_tx(itx), gys_of_ty(ity), srcmap)
+    src1d = reshape(srcmap, (/size(srcmap)/))
+
+    tgt1d(:) = 0.d0
+    areasum(:) = 0.d0
+    do ij = 1_8, nij
+      if( src1d(sidx(ij)) == miss ) cycle
+      call add(tgt1d(tidx(ij)), src1d(sidx(ij)) * area(ij))
+      call add(areasum(tidx(ij)), area(ij))
+    enddo  ! ij/
+
+    where( areasum > 0.d0 )
+      tgt1d = tgt1d / areasum
+    elsewhere
+      tgt1d = miss
+    endwhere
+
+    call logmsg('Writing '//str(f_out))
+    call traperr( wbin(tgt1d, f_out, dtype=dtype, replace=.true.) )
+
+    deallocate(sidx)
+    deallocate(tidx)
+    deallocate(area)
+  enddo  ! itx/
+  enddo  ! ity/
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  deallocate(srcmap)
+  deallocate(src1d)
+  deallocate(tgt1d)
+  deallocate(areasum)
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
+end subroutine remap_jflw
 !===============================================================
 !
 !===============================================================
@@ -1179,7 +1445,7 @@ subroutine make1secNetworkMesh(uid)
   !
   !-------------------------------------------------------------
   if( uid == 'all' )then
-    f = get_f_lst_networks_mesh(RESOLUTION_1SEC)
+    f = get_f_lst_networks_mesh(RESOLUTION_1SEC, 'mask')
     call logmsg('Writing '//str(f))
     open(newunit=un, file=f, status='replace')
     write(un,"(a)") 'networks '//str(n)
@@ -1234,7 +1500,8 @@ subroutine make_1sec_network_mesh(&
   use c2_strnk_io, only: &
         get_f_network_channel, &
         get_f_network_chpix  , &
-        get_f_network_mesh
+        get_f_network_mesh, &
+        write_network_mesh_domain
   implicit none
   character(CLEN_PATH), parameter :: PRCNAM = 'make_1sec_network_mesh'
   type(nwkattr_), intent(inout), target :: lst_nwkattr(:)
@@ -1242,16 +1509,9 @@ subroutine make_1sec_network_mesh(&
   integer, intent(out) :: gxs, gxe, gys, gye
 
   type(network_) :: nwk
-  type(watsys_), pointer :: wsys
-  type(channel_), pointer :: ch
-  type(node_), pointer :: node
   type(nwkattr_), pointer :: nwkattr, nwkattr_self
   type(chpix_), pointer :: chpix, chpix_self
   integer :: nNwk, jNwk
-  integer :: jWsys
-  integer :: iiCh
-  integer :: jNode
-  integer :: cl_wsCode, cl_rvCode, cl_rvName
 
   integer :: iPix
   integer :: nEdgePix
@@ -1266,7 +1526,6 @@ subroutine make_1sec_network_mesh(&
   logical :: is_ok
 
   character(CLEN_PATH) :: f
-  integer :: un
 
   call logbgn(PRCNAM, MODNAM)
   !-------------------------------------------------------------
@@ -1286,45 +1545,7 @@ subroutine make_1sec_network_mesh(&
   call logent('Reading network data')
 
   f = get_f_network_channel(nwkattr_self%uid, 'sbin')
-  open(newunit=un, file=f, form='unformatted', access='sequential', status='old')
-  read(un) nwk%nWsys
-  allocate(nwk%wsys(nwk%nWsys))
-  do jWsys = 1, nwk%nWsys
-    wsys => nwk%wsys(jWsys)
-    read(un) wsys%wsCode, wsys%leng
-  enddo  ! jWsys/
-
-  read(un) nwk%nCh
-  allocate(nwk%jCh(nwk%nCh))
-  read(un) nwk%jCh(:)
-
-  allocate(nwk%channel(nwk%nCh))
-  do iiCh = 1, nwk%nCh
-    ch => nwk%channel(iiCh)
-
-    read(un) cl_wsCode, cl_rvCode, cl_rvName
-    allocate(character(cl_wsCode) :: ch%wsCode)
-    allocate(character(cl_rvCode) :: ch%rvCode)
-    allocate(character(cl_rvName) :: ch%rvName)
-    read(un) ch%wsCode
-    read(un) ch%rvCode
-    read(un) ch%rvName
-
-    read(un) ch%nPt
-    allocate(ch%lon(ch%nPt), ch%lat(ch%nPt))
-    read(un) ch%lon
-    read(un) ch%lat
-
-    read(un) ch%leng
-
-    allocate(ch%node(2))
-    do jNode = 1, 2
-      node => ch%node(jNode)
-      read(un) node%typ, node%elv
-    enddo  ! jNode/
-  enddo  ! iiCh/
-
-  close(un)
+  call read_network_data(f, nwk)
 
   call logext()
   !-------------------------------------------------------------
@@ -1601,7 +1822,13 @@ subroutine make_1sec_network_mesh(&
               ','//str((/gys,gye/),DGT_GXY,':')//']')
   call logmsg(sBBox(west_of_gx(gxs),east_of_gx(gxe),south_of_gy(gye),north_of_gy(gys)))
 
-  f = get_f_network_mesh(RESOLUTION_1SEC, nwkattr_self%uid)
+  call write_network_mesh_domain(&
+         RESOLUTION_1SEC, nwkattr_self%uid, &
+         gxs, gxe, gys, gye, &
+         west_of_gx(gxs), east_of_gx(gxe), south_of_gy(gye), north_of_gy(gys) &
+  )
+
+  f = get_f_network_mesh(RESOLUTION_1SEC, 'mask', nwkattr_self%uid)
   call logmsg('Writing '//str(f))
   call traperr( wbin(nwkmap(gxs:gxe,gys:gye), f, replace=.true.) )
 
@@ -1724,6 +1951,65 @@ end subroutine make_1sec_network_mesh
 !===============================================================
 !
 !===============================================================
+subroutine read_network_data(f, nwk)
+  implicit none
+  character(*), intent(in) :: f
+  type(network_), intent(inout) :: nwk
+
+  type(watsys_), pointer :: wsys
+  type(channel_), pointer :: ch
+  type(node_), pointer :: node
+  integer :: cl_wsCode, cl_rvCode, cl_rvName
+  integer :: jWsys
+  integer :: iiCh
+  integer :: jNode
+  integer :: un
+
+  open(newunit=un, file=f, form='unformatted', access='sequential', status='old')
+
+  read(un) nwk%nWsys
+  read(un) nwk%nCh
+  read(un) nwk%nNode
+
+  allocate(nwk%wsys(nwk%nWsys))
+  do jWsys = 1, nwk%nWsys
+    wsys => nwk%wsys(jWsys)
+    read(un) wsys%wsCode, wsys%leng
+  enddo  ! jWsys/
+
+  allocate(nwk%channel(nwk%nCh))
+  do iiCh = 1, nwk%nCh
+    ch => nwk%channel(iiCh)
+
+    read(un) cl_wsCode, cl_rvCode, cl_rvName
+    allocate(character(cl_wsCode) :: ch%wsCode)
+    allocate(character(cl_rvCode) :: ch%rvCode)
+    allocate(character(cl_rvName) :: ch%rvName)
+    read(un) ch%wsCode
+    read(un) ch%rvCode
+    read(un) ch%rvName
+
+    read(un) ch%nPt
+    allocate(ch%lon(ch%nPt), ch%lat(ch%nPt))
+    read(un) ch%lon
+    read(un) ch%lat
+
+    read(un) ch%leng
+
+    allocate(ch%node(2))
+    do jNode = 1, 2
+      node => ch%node(jNode)
+      read(un) node%iNode, node%typ, node%elv, node%downleng
+    enddo  ! jNode/
+
+    read(un)  ! index in old network
+  enddo  ! iiCh/
+
+  close(un)
+end subroutine read_network_data
+!===============================================================
+!
+!===============================================================
 !
 !
 !
@@ -1767,13 +2053,13 @@ subroutine scaleUpNetworkMesh(resl)
   ratio = get_cellsize_in_sec(resl)
   call logmsg('Ratio to 1sec: '//str(ratio))
 
-  f = get_f_lst_networks_mesh(resl)
+  f = get_f_lst_networks_mesh(resl, 'mask')
   call logmsg('Writing '//str(f))
   open(newunit=un, file=f, status='replace')
   write(un,"(a)") 'networks '//str(nNwk)
   write(un,"(a)") 'i uid gxs gxe gys gye west east south north'
 
-  f_in = get_f_lst_networks_mesh(RESOLUTION_1SEC)
+  f_in = get_f_lst_networks_mesh(RESOLUTION_1SEC, 'mask')
   open(newunit=un_in, file=f_in, status='old')
   read(un_in,*) c_, nNwk
   read(un_in,*)
@@ -1808,8 +2094,14 @@ end subroutine scaleUpNetworkMesh
 subroutine scale_up_network_mesh(&
     resl, ratio, uid, ghxs, ghxe, ghys, ghye, &
     gxs, gxe, gys, gye)
+  use c2_jflw_grid, only: &
+    west_of_gx, &
+    east_of_gx, &
+    south_of_gy, &
+    north_of_gy
   use c2_strnk_io, only: &
-        get_f_network_mesh
+    get_f_network_mesh, &
+    write_network_mesh_domain
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'scale_up_network_mesh'
   character(*), intent(in) :: resl
@@ -1836,7 +2128,7 @@ subroutine scale_up_network_mesh(&
   call logmsg(str(resl)//' ['//str((/gxs,gxe/),':')//', '//str((/gys,gye/),':')//']')
 
   allocate(nwkmap_in(ghxs:ghxe,ghys:ghye))
-  f_in = get_f_network_mesh(RESOLUTION_1SEC, uid)
+  f_in = get_f_network_mesh(RESOLUTION_1SEC, 'mask', uid)
   call traperr( rbin(nwkmap_in, f_in) )
 
   allocate(nwkmap(gxs:gxe,gys:gye))
@@ -1848,7 +2140,14 @@ subroutine scale_up_network_mesh(&
     enddo  ! igx/
   enddo  ! igy/
 
-  f = get_f_network_mesh(resl, uid)
+  f = get_f_network_mesh(resl, 'domain', uid)
+  call write_network_mesh_domain(&
+         resl, uid, &
+         gxs, gxe, gys, gye, &
+         west_of_gx(gxs), east_of_gx(gxe), south_of_gy(gye), north_of_gy(gys) &
+  )
+
+  f = get_f_network_mesh(resl, 'mask', uid)
   call traperr( wbin(nwkmap, f, replace=.true.) )
 
   deallocate(nwkmap)
@@ -1938,10 +2237,10 @@ subroutine trimBasin(basinType, resl, var, uid)
   call jflw_set_resolution(resl)
 
   selectcase( basinType )
-  case( 'bsn' )
+  case( 'basin_J-FlwDir' )
 
-  case( 'nwk' )
-    !call joint_set_resolution(resl)
+  case( 'network_StrRank' )
+
   case default
 
   endselect
@@ -1961,7 +2260,10 @@ subroutine trim_basin(basinType, resl, uid, var)
        jflw_read_map_from_tile, &
        jflw_read_basin_map_from_tile
   use c3_strnk_io, only: &
-       strnk_get_f_network_mesh
+       strnk_get_f_network_mesh, &
+       strnk_read_network_mesh_domain
+use c2_jflw_grid
+use c2_jflw_io
   implicit none
   character(CLEN_PATH), parameter :: PRCNAM = 'trim_basin'
   character(*), intent(in) :: basinType
@@ -1970,34 +2272,31 @@ subroutine trim_basin(basinType, resl, uid, var)
   character(*), intent(in) :: var
 
   integer :: bsnId
-  integer(4), pointer :: bsnmap(:,:)
-  integer(1), pointer :: i1map(:,:)
-  integer(4), pointer :: i4map(:,:)
-  logical(1), pointer :: mskmap(:,:)
+  integer(4), allocatable :: bsnmap(:,:)
+  integer(1), allocatable :: nwkmap(:,:)
+  integer(1), allocatable :: i1map(:,:)
+  !integer(4), allocatable :: i4map(:,:)
+  real(4)   , allocatable :: r4map(:,:)
+  logical(1), allocatable :: mskmap(:,:)
   integer(1) :: i1miss
-  integer(4) :: i4miss
+  !integer(4) :: i4miss
+  real(4) :: r4miss
   integer :: gxs, gxe, gys, gye
   real(8) :: west, east, south, north
   character(CLEN_PATH) :: f_msk, f_var
 
+integer :: txs, txe, tys, tye
+integer :: xs, xe, ys, ye
+
   call logbgn(PRCNAM, MODNAM)
   !-------------------------------------------------------------
-  !
-  !-------------------------------------------------------------
-  nullify(bsnmap)
-  nullify(i1map)
-  nullify(i4map)
-  !-------------------------------------------------------------
-  !
+  ! Make a mask
   !-------------------------------------------------------------
   selectcase( basinType )
   !-------------------------------------------------------------
   ! Case: J-FlwDir basin map
-  case( 'bsn' )
+  case( 'basin_J-FlwDir' )
     bsnId = int4_char(uid)
-
-    f_msk = jflw_get_f_map_basin(resl, 'bsn', bsnId)
-    f_var = jflw_get_f_map_basin(resl, var, bsnId)
 
     call jflw_read_basin_range_from_each(&
         resl, bsnId, &
@@ -2010,37 +2309,61 @@ subroutine trim_basin(basinType, resl, uid, var)
     call logmsg('BBox: '//sBBox(west,east,south,north))
 
     allocate(mskmap(gxs:gxe,gys:gye))
-
     allocate(bsnmap(gxs:gxe,gys:gye))
+
+    f_msk = jflw_get_f_map_basin(resl, 'bsn', bsnId)
+    f_var = jflw_get_f_map_basin(resl, var, bsnId)
+
     call jflw_read_map_from_tile(&
         resl, 'bsn', DTYPE_INT4, JFLW_BSN_MISS, gxs, gys, bsnmap)
 
-    where( bsnmap /= bsnId )
-      mskmap = .false.
-    elsewhere
+    where( bsnmap == bsnId )
       mskmap = .true.
+    elsewhere
+      mskmap = .false.
     endwhere
 
     deallocate(bsnmap)
   !-------------------------------------------------------------
   ! Case: Network mesh
-  case( 'nwk' )
-    f_msk = strnk_get_f_network_mesh(resl, uid)
+  case( 'network_StrRank' )
+    call strnk_read_network_mesh_domain(&
+      resl, uid, &
+      gxs, gxe, gys, gye, west, east, south, north &
+    )
 
+  call gxy_to_xy(gxs, gys, txs, xs, tys, ys)
+  call gxy_to_xy(gxe, gye, txe, xe, tye, ye)
+print*, txs, txe, tys, tye
+print*, tilename(txs, tys)
+
+    allocate(mskmap(gxs:gxe,gys:gye))
+    allocate(nwkmap(gxs:gxe,gys:gye))
+
+    f_msk = strnk_get_f_network_mesh(resl, 'mask', uid)
+    f_var = strnk_get_f_network_mesh(resl, var, uid)
+
+    call traperr( rbin(nwkmap, f_msk) )
+
+    where( nwkmap > 0_1 )
+      mskmap = .true.
+    elsewhere
+      mskmap = .false.
+    endwhere
+
+    deallocate(nwkmap)
   !-------------------------------------------------------------
   ! Case: ERROR
   case default
-
+    call errend(msg_invalid_value('basinType', basinType))
   endselect
   !-------------------------------------------------------------
-  !
+  ! Trim map and output
   !-------------------------------------------------------------
   selectcase( var )
   !-------------------------------------------------------------
   ! Case: Int1 (dir, landuse)
   case( 'dir', 'landuse' )
-    allocate(i1map(gxs:gxe,gys:gye))
-
     selectcase( var )
     case( 'dir' )
       i1miss = JFLW_FDR_MISS
@@ -2050,34 +2373,39 @@ subroutine trim_basin(basinType, resl, uid, var)
       call errend(msg_invalid_value('var', var))
     endselect
 
+    allocate(i1map(gxs:gxe,gys:gye))
+
     call jflw_read_map_from_tile(&
         resl, var, DTYPE_INT1, i1miss, gxs, gys, i1map)
 
-    where( .not. mskmap )
-      i1map = i1miss
-    endwhere
+    where( .not. mskmap ) i1map = i1miss
 
     call logmsg('Writing '//str(f_var))
     call traperr( wbin(i1map, f_var) )
   !-------------------------------------------------------------
   ! Case: Int4 ()
   case( '' )
-    allocate(i4map(gxs:gxe,gys:gye))
 
-    call jflw_read_basin_map_from_tile(&
-        resl, bsnId, var, i4map, DTYPE_INT4, gxs, gys, i4miss, bsnmap)
+  !-------------------------------------------------------------
+  ! Case: Real (elv, upa, upg, wth)
+  case( 'elv' )
+    r4miss = JFLW_ELV_MISS
 
+    allocate(r4map(gxs:gxe,gys:gye))
+
+    call jflw_read_map_from_tile(&
+      resl, var, DTYPE_REAL, r4miss, gxs, gys, r4map)
+print*, minval(r4map), maxval(r4map)
+
+    where( .not. mskmap ) r4map = r4miss
+
+    call logmsg('Writing '//str(f_var))
+    call traperr( wbin(r4map, f_var) )
   !-------------------------------------------------------------
   ! Case: ERROR
   case default
 
   endselect
-  !-------------------------------------------------------------
-  !
-  !-------------------------------------------------------------
-  call realloc(bsnmap, 0)
-  call realloc(i1map, 0)
-  call realloc(i4map, 0)
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
 end subroutine trim_basin

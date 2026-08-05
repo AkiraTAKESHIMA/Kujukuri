@@ -766,20 +766,20 @@ end function alloc_file_grid_out_val
 !===============================================================
 !
 !===============================================================
-integer(4) function set_bounds_file_grid_in(fg, sz1, sz2) result(info)
+integer(4) function set_bounds_file_grid_in(fg, nx, ny) result(info)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'set_bounds_file_grid_in'
   type(file_grid_in_), intent(inout), target :: fg
-  integer(8), intent(in), optional :: sz1, sz2
+  integer(8), intent(in), optional :: nx, ny
 
   type(file_), pointer :: f
 
   info = 0
   call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
-  if( present(sz1) )then
-    if( fg%sz(1) == 0_8 ) fg%sz(1) = sz1
-    if( fg%sz(2) == 0_8 ) fg%sz(2) = sz2
+  if( present(nx) )then
+    if( fg%sz(1) == 0_8 ) fg%sz(1) = nx
+    if( fg%sz(2) == 0_8 ) fg%sz(2) = ny
   endif
 
   if( fg%lb(1) == 0_8 ) fg%lb(1) = 1_8
@@ -791,6 +791,15 @@ integer(4) function set_bounds_file_grid_in(fg, sz1, sz2) result(info)
   fg%nx = fg%ub(1) - fg%lb(1) + 1_8
   fg%ny = fg%ub(2) - fg%lb(2) + 1_8
   fg%nij = fg%nx * fg%ny
+
+  if( present(nx) )then
+    if( fg%nx /= nx .or. fg%ny /= ny )then
+      call errend('Inconsistent inputs.'//&
+        '\n  nx: '//str(nx)//', ny: '//str(ny)//&
+        '\n  fg%ub(1)-fg%lb(1)+1: '//str(fg%nx)//&
+        '\n  fg%ub(2)-fg%lb(2)+1: '//str(fg%ny))
+    endif
+  endif
 
   f => fg%idx
   f%sz = fg%sz
@@ -831,8 +840,10 @@ integer(4) function set_bounds_file_grid_out(fg, sz1, sz2) result(info)
   if( fg%lb(1) == 0_8 ) fg%lb(1) = 1_8
   if( fg%lb(2) == 0_8 ) fg%lb(2) = 1_8
 
-  if( fg%ub(1) == 0_8 ) fg%ub(1) = fg%sz(1)
-  if( fg%ub(2) == 0_8 ) fg%ub(2) = fg%sz(2)
+  !if( fg%ub(1) == 0_8 ) fg%ub(1) = fg%sz(1)
+  !if( fg%ub(2) == 0_8 ) fg%ub(2) = fg%sz(2)
+  fg%ub(1) = fg%lb(1) + fg%sz(1) - 1_8
+  fg%ub(2) = fg%lb(2) + fg%sz(2) - 1_8
 
   fg%nx = fg%ub(1) - fg%lb(1) + 1_8
   fg%ny = fg%ub(2) - fg%lb(2) + 1_8
