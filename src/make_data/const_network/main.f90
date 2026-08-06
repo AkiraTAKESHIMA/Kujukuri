@@ -38,7 +38,7 @@ program main
 
   character(CLEN_PROC), parameter :: PRCNAM = 'program const_river'
 
-  call logbgn(PRCNAM, '', '+tr')
+  call logbgn(PRCNAM, '', '+tr -p -x2')
   !-------------------------------------------------------------
   ! Read arguments
   !-------------------------------------------------------------
@@ -71,7 +71,7 @@ program main
     call addarg('name_leng', 's', 'Product name')
     call addarg('leng', 0.d0, 'Standard length of divided sections')
     call addarg('-uid', '', '', .false., 'Network id')
-    call parsearg(istart=2)
+    call parsearg()
     name_leng = arg_char('name_leng')
     leng = arg_dble('leng')
     uid = arg_char('-uid')

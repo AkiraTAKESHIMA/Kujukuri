@@ -20,7 +20,7 @@ program main
   call addarg('-m', '--method', '1st_order_conservative', .false., 'Interpolation Method')
 
   call logmsg('------ Test showarg', opt='x0')
-  call showarg()
+  call print_usage()
 
   call logmsg('------ Test parsearg', opt='x0')
   call parsearg()

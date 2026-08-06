@@ -20,7 +20,7 @@ module lib_io_arg_parser
   public :: arg_int4
   public :: arg_dble
 
-  public :: showarg
+  public :: print_usage
   !-------------------------------------------------------------
   ! Interfaces
   !-------------------------------------------------------------
@@ -718,7 +718,7 @@ subroutine parsearg(istart, iend)
   narg = argnum()
 
   istart_ = 1
-  iend_ = max(ad%n_pos, narg)
+  iend_ = narg
   if( present(istart) ) istart_ = istart
   if( present(iend) ) iend_ = iend
   !-------------------------------------------------------------
@@ -726,7 +726,7 @@ subroutine parsearg(istart, iend)
   !-------------------------------------------------------------
   do i = istart_, min(narg, iend_)
     if( argument(i) == KEY_HELP_SHORT .or. argument(i) == KEY_HELP_LONG )then
-      call showarg()
+      call print_usage()
       stop
     endif
   enddo
@@ -778,13 +778,13 @@ subroutine parsearg(istart, iend)
       enddo
 
       if( .not. is_found )then
-        call errend('Unrecognized argument: '//str(arg))
+        call raise_error('error: unrecognized argument: '//str(arg))
       endif
 
       if( cmn%typ /= ITYPE_FLAG )then
         if( i == iend_ )then
-          call errend('Argument '//arg//' '//get_keys(cmn%key_short, cmn%key_long)//&
-              ': expected one argument')
+          call raise_error('error: argument '//arg//' '//get_keys(cmn%key_short, cmn%key_long)//&
+            ': expected one argument')
         endif
       endif
 
@@ -823,7 +823,7 @@ subroutine parsearg(istart, iend)
     else
       call add(j_pos)
       if( j_pos > ad%n_pos )then
-        call errend('Unrecognized argument: '//str(arg))
+        call raise_error('error: unrecognized argument: '//str(arg))
       endif
       cmn => ad%cmn_pos(j_pos)
 
@@ -879,7 +879,7 @@ subroutine parsearg(istart, iend)
     enddo
 
     if( s /= '' )then
-      call errend('The following arguments are required: '//str(s))
+      call raise_error('error: the following arguments are required: '//str(s))
     endif
   endif
   !-------------------------------------------------------------
@@ -911,6 +911,17 @@ subroutine errend_pos_reading_failure(name, i)
               ' positional argument `'//trim(name)//'`.', &
               PRCNAM, MODNAM)
 end subroutine errend_pos_reading_failure
+!---------------------------------------------------------------
+subroutine raise_error(msg)
+  implicit none
+  character(*), intent(in) :: msg
+
+  if( msg /= '' )then
+    call logmsg(trim(msg), opt='x0')
+  endif
+  call print_usage()
+  stop
+end subroutine raise_error
 !---------------------------------------------------------------
 end subroutine parsearg
 !===============================================================
@@ -1267,9 +1278,9 @@ end function arg_dble
 !===============================================================
 !
 !===============================================================
-subroutine showarg()
+subroutine print_usage()
   implicit none
-  character(CLEN_PROC), parameter :: PRCNAM = 'showarg'
+  character(CLEN_PROC), parameter :: PRCNAM = 'print_usage'
 
   type(arg_cmn_), pointer :: cmn
   integer :: i
@@ -1371,7 +1382,7 @@ subroutine showarg()
   enddo
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
-end subroutine showarg
+end subroutine print_usage
 !===============================================================
 !
 !===============================================================

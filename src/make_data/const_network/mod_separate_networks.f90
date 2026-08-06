@@ -41,6 +41,7 @@ module mod_separate_networks
     real(8) :: elv
     integer :: typ
     real(8) :: downleng
+    logical :: is_outlet
   end type
 
   type channel_
@@ -70,7 +71,7 @@ module mod_separate_networks
 
   type network_
     character(:), allocatable :: uid
-    character(:), allocatable :: uid_old
+    character(:), allocatable :: tmpuid
     real(8) :: west, east, south, north
     integer :: gxs, gxe, gys, gye
     integer :: nCh
@@ -112,7 +113,7 @@ contains
 !===============================================================
 !
 !===============================================================
-subroutine separateNetworks(uid_in)
+subroutine separateNetworks(tmpuid_in)
   use c2_nlni_const, only: &
         DGT_WSCODE
   use c2_strnk_io, only: &
@@ -121,12 +122,14 @@ subroutine separateNetworks(uid_in)
         get_f_tmp_network_separation, &
         get_f_lst_networks_channel  , &
         get_f_network_channel
+  use c3_jflw_const, only: &
+        jflw_set_resolution
   use mod_util, only: &
         comma_json, &
         sBBox
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'separateNetworks'
-  character(*), intent(in) :: uid_in
+  character(*), intent(in) :: tmpuid_in
 
   type(network_), pointer :: lst_nwk(:), nwk
   type(wsys_), pointer :: wsys
@@ -139,7 +142,7 @@ subroutine separateNetworks(uid_in)
   integer :: jWsys
   integer :: nCh, jCh, iiCh
   integer :: jNode
-  character(32) :: uid_old
+  character(32) :: tmpuid
   integer(4), allocatable :: lst_jNwk(:)
   integer :: cl_wsCode, cl_rvCode, cl_rvName
 
@@ -150,17 +153,23 @@ subroutine separateNetworks(uid_in)
 
   call logbgn(PRCNAM, MODNAM)
   !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  call jflw_set_resolution(RESOLUTION_1SEC)
+  !-------------------------------------------------------------
   ! *** For testing SUBROUTINE separate_network
   ! Separate the specified network and RETURN
   !-------------------------------------------------------------
-  if( uid_in /= '' )then
-    call separate_network(uid_in)
-    call logret(PRCNAM, MODNAM)
-    return
+  if( tmpuid_in /= '' )then
+    call separate_network(tmpuid_in)
+
+!    call logret(PRCNAM, MODNAM)
+!    return
   endif
   !-------------------------------------------------------------
   ! Separate networks
   !-------------------------------------------------------------
+if( .false. )then
   call logent('Separating networks')
 
   f_lst = get_f_tmp_networks_lst()
@@ -171,23 +180,29 @@ subroutine separateNetworks(uid_in)
   read(un_lst,*)
   nNwk = 0
   do jNwk_old = 1, nNwk_old
-    read(un_lst,*) c_, uid_old
-    call separate_network(uid_old)
+    read(un_lst,*) c_, tmpuid
+
+    call separate_network(tmpuid)
   enddo
 
   call logext()
+endif
   !-------------------------------------------------------------
   ! Read networks
   !-------------------------------------------------------------
   call logent('Reading network data')
+
+  f_lst = get_f_tmp_networks_lst()
+  call logmsg('Reading '//str(f_lst))
+  open(newunit=un_lst, file=f_lst, status='old')
 
   rewind(un_lst)
   read(un_lst,*) c_, nNwk_old
   read(un_lst,*)
   nNwk = 0
   do jNwk_old = 1, nNwk_old
-    read(un_lst,*) c_, uid_old
-    f = get_f_tmp_network_separation(uid_old)
+    read(un_lst,*) c_, tmpuid
+    f = get_f_tmp_network_separation(tmpuid)
     open(newunit=un, file=f, status='old')
     read(un,*) c_, mNwk
     close(un)
@@ -203,17 +218,19 @@ subroutine separateNetworks(uid_in)
   read(un_lst,*)
   jNwk0 = 0
   do jNwk_old = 1, nNwk_old
-    read(un_lst,*) c_, uid_old
+    read(un_lst,*) c_, tmpuid
+
+    if( tmpuid_in /= '' .and. tmpuid /= tmpuid_in ) cycle
 
     ! Channel index in the network
-    f = get_f_tmp_network_separation(uid_old)
+    f = get_f_tmp_network_separation(tmpuid)
     open(newunit=un, file=f, status='old')
     read(un,*) c_, mNwk
 
     do iNwk = 1, mNwk
       nwk => lst_nwk(jNwk0+iNwk)
-      allocate(character(1) :: nwk%uid_old)
-      nwk%uid_old = trim(uid_old)
+      allocate(character(1) :: nwk%tmpuid)
+      nwk%tmpuid = trim(tmpuid)
     enddo
 
     read(un,*)
@@ -268,7 +285,7 @@ subroutine separateNetworks(uid_in)
       nwk%north = -1d20
     enddo
 
-    f = get_f_tmp_network_channel(uid_old, 'sbin')
+    f = get_f_tmp_network_channel(tmpuid, 'sbin')
     open(newunit=un, file=f, form='unformatted', access='sequential', &
          action='read', status='old')
 
@@ -334,23 +351,40 @@ subroutine separateNetworks(uid_in)
   !-------------------------------------------------------------
   ! Make new ids
   !-------------------------------------------------------------
-  call logent('Making new ids')
+  if( tmpuid_in == '' )then
+    call logent('Making new ids')
 
-  allocate(lst_jNwk(nNwk))
+    allocate(lst_jNwk(nNwk))
 
-  call set_separated_network_ids(lst_nwk, lst_jNwk)
+    call set_separated_network_ids(lst_nwk, lst_jNwk)
 
-  call logext()
+    call logext()
+  else
+    do jNwk = 1, nNwk
+      nwk => lst_nwk(jNwk)
+      if( .not. allocated(nwk%tmpuid) ) cycle
+      nwk%uid = '(uid_empty)'
+    enddo
+  endif
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
-  call logent('Calculating distance nodes to river mouth')
+  call logent('Calculating distance from nodes to river mouth')
 
   do jNwk = 1, nNwk
+    if( tmpuid_in /= '' .and. .not. allocated(lst_nwk(jNwk)%tmpuid) ) cycle
+
     call calc_distance_to_river_mouth(lst_nwk(jNwk))
   enddo
 
   call logext()
+  !-------------------------------------------------------------
+  ! 
+  !-------------------------------------------------------------
+  if( tmpuid_in /= '' )then
+    call logret(PRCNAM, MODNAM)
+    return
+  endif
   !-------------------------------------------------------------
   ! Output
   !-------------------------------------------------------------
@@ -453,6 +487,7 @@ subroutine separateNetworks(uid_in)
       write(un,"(6x,a)")  '"rvName": "'//ch%rvName//'",'
       write(un,"(6x,a)")  '"bbox": ['//str((/ch%west,ch%east/),'f16.11',', ')//&
                           ', '//str((/ch%south,ch%north/),'f15.11',', ')//'],'
+      write(un,"(6x,a)")  '"num_point": "'//str(ch%n)//'",'
       write(un,"(6x,a)")  '"lon": ['//str(ch%lon,'f16.11',',')//'],'
       write(un,"(6x,a)")  '"lat": ['//str(ch%lat,'f15.11',',')//'],'
       write(un,"(6x,a)")  '"length": '//str(ch%leng,'es15.8')//','
@@ -472,7 +507,7 @@ subroutine separateNetworks(uid_in)
       write(un,"(4x,a)")  '}'//comma_json(iiCh,nwk%nCh)
     enddo  ! jCh/
     write(un,"(2x,a)") '],'
-    write(un,"(2x,a)") '"tmpuid": "'//str(nwk%uid_old)//'"'
+    write(un,"(2x,a)") '"tmpuid": "'//str(nwk%tmpuid)//'"'
     write(un,"(a)") '}'
     close(un)
   enddo  ! jNwk/
@@ -550,10 +585,6 @@ subroutine separate_network(uid)
   integer :: cl_wsCode, cl_rvCode, cl_rvName
 
   call logbgn(PRCNAM, MODNAM)
-  !-------------------------------------------------------------
-  ! Init.
-  !-------------------------------------------------------------
-  call jflw_set_resolution(RESOLUTION_1SEC)
   !-------------------------------------------------------------
   ! Read network data
   !-------------------------------------------------------------
@@ -1546,6 +1577,7 @@ subroutine calc_distance_to_river_mouth(nwk)
   type(channel_), pointer :: ch, ch2
   type(node_), pointer :: node
   type(nwknode_), pointer :: nwknode, nwknode2
+  type(node_) :: node_tmp
   integer :: n_updated, n_updated_next
   real(8), allocatable :: lst_lon(:), lst_lat(:)
   integer, allocatable :: lst_jCh(:), lst_jNode(:)
@@ -1561,6 +1593,7 @@ subroutine calc_distance_to_river_mouth(nwk)
   integer :: i
   integer :: is, ie, iis, iie
   logical :: is_outlet_exist
+  logical :: is_updated
 
   call logbgn(PRCNAM, MODNAM)
   call logmsg('Network '//str(nwk%uid))
@@ -1572,7 +1605,179 @@ subroutine calc_distance_to_river_mouth(nwk)
   call logmsg('Water systems: '//str(nwk%nWsys))
   call logmsg('Channels: '//str(nwk%nCh))
 
-  ! Make a list of nodes
+  call make_node_list()
+
+  call logext()
+  !-------------------------------------------------------------
+  ! Check if outlet exists
+  !-------------------------------------------------------------
+  call logent('Searching for outlet')
+
+  call search_for_outlet(is_outlet_exist)
+
+  if( .not. is_outlet_exist )then
+    call logret(PRCNAM, MODNAM)
+    return
+  endif
+
+  call logext()
+  !-------------------------------------------------------------
+  ! Calc. dist. to river mouth
+  !-------------------------------------------------------------
+  call logent('Calculating distance from nodes to river mouth')
+
+  ! Initialize
+  nwk%node(1)%downleng = sum(nwk%channel(:)%leng) * 2.d0
+  do iNode = 1, nwk%nNode
+    nwknode => nwk%node(iNode)
+    nwknode%downleng = nwk%node(1)%downleng
+    nwknode%iNode_down = 0
+  enddo
+
+  allocate(is_updated_next(nwk%nNode))
+  allocate(iNode_updated(nwk%nNode))
+  allocate(iNode_updated_next(nwk%nNode))
+
+  ! Set leng. for outlets (leng = 0)
+  n_updated = 0
+  do iNode = 1, nwk%nNode
+    nwknode => nwk%node(iNode)
+    if( nwknode%typ /= NODETYPE_NEW__OUT ) cycle
+    call add(n_updated)
+    iNode_updated(n_updated) = iNode
+    nwknode%downleng = 0.d0
+  enddo
+
+  call logmsg('Outlets: '//str(n_updated))
+
+  ! Find shortest way to outlet
+  is_updated_next(:) = .false.
+  do while( n_updated > 0 )
+    n_updated_next = 0
+    do i = 1, n_updated
+      iNode = iNode_updated(i)
+      nwknode => nwk%node(iNode)
+      do iiCh = 1, nwknode%nCh
+        jCh2 = nwknode%jCh(iiCh)
+        ch2 => nwk%channel(jCh2)
+        iNode2 = nwknode%iNode(iiCh)
+        nwknode2 => nwk%node(iNode2)
+        if( nwknode%downleng + ch2%leng < nwknode2%downleng )then
+          !call logmsg('node('//str(iNode2)//') downleng '//&
+          !            str(nwknode2%downleng)//' -> '//str(nwknode%downleng+ch2%leng))
+          is_updated_next(iNode2) = .true.
+          call add(n_updated_next)
+          iNode_updated_next(n_updated_next) = iNode2
+          nwknode2%downleng = nwknode%downleng + ch2%leng
+          nwknode2%iNode_down = iNode
+        endif
+      enddo
+    enddo  ! i/
+
+    !call logmsg('Updated: '//str(n_updated_next))
+  
+    ! Copy list of updated nodes avoiding duplication
+    n_updated = 0
+    do i = 1, n_updated_next
+      if( is_updated_next(iNode_updated_next(i)) )then
+        is_updated_next(iNode_updated_next(i)) = .false.
+        call add(n_updated)
+        iNode_updated(n_updated) = iNode_updated_next(i)
+      endif
+    enddo
+  enddo  ! while n_updated > 0
+
+  do iNode = 1, nwk%nNode
+    nwknode => nwk%node(iNode)
+    if( nwknode%typ == NODETYPE_NEW__OUT ) cycle
+
+    if( nwknode%iNode_down == 0 )then
+      call errend('%iNode_down is missing: node('//str(iNode)//')'//&
+        '\njCh: '//str(nwknode%jCh(:))//&
+        '\niNode: '//str(iNode)//&
+        '\ntyp: '//str(nwknode%typ))
+    endif
+
+    nwknode%iCh_down = 0
+    do iiCh = 1, nwknode%nCh
+      if( nwknode%iNode(iiCh) == nwknode%iNode_down )then
+        nwknode%iCh_down = iiCh
+      endif
+    enddo
+    if( nwknode%iCh_down == 0 )then
+      call errend('%iNode_down was not found in %iNode(:).'//&
+        '\niNode_down: '//str(nwknode%iNode_down)//&
+        '\niNode: '//str(iNode)//&
+        '\ntyp: '//str(nwknode%typ))
+    endif
+  enddo  ! iNode/
+
+  call logmsg('Max: '//str(maxval(nwk%node(:)%downleng)))
+
+  deallocate(is_updated_next)
+  deallocate(iNode_updated)
+  deallocate(iNode_updated_next)
+
+  do jCh = 1, nwk%nCh
+    ch => nwk%channel(jCh)
+
+    do jNode = 1, 2
+      node => ch%node(jNode)
+      node%downleng = nwk%node(node%iNode)%downleng
+    enddo  ! jNode/
+  enddo  ! jCh/
+
+  call logext()
+  !-------------------------------------------------------------
+  ! Swap nodes if node(1) is downstream of node(2)
+  !-------------------------------------------------------------
+  call logent('Swapping nodes of channels with reverse direction')
+
+  is_updated = .false.
+
+  do jCh = 1, nwk%nCh
+    ch => nwk%channel(jCh)
+
+    if( ch%node(1)%downleng > ch%node(2)%downleng ) cycle
+
+    if( ch%node(1)%downleng == ch%node(2)%downleng )then
+      cycle
+    endif
+
+    is_updated = .true.
+
+    node_tmp = ch%node(1)
+    ch%node(1) = ch%node(2)
+    ch%node(2) = node_tmp
+
+    call reverse(ch%lon)
+    call reverse(ch%lat)
+  enddo  ! jCh/
+
+  if( is_updated )then
+    call logmsg('Updated. Remaking a list of nodes')
+
+    deallocate(nwk%node)
+
+    call make_node_list()
+
+    call search_for_outlet(is_outlet_exist)
+  endif
+
+  call logext()
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
+!---------------------------------------------------------------
+contains
+!---------------------------------------------------------------
+subroutine make_node_list()
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = '__IP__make_node_list'
+
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
   nwk%nNode = nwk%nCh * 2
   allocate(nwk%node(nwk%nNode))
 
@@ -1667,6 +1872,7 @@ subroutine calc_distance_to_river_mouth(nwk)
       jCh = nwknode%jCh(iiCh)
       jNode = nwknode%jNode(iiCh)
       nwknode%iNode(iiCh) = nwk%channel(jCh)%node(3-jNode)%iNode
+      nwknode%downleng = nwk%channel(jCh)%node(jNode)%downleng
     enddo  ! iCh/
   enddo  ! iNode/
 
@@ -1675,13 +1881,19 @@ subroutine calc_distance_to_river_mouth(nwk)
   deallocate(lst_lat)
   deallocate(lst_jCh)
   deallocate(lst_jNode)
-
-  call logext()
   !-------------------------------------------------------------
-  ! Check if outlet exists
-  !-------------------------------------------------------------
-  call logent('Searching for outlet')
+  call logret(PRCNAM, MODNAM)
+end subroutine make_node_list
+!---------------------------------------------------------------
+subroutine search_for_outlet(is_outlet_exist)
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = '__IP__search_for_outlet'
+  logical, intent(out) :: is_outlet_exist
 
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
   is_outlet_exist = .false.
   loop_find_outlet: &
   do jCh = 1, nwk%nCh
@@ -1702,110 +1914,11 @@ subroutine calc_distance_to_river_mouth(nwk)
       nwknode => nwk%node(iNode)
       nwknode%downleng = -9999.d0
     enddo  ! iNode/
-
-    call logret(PRCNAM, MODNAM)
-    return
   endif
-
-  call logext()
-  !-------------------------------------------------------------
-  ! Calc. dist. to river mouth
-  !-------------------------------------------------------------
-  call logent('Calculating distance from nodes to river mouth')
-
-  ! Initialize
-  nwk%node(1)%downleng = sum(nwk%channel(:)%leng) * 2.d0
-  do iNode = 1, nwk%nNode
-    nwknode => nwk%node(iNode)
-    nwknode%downleng = nwk%node(1)%downleng
-    nwknode%iNode_down = 0
-  enddo
-
-  allocate(is_updated_next(nwk%nNode))
-  allocate(iNode_updated(nwk%nNode))
-  allocate(iNode_updated_next(nwk%nNode))
-
-  ! Set leng. for outlets (leng = 0)
-  n_updated = 0
-  do iNode = 1, nwk%nNode
-    nwknode => nwk%node(iNode)
-    if( nwknode%typ /= NODETYPE_NEW__OUT ) cycle
-    call add(n_updated)
-    iNode_updated(n_updated) = iNode
-    nwknode%downleng = 0.d0
-  enddo
-
-  !call logmsg('Outlets: '//str(n_updated))
-
-  ! Find shortest way to outlet
-  is_updated_next(:) = .false.
-  do while( n_updated > 0 )
-    n_updated_next = 0
-    do i = 1, n_updated
-      iNode = iNode_updated(i)
-      nwknode => nwk%node(iNode)
-      do iiCh = 1, nwknode%nCh
-        jCh2 = nwknode%jCh(iiCh)
-        ch2 => nwk%channel(jCh2)
-        iNode2 = nwknode%iNode(iiCh)
-        nwknode2 => nwk%node(iNode2)
-        if( nwknode%downleng + ch2%leng < nwknode2%downleng )then
-          is_updated_next(iNode2) = .true.
-          call add(n_updated_next)
-          iNode_updated_next(n_updated_next) = iNode2
-          nwknode2%downleng = nwknode%downleng + ch2%leng
-          nwknode2%iNode_down = iNode
-        endif
-      enddo
-    enddo  ! i/
-
-    !call logmsg('Updated: '//str(n_updated_next))
-  
-    ! Copy list of updated nodes avoiding duplication
-    n_updated = 0
-    do i = 1, n_updated_next
-      if( is_updated_next(iNode_updated_next(i)) )then
-        is_updated_next(iNode_updated_next(i)) = .false.
-        call add(n_updated)
-        iNode_updated(n_updated) = iNode_updated_next(i)
-      endif
-    enddo
-  enddo  ! while n_updated > 0
-
-  do iNode = 1, nwk%nNode
-    nwknode => nwk%node(iNode)
-    if( nwknode%typ == NODETYPE_NEW__OUT ) cycle
-
-    if( nwknode%iNode_down == 0 )then
-      call errend('%iNode_down is missing: node('//str(iNode)//')'//&
-        '\njCh: '//str(nwknode%jCh(:))//&
-        '\niNode: '//str(iNode)//&
-        '\ntyp: '//str(nwknode%typ))
-    endif
-
-    nwknode%iCh_down = 0
-    do iiCh = 1, nwknode%nCh
-      if( nwknode%iNode(iiCh) == nwknode%iNode_down )then
-        nwknode%iCh_down = iiCh
-      endif
-    enddo
-    if( nwknode%iCh_down == 0 )then
-      call errend('%iNode_down was not found in %iNode(:).'//&
-        '\niNode_down: '//str(nwknode%iNode_down)//&
-        '\niNode: '//str(iNode)//&
-        '\ntyp: '//str(nwknode%typ))
-    endif
-  enddo  ! iNode/
-
-  call logmsg('Max: '//str(maxval(nwk%node(:)%downleng)))
-
-  deallocate(is_updated_next)
-  deallocate(iNode_updated)
-  deallocate(iNode_updated_next)
-
-  call logext()
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
+end subroutine search_for_outlet
+!---------------------------------------------------------------
 end subroutine calc_distance_to_river_mouth
 !===============================================================
 !
@@ -1876,6 +1989,7 @@ subroutine make_model_network_data(name_leng, leng_standard, uid)
     real(8) :: pos
     logical :: is_outlet
     real(8) :: lon, lat
+    real(8) :: downleng
   end type
 
   type div_
@@ -1883,6 +1997,7 @@ subroutine make_model_network_data(name_leng, leng_standard, uid)
     integer, pointer :: jPt(:)
     type(edge_) :: edge(2)
     real(8), pointer :: lon(:), lat(:)
+    real(8) :: leng
   end type
 
   type chdiv_
@@ -1899,28 +2014,34 @@ subroutine make_model_network_data(name_leng, leng_standard, uid)
   type(div_), pointer :: div
   type(edge_), pointer :: edge
   integer :: iDiv
-  real(8) :: leng_section, leng_sum, leng_next
+  real(8) :: leng_section, leng_next, leng_prev, leng_acc
   real(8) :: pos, pos_prev
+  real(8) :: downleng
   integer :: jWsys
   integer :: jCh
   integer :: iCh
   integer :: jNode
-  integer :: jPt, jjPt
+  integer :: jPt, jPt0, jjPt
+  logical :: is_ok
 
   character(CLEN_PATH) :: f
   integer :: un
 
   real(8), parameter :: LENG_NEXT_LLIM = 1d-8
+  real(8), parameter :: THRESH_DIST_BTW_POINTS = 1.d-3
 
 logical :: debug_this
 
   call logbgn(PRCNAM, MODNAM)
+
+  call logmsg('Network '//str(uid))
   !-------------------------------------------------------------
-  !
+  ! Prepare network data
   !-------------------------------------------------------------
   nwk%uid = uid
 
   f = get_f_network_channel(nwk%uid, 'sbin')
+  call logmsg('Reading '//str(f))
   open(newunit=un, file=f, form='unformatted', access='sequential', status='old')
 
   read(un) nwk%nWsys
@@ -1964,6 +2085,76 @@ logical :: debug_this
 
   close(un)
   !-------------------------------------------------------------
+  ! Check if outlet exists
+  !-------------------------------------------------------------
+  is_ok = .false.
+  do jCh = 1, nwk%nCh
+    ch => nwk%channel(jCh)
+    if( any(ch%node(:)%typ == NODETYPE_NEW__OUT) )then
+      is_ok = .true.
+      exit
+    endif
+  enddo  ! jCh/
+
+  if( .not. is_ok )then
+    call logmsg('Outlet was not found. Model network is not generated.')
+    call logret(PRCNAM, MODNAM)
+    return
+  endif
+  !-------------------------------------------------------------
+  ! Remove the points that are very close to the neighbour
+  !-------------------------------------------------------------
+  call logent('Removing points that are very close to the neighbour')
+
+  do jCh = 1, nwk%nCh
+    ch => nwk%channel(jCh)
+
+    if( ch%leng < THRESH_DIST_BTW_POINTS )then
+      call errend('ch%leng < THRESH')
+    endif
+
+    jPt = 0
+    do while( jPt < ch%n-1 )
+      call add(jPt)
+
+      leng_next = dist_sphere(&
+        ch%lon(jPt)*d2r, ch%lat(jPt)*d2r, &
+        ch%lon(jPt+1)*d2r, ch%lat(jPt+1)*d2r &
+      ) * EARTH_R
+
+      if( leng_next < THRESH_DIST_BTW_POINTS )then
+        jPt0 = jPt  ! remove point #jPt
+        if( jPt == 1 ) jPt0 = 2  ! remove point #2
+
+        call logmsg('ch #'//str(jCh)//' leng='//str(leng_next)//&
+          '. pt #'//str(jPt0)//' was removed')
+
+        ch%lon(jPt0:ch%n-1) = ch%lon(jPt0+1:ch%n)
+        ch%lat(jPt0:ch%n-1) = ch%lat(jPt0+1:ch%n)
+        call add(ch%n, -1)
+      else
+        call add(jPt)
+      endif
+    enddo  ! jPt/
+
+    if( ch%n < size(ch%lon) )then
+      call realloc(ch%lon, ch%n, clear=.false.)
+      call realloc(ch%lat, ch%n, clear=.false.)
+    endif
+
+    ch%leng = 0.d0
+    do jPt = 1, ch%n-1
+      call add(ch%leng, dist_sphere(&
+        ch%lon(jPt)*d2r, ch%lat(jPt)*d2r, &
+        ch%lon(jPt+1)*d2r, ch%lat(jPt+1)*d2r &
+      ) * EARTH_R)
+    enddo
+  enddo  ! jCh/
+
+
+
+  call logext()
+  !-------------------------------------------------------------
   ! Divide channels
   !-------------------------------------------------------------
   call logent('Dividing channels into suitable length of sections')
@@ -1972,9 +2163,14 @@ logical :: debug_this
 
   do jCh = 1, nwk%nCh
 !print*, jCh
-debug_this = jCh == 49
+debug_this = jCh == 27
+!debug_this = .false.
 
     ch => nwk%channel(jCh)
+
+if( debug_this )then
+  call logmsg(ch%wsCode//' '//ch%rvCode//' '//ch%rvName)
+endif
 
     chdiv => lst_chdiv(jCh)
     !-----------------------------------------------------------
@@ -1992,7 +2188,14 @@ debug_this = jCh == 49
 
     leng_section = ch%leng / chdiv%n
 if( debug_this )then
+  leng_acc = 0.d0
+  do jPt = 1, ch%n-1
+    call add(leng_acc, dist_sphere(&
+      ch%lon(jPt)*d2r, ch%lat(jPt)*d2r, ch%lon(jPt+1)*d2r, ch%lat(jPt+1)*d2r &
+    ) * EARTH_R)
+  enddo
     call logmsg('('//str(jCh)//') nPt '//str(ch%n)//' leng '//str(ch%leng)//&
+      ' leng_sum '//str(leng_acc)//&
       ' nDiv '//str(chdiv%n)//' leng_section '//str(leng_section))
 endif
 
@@ -2008,13 +2211,14 @@ endif
     iDiv = 0
     jPt = 1
     pos = 0.d0
+    leng_acc = 0.d0
     do while( jPt < ch%n )
       call add(iDiv)
       div => chdiv%div(iDiv)
       div%n = 1
       div%jPt(1) = jPt
       div%edge(1)%pos = pos
-      leng_sum = 0.d0
+      div%leng = 0.d0
 
       do while( jPt < ch%n )
         leng_next = dist_sphere(&
@@ -2022,11 +2226,11 @@ endif
         ) * EARTH_R
 if( debug_this )then
   call logmsg(str(jPt)//' pos '//str(pos,'f5.3')//&
-    ' sum '//str(leng_sum)//' next '//str(leng_next)//&
-    ' sum+next*(1-pos) '//str(leng_sum+leng_next*(1-pos)))
+    ' sum '//str(div%leng)//' next '//str(leng_next)//&
+    ' sum+next*(1-pos) '//str(div%leng+leng_next*(1-pos)))
 endif
-        if( leng_sum + leng_next*(1.d0-pos) > leng_section ) exit
-        call add(leng_sum, leng_next*(1.d0-pos))
+        if( div%leng + leng_next*(1.d0-pos) > leng_section ) exit
+        call add(div%leng, leng_next*(1.d0-pos))
         call add(jPt)
         pos = 0.d0
         call add(div%n)
@@ -2037,7 +2241,7 @@ endif
       if( leng_next < LENG_NEXT_LLIM )then
         pos = 1.d0
       else
-        pos = min(pos + min(max(leng_section - leng_sum, 0.d0) / leng_next, 1.d0), 1.d0)
+        pos = min(pos + min(max(leng_section - div%leng, 0.d0) / leng_next, 1.d0), 1.d0)
       endif
 
       if( pos < 1d-8 )then
@@ -2048,16 +2252,20 @@ endif
 
       div%edge(2)%pos = pos
 
+      leng_prev = div%leng
+
+      call add(div%leng, leng_next*(pos-pos_prev))
+
+      call add(leng_acc, div%leng)
+
 if( debug_this )then
-      !if( abs((leng_sum + leng_next*(pos-pos_prev)) - leng_section) > 1d-2 )then
-        call logmsg('('//str(jCh)//') '//str(jPt)//&
+      !if( abs((div%leng + leng_next*(pos-pos_prev)) - leng_section) > 1d-2 )then
+        call logmsg('div '//str(iDiv)//' pt '//str(jPt)//&
           ' pos '//str(pos,'f5.3')//' pos_prev '//str(pos_prev,'f5.3')//&
-          ' sum '//str(leng_sum)//' next '//str(leng_next)//&
-          ' err '//str((leng_sum + leng_next*(pos-pos_prev)) - leng_section))
+        '\nsum '//str(leng_prev)//' + '//str(leng_next)//' x (pos-pos_prev) -> '//str(div%leng)//&
+        '\nerr '//str(div%leng - leng_section)//' acc '//str(leng_acc))
       !endif
 endif
-
-      call add(leng_sum, leng_next*(pos-pos_prev))
 
       if( pos == 1.d0 )then
         pos_prev = 0.d0
@@ -2066,7 +2274,8 @@ endif
       endif
 
       if( jPt < ch%n .and. iDiv == chdiv%n )then
-        call errend('jPt < ch%n and iDiv == chdiv%n')
+        call errend('jPt < ch%n and iDiv == chdiv%n'//&
+          '\n  channel #'//str(jCh))
       endif
     enddo  ! jPt, iDiv/
     !-----------------------------------------------------------
@@ -2094,14 +2303,16 @@ endif
         edge%lat = ch%lat(jPt)*(1.d0-edge%pos) + ch%lat(jPt+1)*edge%pos
       endif
 if( debug_this )then
-  call logmsg('div('//str(iDiv,dgt(chdiv%n))//')'//&
-    str(div%edge(1)%pos)//' '//str(div%jPt(1))//' '//&
+  call logmsg('div('//str(iDiv,dgt(chdiv%n))//') '//&
+    str(div%edge(1)%pos,'f5.3')//' '//str(div%jPt(1))//' '//&
     slonlat(div%edge(1)%lon,div%edge(1)%lat)//' - '//&
-    str(div%edge(2)%pos)//' '//str(div%jPt(div%n))//' '//&
+    str(div%edge(2)%pos,'f5.3')//' '//str(div%jPt(div%n))//' '//&
     slonlat(div%edge(2)%lon,div%edge(2)%lat))
  
 endif
-
+      !---------------------------------------------------------
+      ! Put coords. of points
+      !---------------------------------------------------------
       allocate(div%lon(div%n+2))
       allocate(div%lat(div%n+2))
       div%lon(1) = div%edge(1)%lon
@@ -2121,13 +2332,41 @@ endif
     enddo
     chdiv%div(1)%edge(1)%is_outlet = ch%node(1)%typ == NODETYPE_NEW__OUT
     chdiv%div(chdiv%n)%edge(2)%is_outlet = ch%node(2)%typ == NODETYPE_NEW__OUT
+    !-----------------------------------------------------------
+    !
+    !-----------------------------------------------------------
+if( debug_this )then
+  call logmsg('node%downleng: '//str(ch%node(:)%downleng)//&
+     '\nsum(div%leng): '//str(sum(chdiv%div(:)%leng))//&
+     '\nch%leng      : '//str(ch%leng))
+endif
+    downleng = ch%node(2)%downleng
+
+    do iDiv = chdiv%n, 1, -1
+      div => chdiv%div(iDiv)
+
+      div%edge(2)%downleng = downleng
+
+      call add(downleng, div%leng)
+
+      div%edge(1)%downleng = downleng
+    enddo  ! iDiv/
+
+    ! Case: Nodes takes different shortest routes to the outlet
+    ! e.g., network 0010002001 channel 79
+    !div => chdiv%div(1)
+    !if( div%edge(1)%downleng - ch%node(1)%downleng > 1d-2 )then
+    !  call logmsg('chdiv%div(1)%edge(1)%downleng - ch%node(1)%downleng > 1d-2'//&
+    !    '\n  channel #'//str(jCh))
+    !endif
   enddo  ! jCh/
 
   call logext()
   !-------------------------------------------------------------
-  !
+  ! Output
   !-------------------------------------------------------------
   f = get_f_network_model(name_leng, uid)
+  call logmsg('Writing '//str(f))
   open(newunit=un, file=f, status='replace')
 
   write(un,"(a)") 'channel '//str(sum(lst_chdiv(:)%n))
@@ -2143,13 +2382,10 @@ endif
 
       write(un,"(a)") '  channel '//str(iCh)
       write(un,"(a)") '  node_outlet '//str(div%edge(:)%is_outlet)
+      write(un,"(a)") '  distToMouth '//str(div%edge(:)%downleng,'f10.2')
       write(un,"(a)") '  points '//str(div%n+2)
       write(un,"(a)") '  lon '//str(div%lon,'f12.7')
       write(un,"(a)") '  lat '//str(div%lat,'f11.7')
-
-      write(un,"(a)") '  width '//str(10.d0)
-      write(un,"(a)") '  depth '//str(5.d0)
-      write(un,"(a)") '  levee '//str(0.d0)
     enddo  ! iDiv/
   enddo  ! jCh/
 
@@ -2157,6 +2393,102 @@ endif
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
 end subroutine make_model_network_data
+!===============================================================
+!
+!===============================================================
+!
+!
+!
+!
+!
+!===============================================================
+!
+!===============================================================
+subroutine estimateRectCrossSection(name_leng, uid, param_s, param_c)
+  use c2_strnk_const
+  use c2_strnk_io, only: &
+    get_f_lst_networks_channel
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'estimateRectCrossSection'
+  character(*), intent(in) :: name_leng
+  character(*), intent(in) :: uid
+  real(8), intent(in) :: param_s, param_c
+
+  integer :: nNwk, jNwk
+  character(DGT_NWKUID) :: uid_this
+  character(CLEN_PATH) :: f
+  integer :: un
+  character :: c_
+
+  call logbgn(PRCNAM, MODNAM)
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  if( uid == '' )then
+    f = get_f_lst_networks_channel()
+    open(newunit=un, file=f, status='old')
+    read(un,*) c_, nNwk
+    read(un,*)
+    do jNwk = 1, nNwk
+      read(un,*) c_, uid_this
+      call estimate_rect_cross_section(name_leng, uid_this, param_s, param_c)
+    enddo
+    close(un)
+  else
+    call estimate_rect_cross_section(name_leng, uid, param_s, param_c)
+  endif
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
+end subroutine estimateRectCrossSection
+!===============================================================
+!
+!===============================================================
+subroutine estimate_rect_cross_section(name_leng, uid, param_s, param_c)
+  use c2_strnk_io, only: &
+        get_f_network_model
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'estimate_rect_cross_section'
+  character(*), intent(in) :: name_leng
+  character(*), intent(in) :: uid
+  real(8), intent(in) :: param_s, param_c
+
+  character(CLEN_PATH) :: f
+
+  call logbgn(PRCNAM, MODNAM)
+
+  call logmsg('Network '//str(uid))
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  f = get_f_network_model(name_leng, uid)
+  call logmsg('Reading '//str(f))
+
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
+end subroutine estimate_rect_cross_section
+!===============================================================
+!
+!===============================================================
+subroutine read_divided_channels(f, ch)
+  implicit none
+  character(*), intent(in) :: f
+  type(channel_), intent(inout) :: ch
+
+  integer :: un
+
+  open(newunit=un, file=f, status='old')
+  read(un,*) 
+
+  allocate(ch%node(2))
+  read(un,*) ch%node(:)%is_outlet
+
+  read(un,*) ch%n
+  allocate(ch%lon(ch%n))
+  allocate(ch%lat(ch%n))
+  read(un,*) ch%lon
+  read(un,*) ch%lat
+  close(un)
+end subroutine read_divided_channels
 !===============================================================
 !
 !===============================================================
