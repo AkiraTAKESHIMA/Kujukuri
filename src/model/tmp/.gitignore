@@ -66,9 +66,4 @@ vcpkg_installed/
 # test output & cache
 Testing/
 .cache/
-
-# Input data or experimental results
-dat/
-run/
 tmp/
-configs/

@@ -1,5 +1,7 @@
 module lib_io_arg_base
   use lib_const
+  use lib_base
+  use lib_log
   implicit none
   private
   !-------------------------------------------------------------
@@ -10,7 +12,10 @@ module lib_io_arg_base
   !-------------------------------------------------------------
   ! Interfaces
   !-------------------------------------------------------------
-
+  !-------------------------------------------------------------
+  ! Private module variables
+  !-------------------------------------------------------------
+  character(CLEN_PROC), parameter :: MODNAM = 'lib_io_arg_base'
 !---------------------------------------------------------------
 contains
 !===============================================================
@@ -30,11 +35,16 @@ end function argnum
 !===============================================================
 function argument(i) result(res)
   implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'argument'
   integer, intent(in) :: i
   character(:), allocatable :: res
 
   character(CLEN_LINE) :: s
 
+  if( i > argnum() )then
+    call errend('The specified index of argument exceeds the number of arguments.', &
+      '', PRCNAM, MODNAM)
+  endif
 #ifdef OPT_NO_F23
   call getarg(i, s)
 #else

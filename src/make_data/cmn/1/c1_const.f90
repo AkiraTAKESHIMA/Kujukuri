@@ -7,15 +7,15 @@ module c1_const
   character(CLEN_PATH), parameter :: DIR_DAT = trim(DIR_TOP)//'/dat'
 
   ! SPRING
-  character(CLEN_PATH), parameter :: DIR_SPRING_MAIN = trim(DIR_TOP)//'/src/SPRING/bin/std'
+  character(CLEN_PATH), parameter :: DIR_SPRING_MAIN = trim(DIR_TOP)//'/src/SPRING/main/std'
   character(CLEN_PATH), parameter :: &
-     PROG_SPRING_MAKE_GRID_DATA = trim(DIR_SPRING_MAIN)//'/make_grid_data.exe'
+     PROG_SPRING_MAKE_GRID_DATA = trim(DIR_SPRING_MAIN)//'/make_grid_data/main.exe'
   character(CLEN_PATH), parameter :: &
-     PROG_SPRING_REMAP          = trim(DIR_SPRING_MAIN)//'/remap.exe'
+     PROG_SPRING_REMAP          = trim(DIR_SPRING_MAIN)//'/remap/main.exe'
   character(CLEN_PATH), parameter :: &
-     PROG_SPRING_MERGE          = trim(DIR_SPRING_MAIN)//'/merge_remapping_tables.exe'
+     PROG_SPRING_MERGE          = trim(DIR_SPRING_MAIN)//'/merge_remapping_tables/main.exe'
   character(CLEN_PATH), parameter :: &
-     PROG_SPRING_RASTERIZE      = trim(DIR_SPRING_MAIN)//'/rasterize.exe'
+     PROG_SPRING_RASTERIZE      = trim(DIR_SPRING_MAIN)//'/rasterize/main.exe'
 
   ! Resolution
   character(CLEN_KEY), parameter :: RESOLUTION_100M = '100m'

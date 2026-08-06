@@ -15,6 +15,9 @@ module c2_strnk_io
   public :: read_strrank_all
   public :: show_strrank_all
 
+  public :: write_network_mesh_domain
+  public :: read_network_mesh_domain
+
   public :: get_f_stream_shp
   public :: get_f_stream_dbf
   public :: get_f_rivernode_shp
@@ -32,6 +35,7 @@ module c2_strnk_io
   public :: get_f_network_channel
   public :: get_f_network_chpix
   public :: get_f_network_mesh
+  public :: get_f_network_model
   public :: get_f_entdown
   public :: get_f_isct_basin
   public :: get_f_eval_basin
@@ -187,6 +191,64 @@ subroutine show_strrank_all(s)
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
 end subroutine show_strrank_all
+!===============================================================
+!
+!===============================================================
+!
+!
+!
+!
+!
+!===============================================================
+!
+!===============================================================
+subroutine write_network_mesh_domain(&
+    resl, uid, &
+    gxs, gxe, gys, gye, &
+    west, east, south, north)
+  implicit none
+  character(*), intent(in) :: resl
+  character(*), intent(in) :: uid
+  integer, intent(in) :: gxs, gxe, gys, gye
+  real(8), intent(in) :: west, east, south, north
+
+  character(CLEN_PATH) :: f
+  integer :: un
+
+  f = get_f_network_mesh(resl, 'domain', uid)
+  open(newunit=un, file=f, status='replace')
+  write(un,"(a)") 'nx '//str(gxe-gxs+1)//' gx '//str((/gxs,gxe/))
+  write(un,"(a)") 'ny '//str(gye-gys+1)//' gy '//str((/gys,gye/))
+  write(un,"(a)") 'BBox '//str((/west,east/),'f12.7',' ')//&
+                  str((/south,north/),'f11.7',' ')
+  close(un)
+end subroutine write_network_mesh_domain
+!===============================================================
+!
+!===============================================================
+subroutine read_network_mesh_domain(&
+    resl, uid, &
+    gxs, gxe, gys, gye, &
+    west, east, south, north)
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'read_network_mesh_domain'
+  character(*), intent(in) :: resl
+  character(*), intent(in) :: uid
+  integer, intent(out) :: gxs, gxe, gys, gye
+  real(8), intent(out) :: west, east, south, north
+
+  integer :: nx, ny
+  character(CLEN_PATH) :: f
+  integer :: un
+  character :: c_
+
+  f = get_f_network_mesh(resl, 'domain', uid)
+  open(newunit=un, file=f, status='old')
+  read(un,*) c_, nx, c_, gxs, gxe
+  read(un,*) c_, ny, c_, gys, gye
+  read(un,*) c_, west, east, south, north
+  close(un)
+end subroutine read_network_mesh_domain
 !===============================================================
 !
 !===============================================================
@@ -437,14 +499,15 @@ end function get_f_lst_networks_chpix
 !
 !===============================================================
 character(CLEN_PATH) function get_f_lst_networks_mesh(&
-    resl) result(f)
+    resl, var) result(f)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'get_f_lst_networks_mesh'
   character(*), intent(in) :: resl
+  character(*), intent(in) :: var
 
   call logbgn(PRCNAM, MODNAM, '-p')
   !-------------------------------------------------------------
-  f = joined(DIR_PRD, 'network_mesh/'//str(resl)//'/all.txt')
+  f = joined(DIR_PRD, 'network_mesh/'//str(resl)//'/'//trim(var)//'/all.txt')
 
   call traperr( mkdir(dirname(f)) )
   !-------------------------------------------------------------
@@ -492,20 +555,45 @@ end function get_f_network_chpix
 !
 !===============================================================
 character(CLEN_PATH) function get_f_network_mesh(&
-    resl, uid) result(f)
+    resl, var, uid) result(f)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'get_f_network_chpix'
   character(*), intent(in) :: resl
+  character(*), intent(in) :: var
   character(*), intent(in) :: uid
+
+  character(3) :: ext
 
   call logbgn(PRCNAM, MODNAM, '-p')
   !-------------------------------------------------------------
-  f = joined(DIR_PRD, 'network_mesh/'//str(resl)//'/'//str(uid)//'.bin')
+  selectcase( var )
+  case( 'mask', 'elv', 'landuse' )
+    ext = 'bin'
+  case( 'domain' )
+    ext = 'txt'
+  case default
+    call errend(msg_invalid_value('var', var))
+  endselect
+
+  f = joined(DIR_PRD, 'network_mesh/'//str(resl)//'/'//str(var)//'/'//str(uid)//'.'//str(ext))
 
   call traperr( mkdir(dirname(f)) )
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
 end function get_f_network_mesh
+!===============================================================
+!
+!===============================================================
+character(CLEN_PATH) function get_f_network_model(name_leng, uid) result(f)
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'get_f_network_model'
+  character(*), intent(in) :: name_leng
+  character(*), intent(in) :: uid
+
+  f = joined(DIR_PRD, 'network_model/'//str(name_leng)//'/'//str(uid)//'.txt')
+
+  call traperr( mkdir(dirname(f)) )
+end function get_f_network_model
 !===============================================================
 !
 !===============================================================

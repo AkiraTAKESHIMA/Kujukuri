@@ -236,16 +236,20 @@ real(8) function calc_elv(&
   real(4) :: elv_ll, elv_lr, elv_ul, elv_ur
   logical :: mask(3,3)
   integer :: n
+  character(32) :: str_elvmin, str_elvmax
 
   gx = gxs_of_lon(lon)
   gy = gys_of_lat(lat)
   if( lon < center_of_gx(gx) ) gx = gx - 1
   if( lat < center_of_gy(gy) ) gy = gy + 1
-  dlon = (lon - center_of_gx(gx)) / GRIDSIZE_LON
-  dlat = (lat - center_of_gy(gy)) / GRIDSIZE_LAT
-  if( dlon < 0.d0 .or. dlon > 1.d0 .or. &
-      dlat < 0.d0 .or. dlat > 1.d0 )then
-    call errend('dlon: '//str(dlon)//' dlat: '//str(dlat), &
+  dlon = lon - center_of_gx(gx)
+  dlat = lat - center_of_gy(gy)
+  if( dlon < 0.d0 .or. dlon > GRIDSIZE_LON .or. &
+      dlat < 0.d0 .or. dlat > GRIDSIZE_LAT )then
+    call errend(msg_unexpected_condition()//&
+      '\n  dlon not in [0, GRIDSIZE_LON] or dlat not in [0, GRIDSIZE_LAT]'//&
+      '\ndlon: '//str(dlon)//' dlat: '//str(dlat)//&
+      '\nGRIDSIZE_LON: '//str(GRIDSIZE_LON)//' GRIDSIZE_LAT: '//str(GRIDSIZE_LAT), &
         '', PRCNAM, MODNAM)
   endif
 
@@ -297,11 +301,19 @@ real(8) function calc_elv(&
                   real(elv_ul,8), real(elv_ur,8)) .or. &
         elv > max(real(elv_ll,8), real(elv_lr,8), &
                   real(elv_ul,8), real(elv_ur,8)) )then
+      if( all(elvmap == ELV_MISS) )then
+        str_elvmin = '(miss)'
+        str_elvmax = '(miss)'
+      else
+        str_elvmin = str(minval(elvmap, mask=elvmap/=ELV_MISS))
+        str_elvmax = str(maxval(elvmap, mask=elvmap/=ELV_MISS))
+      endif
       call errend('elv('//str((/elv_ll,elv_lr,elv_ul,elv_ur/),'es10.3',',')//&
                   ') -> '//str(elv,'es10.3')//&
-          ' (dlon,dlat): ('//str((/dlon,dlat/),'f5.3',',')//')'//&
+          ' (dlon,dlat): ('//str((/dlon,dlat/),'es10.3',',')//')'//&
+          ' (lonsize,latsize): ('//str((/GRIDSIZE_LON,GRIDSIZE_LAT/),'es10.3',',')//')'//&
         '\nxy: '//str((/gxs,gxe,gys,gye/),8,', ')//&
-        '\nelv min: '//str(minval(elvmap))//', max: '//str(maxval(elvmap)), &
+        '\nelv min: '//str(str_elvmin)//', max: '//(str_elvmax), &
           '', PRCNAM, MODNAM)
     endif
   endif

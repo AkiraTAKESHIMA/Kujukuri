@@ -581,6 +581,8 @@ subroutine postConnectChannels()
     call traperr( shp_close() )
   enddo  ! iRegion/
 
+  call shp_clear_entity(ent)
+
   ! Sort by (1) uid (2) iRegion 
   ! and later by (3) irEnt (keeping sorted by (1), (2))
   allocate(arg(dct_ent%ngEnt))

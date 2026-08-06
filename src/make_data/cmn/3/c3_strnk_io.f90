@@ -6,6 +6,8 @@ module c3_strnk_io
     strnk_read_strrank_all => read_strrank_all, &
     strnk_show_strrank_all => show_strrank_all, &
 !
+    strnk_read_network_mesh_domain => read_network_mesh_domain, &
+!
     strnk_get_f_stream_shp             => get_f_stream_shp            , &
     strnk_get_f_stream_dbf             => get_f_stream_dbf            , &
     strnk_get_f_rivernode_shp          => get_f_rivernode_shp         , &

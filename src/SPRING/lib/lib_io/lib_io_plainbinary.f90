@@ -32,6 +32,7 @@ module lib_io_plainbinary
     module procedure rb__int8_1d
     module procedure rb__real_1d
     module procedure rb__dble_1d
+    module procedure rb__log1_2d
     module procedure rb__int1_2d
     module procedure rb__int2_2d
     module procedure rb__int4_2d
@@ -922,7 +923,7 @@ integer(4) function rb__dble_1d(&
   if( present(lb) ) lb_ = lb
   if( present(check_recl) ) check_recl_ = check_recl
 
-  ub = lb_-1_8 + shp
+  ub = lb_ - 1_8 + shp
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
@@ -983,6 +984,119 @@ end function rb__dble_1d
 !
 !
 !
+!===============================================================
+!
+!===============================================================
+integer(4) function rb__log1_2d(&
+    dat, f, dtype, endian, rec, sz, lb, check_recl) result(info)
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'rb__log1_2d'
+  logical(1)  , intent(out) :: dat(:,:)  !--dtype--
+  character(*), intent(in)  :: f
+  character(*), intent(in) , optional :: dtype
+  character(*), intent(in) , optional :: endian
+  integer     , intent(in) , optional :: rec
+  integer(8)  , intent(in) , optional :: sz(:)
+  integer(8)  , intent(in) , optional :: lb(:)
+  logical     , intent(in) , optional :: check_recl
+
+  character(clen_key) :: dtype_
+  character(clen_key) :: endian_
+  integer             :: rec_
+  integer(8)          :: sz_(2)
+  integer(8)          :: lb_(2)
+  logical             :: check_recl_
+
+  integer(8) :: shp(2)
+  integer(8) :: ub(2)
+  integer(8) :: byte
+  integer(8) :: thresh_ndata
+  integer(8) :: nblock, kk
+  integer(8) :: nn, n
+  integer(8) :: i2
+  integer(8) :: is
+  integer(8) :: pos
+  integer :: un
+
+  info = 0
+  call logbgn(PRCNAM, MODNAM, '-p')
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  shp = shape(dat,kind=8)
+
+  dtype_ = DTYPE_LOG1  !--dtype--
+  endian_ = ENDIAN_DEFAULT
+  rec_ = 1
+  sz_(:) = shp(:)
+  lb_(:) = 1_8
+  check_recl_ = .false.
+
+  if( present(dtype) ) dtype_ = dtype
+  if( present(endian) ) endian_ = endian_name_long(endian)
+  if( present(rec) ) rec_ = rec
+  if( present(sz) ) sz_(:) = sz(:)
+  if( present(lb) ) lb_(:) = lb(:)
+  if( present(check_recl) ) check_recl_ = check_recl
+
+  ub(:) = lb_(:) + shp(:) - 1_8
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  if( check_input_file(&
+        f, dtype_, product(sz_), rec_, check_recl_) /= 0 )then
+    info = 1; call errret(); return
+  endif
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  un = unit_number()
+  if( open_input_file_stream(un, f, endian_) /= 0 )then
+    info = 1; call errret(); return
+  endif
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  byte = byte_of_dtype(dtype_)
+  thresh_ndata = THRESH_DATASIZE / byte
+  nblock = (shp(1)-1_8) / thresh_ndata + 1_8
+  nn = (shp(1)-1_8) / nblock + 1_8
+
+  pos = product(sz_)*(rec_-1)*byte + 1_8
+
+  if( read_block(0, dat(:,1), dtype_, un, 0_8, nn) /= 0 )then
+    info = 1; call errret(); return
+  endif
+
+  pos = pos + sz_(1)*(lb_(2)-1_8)*byte
+  do i2 = 1_8, shp(2)
+    pos = pos + (lb_(1)-1_8)*byte
+    is = 0_8
+    n = shp(1) - nn*(nblock-1_8)
+    do kk = 1_8, nblock
+      if( read_block(1, dat(is+1_8:is+n,i2), dtype_, un, pos, n) /= 0 )then
+        info = 1; call errret(); return
+      endif
+      is = is + n
+      pos = pos + n*byte
+      n = nn
+    enddo
+    pos = pos + (sz_(1)-ub(1))*byte
+  enddo
+  pos = pos + sz_(1)*(sz_(2)-ub(2))*byte
+
+  if( read_block(-1, dat(:,1), dtype_, un, 0_8, 0_8) /= 0 )then
+    info = 1; call errret(); return
+  endif
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  if( close_file(un) /= 0 )then
+    info = 1; call errret(); return
+  endif
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
+end function rb__log1_2d
 !===============================================================
 !
 !===============================================================

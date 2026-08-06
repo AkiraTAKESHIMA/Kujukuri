@@ -35,6 +35,7 @@ module c2_jflw_io
   public :: get_f_dat_basin
   public :: get_dir_bsnara_tile
   public :: get_f_lst_all
+  public :: get_dir_rt
   !-------------------------------------------------------------
   ! Interfaces
   !-------------------------------------------------------------
@@ -690,13 +691,12 @@ character(CLEN_PATH) function get_f_map_tile(&
         'upg', &
         'upa', &
         'wth' )
-    if( resl /= RESOLUTION_1SEC )then
-      call errend(msg_unexpected_condition()//&
-          '\n  `resl` must be "'//str(RESOLUTION_1SEC)//&
-          '" when original data was selected.')
+    if( resl == RESOLUTION_1SEC )then
+      f = joined(DIR_ORG, trim(var)//'/'//tilename(tx,ty)//'_'//trim(var)//'.bin')
+    else
+      f = joined(DIR_TILED, trim(resl)//'/'//trim(var)//'/'//tilename(tx,ty)//'.bin')
     endif
-    f = joined(DIR_ORG, trim(var)//'/'//tilename(tx,ty)//'_'//trim(var)//'.bin')
-
+  
   case( 'bsn_parts'     , &
         'bsn_tmp'       , &
         'bsn'           , &
@@ -843,6 +843,17 @@ character(CLEN_PATH) function get_f_lst_all(resl, var) result(res)
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
 end function get_f_lst_all
+!===============================================================
+!
+!===============================================================
+character(CLEN_PATH) function get_dir_rt(resl_src, resl_tgt) result(res)
+  implicit none
+  character(*), intent(in) :: resl_src, resl_tgt
+
+  res = joined(DIR_TILED, str(resl_tgt)//'/rt_from_jflw-'//str(resl_src))
+
+  call traperr( mkdir(res) )
+end function get_dir_rt
 !===============================================================
 !
 !===============================================================

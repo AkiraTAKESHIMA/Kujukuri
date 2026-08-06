@@ -1,16 +1,25 @@
 import os
 import sys
+import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
+
+def stime2datetime(s):
+    return datetime.datetime(
+      int(s[:4]), int(s[5:7]), int(s[8:10]), 
+      int(s[11:13]), int(s[14:16]), int(s[17:19])
+    )
+
 
 def read_conf(f_conf):
     fp = open(f_conf, 'r')
     dir_out = fp.readline().strip().split()[1]
     fp.readline() #
-    hours = int(fp.readline().strip().split()[1])
+    time_bgn = stime2datetime(fp.readline().strip().split()[1])
+    time_end = stime2datetime(fp.readline().strip().split()[1])
     dt_out = int(fp.readline().strip().split()[1])
-    nt = hours / dt_out
+    nt = (time_end - time_bgn) / dt_out
     fp.readline()  # dt
     fp.readline()  # dt_riv
     fp.readline()  # dt_slo
@@ -30,7 +39,7 @@ def read_conf(f_conf):
 
 
 def read_river():
-    fp = open('river_line.txt', 'r')
+    fp = open('river_network.txt', 'r')
     nCh = int(fp.readline().strip().split()[1])
     chs = []
     for iCh in range(nCh):
@@ -75,7 +84,8 @@ def draw_map():
     hr = np.fromfile(f'{dir_out}/hr.bin').reshape(-1,len(chs))
     print(f'output nt: {hs.shape[0]}')
 
-    hrmin, hrmax = 0, 5.0
+    hrmin = 0
+    hrmax = hr[it].max() * 0.85
 
     elv = np.fromfile('elv.bin',dtype=np.float32).reshape(ny,nx)
     mask = elv < -1e2
@@ -84,6 +94,20 @@ def draw_map():
     hs_plt = np.ma.masked_where(mask, hs[it])
     print(f'hr[{it}] min: {hr_plt.min()} max: {hr_plt.max()}')
     print(f'hs[{it}] min: {hs_plt.min()} max: {hs_plt.max()}')
+
+    #for param in ('width', 'depth'):
+    #    fig = plt.figure(figsize=(8,8))
+    #    ax = fig.add_subplot(projection=ccrs.PlateCarree())
+    #    vmin_ = 0
+    #    vmax_ = np.max([ch[param] for ch in chs])
+    #    cm = plt.cm.rainbow
+    #    for ch in chs:
+    #        vnorm = max(min( (ch[param].mean()-vmin_) / (vmax_-vmin_), 1.0),0.0)
+    #        ax.plot(ch['lon'], ch['lat'], linewidth=2, color='w', zorder=1)
+    #        ax.plot(ch['lon'], ch['lat'], linewidth=1.5, color=cm(vnorm), zorder=2)
+    #    #im = ax.imshow(np.zeros((1,1)), cmap=cm, vmin=vmin_, vmax=vmax_)
+    #    #fig.colorbar(im, aspect=40, pad=0.03, orientation='vertical')
+    #    ax.set_title(param)
 
     fig = plt.figure(figsize=(8,8))
     ax = fig.add_subplot(projection=ccrs.PlateCarree())
@@ -94,6 +118,8 @@ def draw_map():
     ax = plot_hr_map(
            ax, hr[it], chs, 
            vmin=hrmin, vmax=hrmax, zorder=2)
+    for i, ch in enumerate(chs):
+        ax.text(ch['lon'].mean(), ch['lat'].mean(), str(i))
     ax.set_extent([west,east,south,north])
     plt.show()
 
@@ -125,7 +151,7 @@ def draw_waterbudget():
     fs_ticks = 14
     plt.rcParams['font.size'] = 16
 
-    fig = plt.figure(figsize=(12,8))
+    fig = plt.figure(figsize=(12,10))
     ax = fig.add_subplot()
     ax.plot(prcp[t0:], linewidth=lw, color='dodgerblue', label='prcp')
     ax.plot(sout[t0:], linewidth=lw, color='purple', label='disharge')
@@ -140,10 +166,13 @@ def draw_waterbudget():
     plt.show()
 
 
-job = sys.argv[1]
+task = sys.argv[1]
 
-if job == 'draw_map':
+if task == 'draw_map':
     draw_map()
 
-elif job == 'draw_waterbudget':
+elif task == 'draw_waterbudget':
     draw_waterbudget()
+
+else:
+    raise Exception(f'Invalid task: {task}')
