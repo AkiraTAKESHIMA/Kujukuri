@@ -1371,7 +1371,7 @@ subroutine print_usage()
     case( ITYPE_CHAR, &
           ITYPE_INT1, ITYPE_INT2, ITYPE_INT4, ITYPE_INT8, &
           ITYPE_REAL, ITYPE_DBLE )
-      s = trim(s)//' '//trim(cmn%name)
+      s = s//' '//trim(cmn%name)
     endselect
 
     if( cmn%description /= '' )then

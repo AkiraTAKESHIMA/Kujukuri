@@ -6,6 +6,9 @@ module mod_connect_channels
   use lib_array
   use lib_math
   use lib_io
+  use c1_util, only: &
+        slonlat, &
+        sBBox
   use c2_strnk_const, only: &
         CLEN_NODEID
   use mod_util, only: &
@@ -393,7 +396,6 @@ subroutine postConnectChannels()
         get_entity_length, &
         calc_elv         , &
         get_fmt_network  , &
-        slonlat          , &
         comma_json
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'postConnectChannels'

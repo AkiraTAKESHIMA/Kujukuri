@@ -130,7 +130,7 @@ module mod_param
   logical :: allow_channel_outside_domain
 
   ! Earth's constants
-  real(8) :: earth_r
+  real(8) :: earth_r = 6371.d0
 
   ! Physics
   real(8) :: ns_river

@@ -6,6 +6,10 @@ module mod_modify_flwdir
   use lib_array
   use lib_math
   use lib_io
+  use c1_const
+  use c1_util, only: &
+        slonlat, &
+        sBBox
   implicit none
   private
   !-------------------------------------------------------------
@@ -135,8 +139,6 @@ subroutine modify_flwdir_network(resolution, uid)
   use mod_util, only: &
         jNode2jPt, &
         search_2, &
-        slonlat, &
-        sBBox, &
         sMeshRange
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'modify_flwdir_network'

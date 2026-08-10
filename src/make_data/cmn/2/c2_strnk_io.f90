@@ -30,12 +30,15 @@ module c2_strnk_io
   public :: get_f_tmp_network_channel
   public :: get_f_tmp_network_separation
   public :: get_f_lst_networks_channel
-  public :: get_f_lst_networks_chpix
+  public :: get_f_lst_networks_raster
   public :: get_f_lst_networks_mesh
   public :: get_f_network_channel
-  public :: get_f_network_chpix
+  public :: get_f_network_raster
   public :: get_f_network_mesh
-  public :: get_f_network_model
+  public :: get_f_network_channelscale
+  public :: get_f_network_crosssection
+  public :: get_f_model_network
+  public :: get_f_model_crosssection
   public :: get_f_entdown
   public :: get_f_isct_basin
   public :: get_f_eval_basin
@@ -483,31 +486,30 @@ end function get_f_lst_networks_channel
 !===============================================================
 !
 !===============================================================
-character(CLEN_PATH) function get_f_lst_networks_chpix() result(f)
+character(CLEN_PATH) function get_f_lst_networks_raster() result(f)
   implicit none
-  character(CLEN_PROC), parameter :: PRCNAM = 'get_f_lst_networks_chpix'
+  character(CLEN_PROC), parameter :: PRCNAM = 'get_f_lst_networks_raster'
 
   call logbgn(PRCNAM, MODNAM, '-p')
   !-------------------------------------------------------------
-  f = joined(DIR_PRD, 'network_chpix/all.txt')
+  f = joined(DIR_PRD, 'network_raster/all.txt')
 
   call traperr( mkdir(dirname(f)) )
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
-end function get_f_lst_networks_chpix
+end function get_f_lst_networks_raster
 !===============================================================
 !
 !===============================================================
 character(CLEN_PATH) function get_f_lst_networks_mesh(&
-    resl, var) result(f)
+    resl) result(f)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'get_f_lst_networks_mesh'
   character(*), intent(in) :: resl
-  character(*), intent(in) :: var
 
   call logbgn(PRCNAM, MODNAM, '-p')
   !-------------------------------------------------------------
-  f = joined(DIR_PRD, 'network_mesh/'//str(resl)//'/'//trim(var)//'/all.txt')
+  f = joined(DIR_PRD, 'network_mesh/'//str(resl)//'/domain/all.txt')
 
   call traperr( mkdir(dirname(f)) )
   !-------------------------------------------------------------
@@ -538,26 +540,26 @@ end function get_f_network_channel
 !===============================================================
 !
 !===============================================================
-character(CLEN_PATH) function get_f_network_chpix(uid) result(f)
+character(CLEN_PATH) function get_f_network_raster(uid) result(f)
   implicit none
-  character(CLEN_PROC), parameter :: PRCNAM = 'get_f_network_chpix'
+  character(CLEN_PROC), parameter :: PRCNAM = 'get_f_network_raster'
   character(*), intent(in) :: uid
 
   call logbgn(PRCNAM, MODNAM, '-p')
   !-------------------------------------------------------------
-  f = joined(DIR_PRD, 'network_chpix/'//str(uid)//'.sbin')
+  f = joined(DIR_PRD, 'network_raster/'//str(uid)//'.sbin')
 
   call traperr( mkdir(dirname(f)) )
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
-end function get_f_network_chpix
+end function get_f_network_raster
 !===============================================================
 !
 !===============================================================
 character(CLEN_PATH) function get_f_network_mesh(&
     resl, var, uid) result(f)
   implicit none
-  character(CLEN_PROC), parameter :: PRCNAM = 'get_f_network_chpix'
+  character(CLEN_PROC), parameter :: PRCNAM = 'get_f_network_mesh'
   character(*), intent(in) :: resl
   character(*), intent(in) :: var
   character(*), intent(in) :: uid
@@ -567,7 +569,7 @@ character(CLEN_PATH) function get_f_network_mesh(&
   call logbgn(PRCNAM, MODNAM, '-p')
   !-------------------------------------------------------------
   selectcase( var )
-  case( 'mask', 'elv', 'landuse' )
+  case( 'mask', 'upa', 'elv', 'landuse' )
     ext = 'bin'
   case( 'domain' )
     ext = 'txt'
@@ -584,16 +586,64 @@ end function get_f_network_mesh
 !===============================================================
 !
 !===============================================================
-character(CLEN_PATH) function get_f_network_model(name_leng, uid) result(f)
+character(CLEN_PATH) function get_f_network_channelscale(uid) result(f)
   implicit none
-  character(CLEN_PROC), parameter :: PRCNAM = 'get_f_network_model'
-  character(*), intent(in) :: name_leng
+  character(CLEN_PROC), parameter :: PRCNAM = 'get_f_network_channelscale'
   character(*), intent(in) :: uid
 
-  f = joined(DIR_PRD, 'network_model/'//str(name_leng)//'/'//str(uid)//'.txt')
+  f = joined(DIR_PRD, 'network_channelscale/'//str(uid)//'.bin')
 
   call traperr( mkdir(dirname(f)) )
-end function get_f_network_model
+end function get_f_network_channelscale
+!===============================================================
+!
+!===============================================================
+character(CLEN_PATH) function get_f_network_crosssection(&
+    productName, var, uid &
+) result(f)
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'get_f_network_crosssection'
+  character(*), intent(in) :: productName
+  character(*), intent(in) :: var
+  character(*), intent(in) :: uid
+
+  f = joined(DIR_PRD, 'network_crosssection/'//&
+    str(productName)//'/'//str(var)//'/'//str(uid)//'.bin')
+
+  call traperr( mkdir(dirname(f)) )
+end function get_f_network_crosssection
+!===============================================================
+!
+!===============================================================
+character(CLEN_PATH) function get_f_model_network(&
+    name, uid &
+) result(f)
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'get_f_model_network'
+  character(*), intent(in) :: name
+  character(*), intent(in) :: uid
+
+  f = joined(DIR_PRD, 'model_network/'//str(name)//'/'//str(uid)//'.txt')
+
+  call traperr( mkdir(dirname(f)) )
+end function get_f_model_network
+!===============================================================
+!
+!===============================================================
+character(CLEN_PATH) function get_f_model_crosssection(&
+    name, var, uid &
+) result(f)
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'get_f_model_crosssection'
+  character(*), intent(in) :: name
+  character(*), intent(in) :: var
+  character(*), intent(in) :: uid
+
+  f = joined(DIR_PRD, 'model_crosssection/'//&
+    str(name)//'/'//str(var)//'/'//str(uid)//'.txt')
+
+  call traperr( mkdir(dirname(f)) )
+end function get_f_model_crosssection
 !===============================================================
 !
 !===============================================================

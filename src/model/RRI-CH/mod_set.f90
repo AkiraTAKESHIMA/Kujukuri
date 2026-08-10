@@ -35,7 +35,7 @@ subroutine init()
 
   call set_mesh()
 
-  call calc_river_network()
+  call build_river_network()
 
   call make_river_shape()
 
@@ -77,8 +77,6 @@ subroutine read_conf()
   call traperr( mkdir(dir_out) )
 
   read(un,*)
-  call logmsg('')
-
   read(un,*) c_, stime_bgn
   read(un,*) c_, stime_end
   read(un,*) c_, dt_out
@@ -94,9 +92,7 @@ subroutine read_conf()
   call stime2time(stime_bgn, time_bgn)
   call stime2time(stime_end, time_end)
 
-  !nt = hours*3600 / dt
-
-  !call logmsg('hours: '//str(hours))
+  call logmsg('')
   call logmsg('dt_out: '//str(dt_out))
   call logmsg('dt    : '//str(dt))
   call logmsg('dt_riv: '//str(dt_riv))
@@ -106,16 +102,14 @@ subroutine read_conf()
   call logmsg('ddt_min_riv: '//str(ddt_min_riv))
   call logmsg('ddt_min_slo: '//str(ddt_min_slo))
 
-
   read(un,*)
-  call logmsg('')
-
   read(un,*) c_, west
   read(un,*) c_, east
   read(un,*) c_, south
   read(un,*) c_, north
   read(un,*) c_, nx
   read(un,*) c_, ny
+  call logmsg('')
   call logmsg('west : '//str(west,'f12.7'))
   call logmsg('east : '//str(east,'f12.7'))
   call logmsg('south: '//str(south,'f11.7'))
@@ -124,24 +118,29 @@ subroutine read_conf()
   call logmsg('ny: '//str(ny))
 
   read(un,*)
-  call logmsg('')
-
   read(un,*) c_, file_elvtn
   read(un,*) c_, file_flwdir
   read(un,*) c_, file_landuse
   read(un,*) c_, file_rivshp
+  read(un,*) c_, allow_channel_outside_domain
+  call logmsg('')
   call logmsg('file_elvtn  : '//str(file_elvtn))
   call logmsg('file_flwdir : '//str(file_flwdir))
   call logmsg('file_landuse: '//str(file_landuse))
   call logmsg('file_rivshp : '//str(file_rivshp))
+  call logmsg('allow_channel_outside_domain: '//str(allow_channel_outside_domain))
 
   read(un,*)
-  call logmsg('')
-
   read(un,*) c_, ns_river
-  read(un,*) c_, nLu
+  call logmsg('')
   call logmsg('ns_river: '//str(ns_river))
+
+  read(un,*)
+  read(un,*) c_, nLu
+  call logmsg('')
   call logmsg('num_landuse: '//str(nLu))
+
+  lmax = 4
 
   allocate(dif(nLu))
   allocate(ns_slope(nLu))
@@ -255,20 +254,8 @@ subroutine read_conf()
   endselect
 
   read(un,*)
-  call logmsg('')
-
-  read(un,*) c_, allow_channel_outside_domain
-  call logmsg('allow_channel_outside_domain: '//str(allow_channel_outside_domain))
-
-  lmax = 4
-
-  read(un,*)
-  call logmsg('')
-
-  read(un,*) c_, earth_r
-  call logmsg('earth_r: '//str(earth_r))
-
   read(un,*) c_, file_prcp
+  call logmsg('')
   call logmsg('file_prcp: '//str(file_prcp))
 
   close(un)
@@ -297,12 +284,12 @@ end subroutine set_mesh
 !===============================================================
 !
 !===============================================================
-subroutine calc_river_network()
+subroutine build_river_network()
   use mod_mesh, only: &
        xs_of_lon, &
        ys_of_lat
   implicit none
-  character(CLEN_PROC), parameter :: PRCNAM = 'calc_river_network'
+  character(CLEN_PROC), parameter :: PRCNAM = 'build_river_network'
 
   type(ch_)     , pointer :: ch
   type(pt_)     , pointer :: pt
@@ -319,7 +306,6 @@ subroutine calc_river_network()
   integer :: kNode, ksNode, keNode, k0Node, kksNode, kkeNode
   integer :: iNode_conn
   integer, allocatable :: arg(:)
-  real(8) :: width, depth, levee
 
   integer :: un
   character :: c_
@@ -328,12 +314,15 @@ subroutine calc_river_network()
   !-------------------------------------------------------------
   ! Read data
   !-------------------------------------------------------------
-  call logent('Reading data')
+  call logent('Reading network data')
 
   call logmsg('Reading '//str(file_rivshp))
   open(newunit=un, file=file_rivshp, status='old')
+
   read(un,*) c_, nCh
+
   allocate(lst_ch(nCh))
+
   do k = 1, nCh
     ch => lst_ch(k)
 
@@ -343,54 +332,13 @@ subroutine calc_river_network()
     nd1 => ch%node(1)
     nd2 => ch%node(2)
     read(un,*) c_, nd1%is_outlet, nd2%is_outlet
+    read(un,*)  ! distance to mouth
 
     read(un,*) c_, ch%nPt
     allocate(ch%pt(ch%nPt))
 
     read(un,*) c_, ch%pt(:)%lon
     read(un,*) c_, ch%pt(:)%lat
-
-    selectcase( width_mode )
-    case( WIDTH_MODE__UPA )
-      read(un,*)
-      ! TMP
-      ch%pt(:)%width = 10.d0
-    case( WIDTH_MODE__FILE )
-      ! TMP
-      !read(un,*) c_, ch%pt(:)%width
-      read(un,*) c_, width
-      ch%pt(:)%width = width
-    case default
-      call errend(msg_invalid_value('width_mode', width_mode))
-    endselect
-
-    selectcase( depth_mode )
-    case( DEPTH_MODE__UPA )
-      read(un,*)
-      ! TMP
-      ch%pt(:)%depth = 5.d0
-    case( DEPTH_MODE__FILE )
-      ! TMP
-      !read(un,*) c_, ch%pt(:)%depth
-      read(un,*) c_, depth
-      ch%pt(:)%depth = depth
-    case default
-      call errend(msg_invalid_value('depth_mode', depth_mode))
-    endselect
-
-    selectcase( levee_mode )
-    case( LEVEE_MODE__UPA )
-      read(un,*)
-      ! TMP
-      ch%pt(:)%levee = 0.d0
-    case( LEVEE_MODE__FILE )
-      ! TMP
-      !read(un,*) c_, ch%pt(:)%levee
-      read(un,*) c_, levee
-      ch%pt(:)%levee = levee
-    case default
-      call errend(msg_invalid_value('levee_mode', levee_mode))
-    endselect
 
     do iPt = 1, ch%nPt
       pt => ch%pt(iPt)
@@ -460,7 +408,7 @@ subroutine calc_river_network()
     ksNode = keNode + 1
     keNode = ksNode
     do while( keNode < nnNode )
-      if( nd_lat(keNode+1) /= nd_lat(ksNode) ) exit
+      if( nd_lon(keNode+1) /= nd_lon(ksNode) ) exit
       keNode = keNode + 1
     enddo
 
@@ -582,7 +530,10 @@ subroutine calc_river_network()
       enddo
       if( nd%nNode_conn /= size(nd%node_conn) )then
         call errend(msg_unexpected_condition()//&
-                  '\n  nd%nNode_conn /= size(nd%node_conn)')
+          '\n  nd%nNode_conn /= size(nd%node_conn)'//&
+          '\nchannel #'//str(k)//' node #'//str(jNode)//&
+          '\nnd%nNode_conn: '//str(nd%nNode_conn)//&
+          '\nsize(nd%node_conn): '//str(size(nd%node_conn)))
       endif
     enddo  ! jNode/
 
@@ -627,7 +578,7 @@ endif
   deallocate(nd_jNode)
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
-end subroutine calc_river_network
+end subroutine build_river_network
 !===============================================================
 !
 !===============================================================
@@ -642,13 +593,21 @@ subroutine make_river_shape()
 
   call logbgn(PRCNAM, MODNAM)
   !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  ! TMP
+  do k = 1, nCh
+    ch => lst_ch(k)
+
+    ch%pt(:)%width = 5.d0
+    ch%pt(:)%depth = 5.d0
+    ch%pt(:)%levee = 0.d0
+  enddo
+  !-------------------------------------------------------------
   ! Calc. cross section parameters
   !-------------------------------------------------------------
   call logent('Calculating cross section parameters')
 
-!  allocate(width_idx(nCh))
-!  allocate(depth_idx(nCh))
-!  allocate(levee_idx(nCh))
   allocate(area_riv_idx(nCh))
 
   do k = 1, nCh
@@ -662,8 +621,8 @@ subroutine make_river_shape()
       pt2 => ch%pt(iPt+1)
 
       pt1%leng = dist_sphere(&
-          pt1%lon*d2r, pt1%lat*d2r, pt2%lon*d2r, pt2%lat*d2r) &
-          * earth_r
+          pt1%lon*d2r, pt1%lat*d2r, pt2%lon*d2r, pt2%lat*d2r &
+      ) * earth_r
 
       call add(ch%leng, pt1%leng)
 
@@ -679,9 +638,6 @@ subroutine make_river_shape()
 
     ch%area = ch%width * ch%leng
 
-!    width_idx(k) = ch%width
-!    depth_idx(k) = ch%depth
-!    levee_idx(k) = ch%levee
     area_riv_idx(k) = ch%area
 
     !call logmsg(str(k,dgt(nCh))//' width '//str(ch%width)//&
@@ -917,7 +873,8 @@ subroutine func_x()
 
     leng = dist_sphere(&
         dlon_west*d2r, dlat_west*d2r, &
-        dlon_east*d2r, dlat_east*d2r) * earth_r
+        dlon_east*d2r, dlat_east*d2r &
+    ) * earth_r
     if( leng < 1d-12 ) cycle
 
     if( nIsct_pt == szIsct_pt )then
@@ -1026,7 +983,7 @@ subroutine get_topo_map()
   if( file_landuse == '' )then
     land(:,:) = 1
   else
-    call traperr( rbin(land, file_landuse) )
+    call traperr( rbin(land, file_landuse, dtype=DTYPE_INT1) )
   endif
 
   ! Calc. zb, area_slo
@@ -1041,8 +998,8 @@ subroutine get_topo_map()
     zb(ix,iy) = zs(ix,iy) - soildepth(land(ix,iy))
 
     area_slo(ix,iy) = area_sphere_rect(&
-        south_of_y(iy)*d2r, north_of_y(iy)*d2r) &
-        * (east_of_x(ix)-west_of_x(ix))*d2r * earth_r**2
+        south_of_y(iy)*d2r, north_of_y(iy)*d2r &
+    ) * (east_of_x(ix)-west_of_x(ix))*d2r * earth_r**2
     !area_slo(ix,iy) = area_sphere_rect(&
     !    south_of_y(ny/2)*d2r, north_of_y(ny/2)*d2r) &
     !    * (east_of_x(nx/2)-west_of_x(nx/2))*d2r * earth_r**2

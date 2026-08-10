@@ -25,8 +25,6 @@ module mod_util
   public :: search_nearest_2
 
   public :: comma_json
-  public :: slonlat
-  public :: sBBox
   public :: sMeshRange
   !-------------------------------------------------------------
   ! Interfaces
@@ -481,27 +479,6 @@ function comma_json(i, imax) result(res)
     res = ','
   endif
 end function comma_json
-!===============================================================
-!
-!===============================================================
-character(26) function slonlat(lon, lat) result(res)
-  implicit none
-  real(8), intent(in) :: lon, lat
-
-  res = '('//str(lon,'f12.7')//','//str(lat,'f11.7')//')'
-end function slonlat
-!===============================================================
-!
-!===============================================================
-function sBBox(west, east, south, north) result(res)
-  implicit none
-  real(8), intent(in) :: west, east, south, north
-  character(:), allocatable ::res
-
-  allocate(character(1) :: res)
-  res = '['//str((/west,east/),'f12.7',', ')//&
-        ', '//str((/south,north/),'f11.7',', ')//']'
-end function sBBox
 !===============================================================
 !
 !===============================================================
