@@ -2322,7 +2322,7 @@ subroutine trim_basin(basinType, resl, uid, var)
     where( .not. mskmap ) i1map = i1miss
 
     call logmsg('Writing '//str(f_var))
-    call traperr( wbin(i1map, f_var) )
+    call traperr( wbin(i1map, f_var, dtype=DTYPE_INT4, replace=.true.) )
   !-------------------------------------------------------------
   ! Case: Int4 ()
   case( '' )
@@ -2340,7 +2340,7 @@ subroutine trim_basin(basinType, resl, uid, var)
     where( .not. mskmap ) r4map = r4miss
 
     call logmsg('Writing '//str(f_var))
-    call traperr( wbin(r4map, f_var) )
+    call traperr( wbin(r4map, f_var, replace=.true.) )
   !-------------------------------------------------------------
   ! Case: ERROR
   case default

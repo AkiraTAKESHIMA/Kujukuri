@@ -21,6 +21,7 @@ module mod_make_model_data
   ! Public procedures
   !-------------------------------------------------------------
   public :: makeModelNetworkData
+  public :: makeModelCrossSectionData
   !-------------------------------------------------------------
   ! Private module variables
   !-------------------------------------------------------------
@@ -345,6 +346,10 @@ logical :: debug_this
         pos = 1.d0
       endif
 
+      if( jPt < ch%n )then
+        call add(sec%n)
+        sec%jPt(sec%n) = jPt
+      endif
       sec%edge(2)%pos = pos
 
       leng_prev = sec%leng
@@ -354,13 +359,13 @@ logical :: debug_this
       call add(leng_acc, sec%leng)
 
       if( debug_this )then
-            !if( abs((sec%leng + leng_next*(pos-pos_prev)) - leng_section) > 1d-2 )then
-              call logmsg('sec '//str(iSec)//' pt '//str(jPt)//&
-                ' pos '//str(pos,'f5.3')//' pos_prev '//str(pos_prev,'f5.3')//&
-              '\nsum '//str(leng_prev)//' + '//str(leng_next)//&
-                 ' x (pos-pos_prev) -> '//str(sec%leng)//&
-              '\nerr '//str(sec%leng - leng_section)//' acc '//str(leng_acc))
-            !endif
+      !if( abs((sec%leng + leng_next*(pos-pos_prev)) - leng_section) > 1d-2 )then
+        call logmsg('sec '//str(iSec)//' pt '//str(jPt)//&
+          ' pos '//str(pos,'f5.3')//' pos_prev '//str(pos_prev,'f5.3')//&
+        '\nsum '//str(leng_prev)//' + '//str(leng_next)//&
+           ' x (pos-pos_prev) -> '//str(sec%leng)//&
+        '\nerr '//str(sec%leng - leng_section)//' acc '//str(leng_acc))
+      !endif
       endif
 
       if( pos == 1.d0 )then
@@ -400,7 +405,7 @@ logical :: debug_this
       endif
 
       if( debug_this )then
-        call logmsg('sec('//str(iSec,dgt(ch%nSec))//') '//&
+        call logmsg('sec('//str(iSec,dgt(ch%nSec))//') pt '//str(sec%n+2)//' '//&
           str(sec%edge(1)%pos,'f5.3')//' '//str(sec%jPt(1))//' '//&
           slonlat(sec%edge(1)%lon,sec%edge(1)%lat)//' - '//&
           str(sec%edge(2)%pos,'f5.3')//' '//str(sec%jPt(sec%n))//' '//&
@@ -409,16 +414,28 @@ logical :: debug_this
       !---------------------------------------------------------
       ! Put coords. of points
       !---------------------------------------------------------
-      allocate(sec%lon(sec%n+2))
-      allocate(sec%lat(sec%n+2))
+      allocate(sec%lon(sec%n))
+      allocate(sec%lat(sec%n))
       sec%lon(1) = sec%edge(1)%lon
       sec%lat(1) = sec%edge(1)%lat
-      do jjPt = 1, sec%n
-        sec%lon(jjPt+1) = ch%lon(sec%jPt(jjPt))
-        sec%lat(jjPt+1) = ch%lat(sec%jPt(jjPt))
+      do jjPt = 2, sec%n-1
+        sec%lon(jjPt) = ch%lon(sec%jPt(jjPt))
+        sec%lat(jjPt) = ch%lat(sec%jPt(jjPt))
       enddo
-      sec%lon(sec%n+2) = sec%edge(2)%lon
-      sec%lat(sec%n+2) = sec%edge(2)%lat
+      sec%lon(sec%n) = sec%edge(2)%lon
+      sec%lat(sec%n) = sec%edge(2)%lat
+
+      sec%leng = 0.d0
+      do jjPt = 1, sec%n-1
+        call add(sec%leng, dist_sphere(&
+          sec%lon(jjPt)*d2r, sec%lat(jjPt)*d2r, &
+          sec%lon(jjPt+1)*d2r, sec%lat(jjPt+1)*d2r &
+        ) * EARTH_R)
+      enddo
+
+      if( debug_this )then
+        call logmsg('recalculated leng: '//str(sec%leng))
+      endif
     enddo  ! iSec/
     !-----------------------------------------------------------
     ! Determine whether edges are outlet or not
@@ -458,6 +475,7 @@ logical :: debug_this
   enddo  ! jCh/
 
   call logmsg('Sections: '//str(sum(nwk%channel(:)%nSec)))
+  call logmsg('Mean section length: '//str(sum(nwk%channel(:)%leng)/sum(nwk%channel(:)%nSec)))
 
   call logext()
   !-------------------------------------------------------------
@@ -480,9 +498,10 @@ logical :: debug_this
       call add(iCh)
 
       write(un,"(a)") '  channel '//str(iCh)
+      write(un,"(a)") '  index_original '//str(jCh)
       write(un,"(a)") '  node_outlet '//str(sec%edge(:)%is_outlet)
       write(un,"(a)") '  distToMouth '//str(sec%edge(:)%downleng,'f10.2')
-      write(un,"(a)") '  points '//str(sec%n+2)
+      write(un,"(a)") '  points '//str(sec%n)
       write(un,"(a)") '  lon '//str(sec%lon,'f12.7')
       write(un,"(a)") '  lat '//str(sec%lat,'f12.7')
     enddo  ! iSec/
@@ -503,7 +522,121 @@ end subroutine makeModelNetworkData
 !===============================================================
 !
 !===============================================================
-!subroutine makeModelCrossSectionData(productName,
+subroutine makeModelCrossSectionData(&
+  name_network, name_crosssection, uid_in &
+)
+  use c1_io, only: &
+    read_network_size
+  use c2_strnk_io, only: &
+    get_f_network_channel, &
+    get_f_network_crosssection, &
+    get_f_model_network, &
+    get_f_model_crosssection
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'makeModelCrossSectionData'
+  character(*), intent(in) :: name_network
+  character(*), intent(in) :: name_crosssection
+  character(*), intent(in) :: uid_in
+
+  integer :: nCh, jCh
+  integer :: mCh, iCh
+  real(8), allocatable :: width_org(:), hight_org(:), depth_org(:), levee_org(:)
+  real(8), allocatable :: width(:), hight(:), depth(:), levee(:)
+
+  character(CLEN_PATH) :: f
+  integer :: un
+  character :: c_
+
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  if( uid_in == '' )then
+
+    call logret(PRCNAM, MODNAM)
+    return
+  endif
+  !-------------------------------------------------------------
+  ! Load cross section data of original channels
+  !-------------------------------------------------------------
+  call logent('Loading cross section data of original channels')
+
+  f = get_f_network_channel(uid_in, 'sbin')
+  call read_network_size(f, nCh=nCh)
+
+  allocate(width_org(nCh))
+  allocate(hight_org(nCh))
+  allocate(depth_org(nCh))
+  allocate(levee_org(nCh))
+
+  f = get_f_network_crosssection(name_crosssection, 'width', uid_in)
+  call traperr( rbin(width_org, f) )
+
+  f = get_f_network_crosssection(name_crosssection, 'height', uid_in)
+  call traperr( rbin(hight_org, f) )
+
+  f = get_f_network_crosssection(name_crosssection, 'depth', uid_in)
+  call traperr( rbin(depth_org, f) )
+
+  f = get_f_network_crosssection(name_crosssection, 'levee', uid_in)
+  call traperr( rbin(levee_org, f) )
+
+  call logext()
+  !-------------------------------------------------------------
+  ! Make river cross section data of model channels
+  !-------------------------------------------------------------
+  call logent('Making river cross section data of model channels')
+
+  f = get_f_model_network(name_network, uid_in)
+  open(newunit=un, file=f, status='old')
+  read(un,*) c_, mCh
+
+  allocate(width(mCh))
+  allocate(hight(mCh))
+  allocate(depth(mCh))
+  allocate(levee(mCh))
+
+  do iCh = 1, mCh
+    read(un,*)   ! index
+    read(un,*) c_, jCh
+    read(un,*)   ! is_outlet
+    read(un,*)   ! downleng
+    read(un,*)   ! nPt
+    read(un,*)   ! lon
+    read(un,*)   ! lat
+
+    width(iCh) = width_org(jCh)
+    hight(iCh) = hight_org(jCh)
+    depth(iCh) = depth_org(jCh)
+    levee(iCh) = levee_org(jCh)
+  enddo  ! jCh/
+
+  close(un)
+
+  call logext()
+  !-------------------------------------------------------------
+  ! Output
+  !-------------------------------------------------------------
+  call logent('Outputting')
+
+  f = get_f_model_crosssection(name_network, name_crosssection, 'width', uid_in)
+  call logmsg('Writing '//str(f))
+  call traperr( wbin(width, f, replace=.true.) )
+
+  f = get_f_model_crosssection(name_network, name_crosssection, 'height', uid_in)
+  call logmsg('Writing '//str(f))
+  call traperr( wbin(hight, f, replace=.true.) )
+
+  f = get_f_model_crosssection(name_network, name_crosssection, 'depth', uid_in)
+  call logmsg('Writing '//str(f))
+  call traperr( wbin(depth, f, replace=.true.) )
+
+  f = get_f_model_crosssection(name_network, name_crosssection, 'levee', uid_in)
+  call logmsg('Writing '//str(f))
+  call traperr( wbin(levee, f, replace=.true.) )
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
+end subroutine makeModelCrossSectionData  
 !===============================================================
 !
 !===============================================================

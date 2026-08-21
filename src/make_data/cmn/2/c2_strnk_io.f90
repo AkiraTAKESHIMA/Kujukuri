@@ -631,16 +631,18 @@ end function get_f_model_network
 !
 !===============================================================
 character(CLEN_PATH) function get_f_model_crosssection(&
-    name, var, uid &
+    name_network, name_crosssection, var, uid &
 ) result(f)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'get_f_model_crosssection'
-  character(*), intent(in) :: name
+  character(*), intent(in) :: name_network
+  character(*), intent(in) :: name_crosssection
   character(*), intent(in) :: var
   character(*), intent(in) :: uid
 
   f = joined(DIR_PRD, 'model_crosssection/'//&
-    str(name)//'/'//str(var)//'/'//str(uid)//'.txt')
+    str(name_network)//'/'//str(name_crosssection)//'/'//&
+    str(var)//'/'//str(uid)//'.bin')
 
   call traperr( mkdir(dirname(f)) )
 end function get_f_model_crosssection

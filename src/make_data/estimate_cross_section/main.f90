@@ -51,5 +51,9 @@ program main
 
     call estimateCrossSection(f_conf, uid, overwrite)
 
+  !
+  !-------------------------------------------------------------
+  case default
+    call errend(msg_invalid_value('task', task))
   endselect
 end program main
