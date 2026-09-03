@@ -132,7 +132,7 @@ function ordinal__int8(i) result(s)
 
   selectcase( i1 )
   case( 1 )
-    s = trim(c)//'th'
+    s = trim(c)//'st'
   case( 2 )
     selectcase( i100 )
     case( 12 )
