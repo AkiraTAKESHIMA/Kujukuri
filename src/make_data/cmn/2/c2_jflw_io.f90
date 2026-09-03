@@ -20,11 +20,12 @@ module c2_jflw_io
   ! Public procedures
   !-------------------------------------------------------------
   public :: tilename
-  public :: strid
+  public :: intId
+  public :: strId
 
-  public :: read_basin_range_from_all
-  public :: read_basin_range_from_each
-  public :: write_basin_range_for_each
+  public :: read_basin_domain_from_all
+  public :: read_basin_domain_from_each
+  public :: write_basin_domain_for_each
 
   public :: read_map_from_tile
   public :: read_basin_map_from_tile
@@ -79,12 +80,35 @@ end function tilename
 !===============================================================
 !
 !===============================================================
-character(DGT_BSNID_MAX) function strid(id) result(s)
+integer function intId(s) result(i)
   implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'intId'
+  character(*), intent(in) :: s
+
+  integer :: ios
+
+  read(s,*,iostat=ios) i
+
+  if( ios /= 0 )then
+    call errend('Failed to convert character to integer: '//str(s), &
+      '', PRCNAM, MODNAM)
+  endif
+end function intId
+!===============================================================
+!
+!===============================================================
+character(DGT_BSNID_MAX) function strId(id) result(s)
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'strId'
   integer, intent(in) :: id
 
+  if( dgt(id) > DGT_BSNID_MAX )then
+    call errend('Failed to convert integer to character: '//str(id), &
+      '', PRCNAM, MODNAM)
+  endif
+
   s = str(id, -DGT_BSNID_MAX)
-end function strid
+end function strId
 !===============================================================
 !
 !===============================================================
@@ -96,28 +120,32 @@ end function strid
 !===============================================================
 !
 !===============================================================
-subroutine read_basin_range_from_all(&
-    resl, id, gxi, gxf, gyi, gyf)
+subroutine read_basin_domain_from_all(&
+    resl, id, &
+    gxi, gxf, gyi, gyf, west, east, south, north)
   implicit none
-  character(CLEN_PROC), parameter :: PRCNAM = 'read_basin_range_from_all'
+  character(CLEN_PROC), parameter :: PRCNAM = 'read_basin_domain_from_all'
   character(*), intent(in) :: resl
-  integer, intent(in) :: id
+  character(*), intent(in) :: id
   integer, intent(out) :: gxi, gxf, gyi, gyf
+  real(8), intent(out), optional :: west, east, south, north
+
+  real(8) :: west_, east_, south_, north_
 
   integer :: iid
   integer :: n, i
-  integer :: i_
+  character :: c_
   integer :: un
 
   call logbgn(PRCNAM, MODNAM, '-p')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
-  open(newunit=un, file=get_f_lst_tile(resl, 'basin_range'), status='old')
+  open(newunit=un, file=get_f_lst_tile(resl, 'basin_domain'), status='old')
   read(un,*)
 
-  do iid = 1, id-1
-    read(un,*) i_, n
+  do iid = 1, intId(id)-1
+    read(un,*) c_, n
     read(un,*)
     do i = 1, n
       read(un,*)
@@ -125,28 +153,33 @@ subroutine read_basin_range_from_all(&
   enddo
 
   ! raster range in global index
-  read(un,*) i_, n, gxi, gxf, gyi, gyf
-  ! west, east, south, north
-  read(un,*)
+  read(un,*) c_, n, gxi, gxf, gyi, gyf
+  ! bbox
+  read(un,*) west_, east_, south_, north_
   ! raster ranges in tiles
   do i = 1, n
     read(un,*)
   enddo
 
   close(un)
+
+  if( present(west) ) west = west_
+  if( present(east) ) east = east_
+  if( present(south) ) south = south_
+  if( present(north) ) north = north_
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
-end subroutine read_basin_range_from_all
+end subroutine read_basin_domain_from_all
 !===============================================================
 !
 !===============================================================
-subroutine read_basin_range_from_each(&
+subroutine read_basin_domain_from_each(&
     resl, id, &
     gxi, gxf, gyi, gyf, west, east, south, north)
   implicit none
-  character(CLEN_PROC), parameter :: PRCNAM = 'read_basin_range_from_each'
+  character(CLEN_PROC), parameter :: PRCNAM = 'read_basin_domain_from_each'
   character(*), intent(in)  :: resl
-  integer     , intent(in)  :: id
+  character(*), intent(in)  :: id
   integer     , intent(out) :: gxi, gxf, gyi, gyf
   real(8)     , intent(out) :: west, east, south, north
 
@@ -158,7 +191,7 @@ subroutine read_basin_range_from_each(&
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
-  open(newunit=un, file=get_f_dat_basin(resl, 'range', id), status='old')
+  open(newunit=un, file=get_f_dat_basin(resl, 'domain', id), status='old')
   read(un,*)
   read(un,*)
   read(un,*) c_, gxi, gxf
@@ -175,17 +208,17 @@ subroutine read_basin_range_from_each(&
   close(un)
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
-end subroutine read_basin_range_from_each
+end subroutine read_basin_domain_from_each
 !===============================================================
 !
 !===============================================================
-subroutine write_basin_range_for_each(&
+subroutine write_basin_domain_for_each(&
     resl, id, &
     gxi, gxf, gyi, gyf, west, east, south, north)
   implicit none
-  character(CLEN_PROC), parameter :: PRCNAM = 'write_basin_range_for_each'
+  character(CLEN_PROC), parameter :: PRCNAM = 'write_basin_domain_for_each'
   character(*), intent(in) :: resl
-  integer     , intent(in) :: id
+  character(*), intent(in) :: id
   integer     , intent(in) :: gxi, gxf, gyi, gyf
   real(8)     , intent(in) :: west, east, south, north
 
@@ -196,12 +229,12 @@ subroutine write_basin_range_for_each(&
   !
   !-------------------------------------------------------------
   if( resl == RESOLUTION_1SEC )then
-    call logmsg('Need not to make a new file of basin range.')
+    call logmsg('Need not to make a new file of basin domain.')
     call logret(PRCNAM, MODNAM)
     return
   endif
 
-  open(newunit=un, file=get_f_dat_basin(resl, 'range', id), status='replace')
+  open(newunit=un, file=get_f_dat_basin(resl, 'domain', id), status='replace')
   write(un,"(a)") 'nx '//str(gxf-gxi+1,DGT_GXY)
   write(un,"(a)") 'ny '//str(gyf-gyi+1,DGT_GXY)
   write(un,"(a)") 'gx '//str((/gxi,gxf/),DGT_GXY)
@@ -213,7 +246,7 @@ subroutine write_basin_range_for_each(&
   close(un)
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
-end subroutine write_basin_range_for_each
+end subroutine write_basin_domain_for_each
 !===============================================================
 !
 !===============================================================
@@ -402,7 +435,7 @@ subroutine read_basin_map_from_tile__int1(&
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'read_basin_map_from_tile__int1'
   character(*), intent(in)  :: resl
-  integer     , intent(in)  :: id
+  character(*), intent(in)  :: id
   character(*), intent(in)  :: var
   character(*), intent(in)  :: dtype
   integer     , intent(in)  :: gxi, gyi
@@ -415,8 +448,8 @@ subroutine read_basin_map_from_tile__int1(&
   integer :: xi, xf, yi, yf
   integer :: lgxi, lgxf, lgyi, lgyf
   integer :: n, i
-  integer :: i_
   integer :: id_
+  character :: c_
   integer :: un
 
   call logbgn(PRCNAM, MODNAM, '-p')
@@ -426,19 +459,19 @@ subroutine read_basin_map_from_tile__int1(&
   undef = miss - 1_1
   dat(:,:) = undef
 
-  open(newunit=un, file=get_f_lst_tile(resl, 'basin_range'), status='old')
+  open(newunit=un, file=get_f_lst_tile(resl, 'basin_domain'), status='old')
   read(un,*)
-  do id_ = 1, id-1
-    read(un,*) i_, n
+  do id_ = 1, intId(id)-1
+    read(un,*) c_, n
     read(un,*)  ! bbox
     do i = 1, n
       read(un,*)
     enddo
   enddo
-  read(un,*) i_, n
+  read(un,*) c_, n
   read(un,*)  ! bbox
   do i = 1, n
-    read(un,*) i_, tx, ty, xi, xf, yi, yf
+    read(un,*) c_, tx, ty, xi, xf, yi, yf
     call xy_to_gxy(tx, ty, xi, yi, lgxi, lgyi)
     call xy_to_gxy(tx, ty, xf, yf, lgxf, lgyf)
 
@@ -454,7 +487,7 @@ subroutine read_basin_map_from_tile__int1(&
   close(un)
 
   if( present(bsn) )then
-    where( bsn /= id ) dat = miss
+    where( bsn /= intId(id) ) dat = miss
   else
     where( dat == undef ) dat = miss
   endif
@@ -469,7 +502,7 @@ subroutine read_basin_map_from_tile__int4(&
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'read_basin_map_from_tile__int4'
   character(*), intent(in)  :: resl
-  integer     , intent(in)  :: id
+  character(*), intent(in)  :: id
   character(*), intent(in)  :: var
   character(*), intent(in)  :: dtype
   integer     , intent(in)  :: gxi, gyi
@@ -482,9 +515,8 @@ subroutine read_basin_map_from_tile__int4(&
   integer :: xi, xf, yi, yf
   integer :: lgxi, lgxf, lgyi, lgyf
   integer :: n, i
-  integer :: i_
   integer :: id_
-
+  character :: c_
   integer :: un
 
   call logbgn(PRCNAM, MODNAM, '-p')
@@ -494,19 +526,19 @@ subroutine read_basin_map_from_tile__int4(&
   undef = miss - 1
   dat(:,:) = undef
 
-  open(newunit=un, file=get_f_lst_tile(resl, 'basin_range'), status='old')
+  open(newunit=un, file=get_f_lst_tile(resl, 'basin_domain'), status='old')
   read(un,*)
-  do id_ = 1, id-1
-    read(un,*) i_, n
+  do id_ = 1, intId(id)-1
+    read(un,*) c_, n
     read(un,*)  ! bbox
     do i = 1, n
       read(un,*)
     enddo
   enddo
-  read(un,*) i_, n
+  read(un,*) c_, n
   read(un,*)  ! bbox
   do i = 1, n
-    read(un,*) i_, tx, ty, xi, xf, yi, yf
+    read(un,*) c_, tx, ty, xi, xf, yi, yf
     call xy_to_gxy(tx, ty, xi, yi, lgxi, lgyi)
     call xy_to_gxy(tx, ty, xf, yf, lgxf, lgyf)
 
@@ -522,7 +554,7 @@ subroutine read_basin_map_from_tile__int4(&
   close(un)
 
   if( present(bsn) )then
-    where( bsn /= id ) dat = miss
+    where( bsn /= intId(id) ) dat = miss
   else
     where( bsn == undef ) dat = miss
   endif
@@ -537,7 +569,7 @@ subroutine read_basin_map_from_tile__real(&
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'read_basin_map_from_tile__real'
   character(*), intent(in)  :: resl
-  integer     , intent(in)  :: id
+  character(*), intent(in)  :: id
   character(*), intent(in)  :: var
   character(*), intent(in)  :: dtype
   integer     , intent(in)  :: gxi, gyi
@@ -550,8 +582,8 @@ subroutine read_basin_map_from_tile__real(&
   integer :: xi, xf, yi, yf
   integer :: lgxi, lgxf, lgyi, lgyf
   integer :: n, i
-  integer :: i_
   integer :: id_
+  character :: c_
   integer :: un
 
   call logbgn(PRCNAM, MODNAM, '-p')
@@ -561,19 +593,19 @@ subroutine read_basin_map_from_tile__real(&
   undef = miss - 1.0
   dat(:,:) = undef
 
-  open(newunit=un, file=get_f_lst_tile(resl, 'basin_range'), status='old')
+  open(newunit=un, file=get_f_lst_tile(resl, 'basin_domain'), status='old')
   read(un,*)
-  do id_ = 1, id-1
-    read(un,*) i_, n
+  do id_ = 1, intId(id)-1
+    read(un,*) c_, n
     read(un,*)  ! bbox
     do i = 1, n
       read(un,*)
     enddo
   enddo
-  read(un,*) i_, n
+  read(un,*) c_, n
   read(un,*)  ! bbox
   do i = 1, n
-    read(un,*) i_, tx, ty, xi, xf, yi, yf
+    read(un,*) c_, tx, ty, xi, xf, yi, yf
     call xy_to_gxy(tx, ty, xi, yi, lgxi, lgyi)
     call xy_to_gxy(tx, ty, xf, yf, lgxf, lgyf)
 
@@ -589,7 +621,7 @@ subroutine read_basin_map_from_tile__real(&
   close(un)
 
   if( present(bsn) )then
-    where( bsn /= id ) dat = miss
+    where( bsn /= intId(id) ) dat = miss
   else
     where( bsn == undef ) dat = miss
   endif
@@ -604,7 +636,7 @@ subroutine read_basin_map_from_tile__dble(&
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'read_basin_map_from_tile__dble'
   character(*), intent(in)  :: resl
-  integer     , intent(in)  :: id
+  character(*), intent(in)  :: id
   character(*), intent(in)  :: var
   character(*), intent(in)  :: dtype
   integer     , intent(in)  :: gxi, gyi
@@ -617,8 +649,8 @@ subroutine read_basin_map_from_tile__dble(&
   integer :: xi, xf, yi, yf
   integer :: lgxi, lgxf, lgyi, lgyf
   integer :: n, i
-  integer :: i_
   integer :: id_
+  character :: c_
   integer :: un
 
   call logbgn(PRCNAM, MODNAM, '-p')
@@ -628,19 +660,19 @@ subroutine read_basin_map_from_tile__dble(&
   undef = miss - 1.d0
   dat(:,:) = undef
 
-  open(newunit=un, file=get_f_lst_tile(resl, 'basin_range'), status='old')
+  open(newunit=un, file=get_f_lst_tile(resl, 'basin_domain'), status='old')
   read(un,*)
-  do id_ = 1, id-1
-    read(un,*) i_, n
+  do id_ = 1, intId(id)-1
+    read(un,*) c_, n
     read(un,*)  ! bbox
     do i = 1, n
       read(un,*)
     enddo
   enddo
-  read(un,*) i_, n
+  read(un,*) c_, n
   read(un,*)  ! bbox
   do i = 1, n
-    read(un,*) i_, tx, ty, xi, xf, yi, yf
+    read(un,*) c_, tx, ty, xi, xf, yi, yf
     call xy_to_gxy(tx, ty, xi, yi, lgxi, lgyi)
     call xy_to_gxy(tx, ty, xf, yf, lgxf, lgyf)
 
@@ -656,7 +688,7 @@ subroutine read_basin_map_from_tile__dble(&
   close(un)
 
   if( present(bsn) )then
-    where( bsn /= id ) dat = miss
+    where( bsn /= intId(id) ) dat = miss
   else
     where( bsn == undef ) dat = miss
   endif
@@ -737,7 +769,7 @@ character(CLEN_PATH) function get_f_lst_tile(&
         'upper' )
     f = joined(DIR_TILED, trim(resl)//'/'//trim(var)//'/'//tilename(tx,ty)//'.txt')
 
-  case( 'basin_range' )
+  case( 'basin_domain' )
     if( present(tx) )then
       f = joined(DIR_TILED, trim(resl)//'/'//trim(var)//'/'//tilename(tx,ty)//'.txt')
     else
@@ -760,17 +792,17 @@ end function get_f_lst_tile
 !
 !===============================================================
 character(CLEN_PATH) function get_f_map_basin(&
-    resl, var, id) result(f)
+    resl, var, bsnId) result(f)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'get_f_map_basin'
   character(*), intent(in) :: resl
   character(*), intent(in) :: var
-  integer     , intent(in) :: id
+  character(*), intent(in) :: bsnId
 
   call logbgn(PRCNAM, MODNAM, '-p')
   !-------------------------------------------------------------
   f = joined(DIR_BASIN, &
-             trim(resl)//'/'//trim(var)//'/'//strid(id)//'.bin')
+             trim(resl)//'/'//trim(var)//'/'//trim(bsnId)//'.bin')
 
   call traperr( mkdir(dirname(f)) )
   !-------------------------------------------------------------
@@ -785,20 +817,20 @@ character(CLEN_PATH) function get_f_dat_basin(&
   character(CLEN_PROC), parameter :: PRCNAM = 'get_f_dat_basin'
   character(*), intent(in) :: resl
   character(*), intent(in) :: var
-  integer     , intent(in) :: id
+  character(*), intent(in) :: id
 
   call logbgn(PRCNAM, MODNAM, '-p')
   !-------------------------------------------------------------
   selectcase( var )
 
-  case( 'range'       , &
+  case( 'domain'      , &
         'river'       , &
         'channel'     , &
         'obs'         , &
         'channel_topo', &
         'riv_plt'     )
     f = joined(DIR_BASIN,&
-               trim(resl)//'/'//trim(var)//'/'//str(id,-DGT_BSNID_MAX)//'.txt')
+               trim(resl)//'/'//trim(var)//'/'//trim(id)//'.txt')
 
   case default
     call errend(msg_invalid_value('var', var), &

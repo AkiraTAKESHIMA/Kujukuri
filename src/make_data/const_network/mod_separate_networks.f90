@@ -7,6 +7,10 @@ module mod_separate_networks
   use lib_math
   use lib_io
   use c1_const
+  use c1_type
+  use c1_util, only: &
+        slonlat, &
+        sBBox
   use c2_nlni_const, only: &
         DGT_WSCODE
   implicit none
@@ -15,72 +19,47 @@ module mod_separate_networks
   ! Public procedures
   !-------------------------------------------------------------
   public :: separateNetworks
-  public :: makeModelNetworkData
   !-------------------------------------------------------------
   ! Private module variables
   !-------------------------------------------------------------
   character(CLEN_PROC), parameter :: MODNAM = 'mod_separate_networks'
 
-  type nwknode_
-    real(8) :: lon, lat
-    integer :: gx, gy
-    real(8) :: elv
-    integer :: typ
-    integer :: nCh
-    integer, pointer :: jCh(:)
-    integer, pointer :: jNode(:)
-    integer, pointer :: iNode(:)  ! neighbour nwknode
+  type, extends(cmn_nwknode_) :: nwknode_
     integer :: iCh_down
     integer :: iNode_down
-    real(8) :: downleng
   end type
 
-  type node_
-    real(8) :: lon, lat
-    integer :: iNode
-    real(8) :: elv
-    integer :: typ
-    real(8) :: downleng
-    logical :: is_outlet
+  type, extends(cmn_node_) :: node_
   end type
 
-  type channel_
-    integer :: n
-    character(:), allocatable :: wsCode
-    character(:), allocatable :: rvCode
-    character(:), allocatable :: rvName
+  type, extends(cmn_channel_) :: channel_
     integer :: wsCode_i
     logical :: is_wsCode_temporal
     character(:), allocatable :: wsCode_org
     integer :: jWsys
-    real(8), pointer :: lon(:), lat(:)
     type(node_), pointer :: node(:)
-    real(8) :: leng
     integer :: nwkId
     real(8) :: west, east, south, north
   end type
 
-  type wsys_
-    character(DGT_WSCODE) :: wsCode
+  type, extends(cmn_watsys_) :: watsys_
     integer :: wsCode_i
-    integer :: nCh
-    integer, pointer :: jCh(:)
-    real(8) :: leng
     integer :: jNwk
+    integer :: nCh
+    integer, pointer :: jCh(:)  ! (nCh) Index in network
   end type
 
   type network_
     character(:), allocatable :: uid
     character(:), allocatable :: tmpuid
     real(8) :: west, east, south, north
-    integer :: gxs, gxe, gys, gye
     integer :: nCh
     type(channel_), pointer :: channel(:)
     integer, pointer :: jCh(:)
     integer :: nNode
     type(nwknode_), pointer :: node(:)
     integer :: nWsys
-    type(wsys_), pointer :: wsys(:)
+    type(watsys_), pointer :: wsys(:)
   end type
 
   type conn_mem_
@@ -108,14 +87,15 @@ module mod_separate_networks
   !
   !-------------------------------------------------------------
   real(8), parameter :: THRESH_ELV_DISCONNECT = 50.d0
+  real(8), parameter :: THRESH_LENG_SECTION = 1d-3
   !-------------------------------------------------------------
 contains
 !===============================================================
 !
 !===============================================================
 subroutine separateNetworks(tmpuid_in)
-  use c2_nlni_const, only: &
-        DGT_WSCODE
+  use c1_io, only: &
+        write_network
   use c2_strnk_io, only: &
         get_f_tmp_networks_lst      , &
         get_f_tmp_network_channel   , &
@@ -125,20 +105,20 @@ subroutine separateNetworks(tmpuid_in)
   use c3_jflw_const, only: &
         jflw_set_resolution
   use mod_util, only: &
-        comma_json, &
-        sBBox
+        comma_json
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'separateNetworks'
   character(*), intent(in) :: tmpuid_in
 
+  type(cmn_network_) :: cmnnwk
   type(network_), pointer :: lst_nwk(:), nwk
-  type(wsys_), pointer :: wsys
+  type(watsys_), pointer :: wsys
   type(channel_), pointer :: ch
   type(node_), pointer :: node
   type(nwknode_), pointer :: nwknode
   integer :: nNwk, jNwk, jjNwk, jNwk0
   integer :: mNwk, iNwk
-  integer :: nNwk_old, jNwk_old
+  integer :: nNwk_tmp, jNwk_tmp
   integer :: jWsys
   integer :: nCh, jCh, iiCh
   integer :: jNode
@@ -157,36 +137,26 @@ subroutine separateNetworks(tmpuid_in)
   !-------------------------------------------------------------
   call jflw_set_resolution(RESOLUTION_1SEC)
   !-------------------------------------------------------------
-  ! *** For testing SUBROUTINE separate_network
-  ! Separate the specified network and RETURN
-  !-------------------------------------------------------------
-  if( tmpuid_in /= '' )then
-    call separate_network(tmpuid_in)
-
-!    call logret(PRCNAM, MODNAM)
-!    return
-  endif
-  !-------------------------------------------------------------
   ! Separate networks
   !-------------------------------------------------------------
-if( .false. )then
   call logent('Separating networks')
 
   f_lst = get_f_tmp_networks_lst()
   call logmsg('Reading '//str(f_lst))
   open(newunit=un_lst, file=f_lst, status='old')
 
-  read(un_lst,*) c_, nNwk_old
+  read(un_lst,*) c_, nNwk_tmp
   read(un_lst,*)
   nNwk = 0
-  do jNwk_old = 1, nNwk_old
+  do jNwk_tmp = 1, nNwk_tmp
     read(un_lst,*) c_, tmpuid
+
+    if( tmpuid_in /= '' .and. tmpuid /= tmpuid_in ) cycle
 
     call separate_network(tmpuid)
   enddo
 
   call logext()
-endif
   !-------------------------------------------------------------
   ! Read networks
   !-------------------------------------------------------------
@@ -197,11 +167,14 @@ endif
   open(newunit=un_lst, file=f_lst, status='old')
 
   rewind(un_lst)
-  read(un_lst,*) c_, nNwk_old
+  read(un_lst,*) c_, nNwk_tmp
   read(un_lst,*)
   nNwk = 0
-  do jNwk_old = 1, nNwk_old
+  do jNwk_tmp = 1, nNwk_tmp
     read(un_lst,*) c_, tmpuid
+
+    if( tmpuid_in /= '' .and. tmpuid /= tmpuid_in ) cycle
+
     f = get_f_tmp_network_separation(tmpuid)
     open(newunit=un, file=f, status='old')
     read(un,*) c_, mNwk
@@ -210,14 +183,14 @@ endif
     call add(nNwk, mNwk)
   enddo
 
-  call logmsg('Networks old: '//str(nNwk_old)//' new: '//str(nNwk))
+  call logmsg('Networks tmp: '//str(nNwk_tmp)//' new: '//str(nNwk))
   allocate(lst_nwk(nNwk))
 
   rewind(un_lst)
   read(un_lst,*)
   read(un_lst,*)
   jNwk0 = 0
-  do jNwk_old = 1, nNwk_old
+  do jNwk_tmp = 1, nNwk_tmp
     read(un_lst,*) c_, tmpuid
 
     if( tmpuid_in /= '' .and. tmpuid /= tmpuid_in ) cycle
@@ -240,6 +213,7 @@ endif
       allocate(nwk%wsys(nwk%nWsys))
       do jWsys = 1, nwk%nWsys
         wsys => nwk%wsys(jWsys)
+        allocate(character(DGT_WSCODE) :: wsys%wsCode)
         read(un,*) wsys%wsCode, wsys%leng
         wsys%wsCode_i = int4_char(wsys%wsCode)
         wsys%wsCode_i = wsys%wsCode_i
@@ -317,7 +291,6 @@ endif
 
       read(un) ch%lon(:)
       read(un) ch%lat(:)
-
       read(un) ch%leng
 
       allocate(ch%node(2))
@@ -342,7 +315,7 @@ endif
     deallocate(lst_jNwk)
 
     call add(jNwk0, mNwk)
-  enddo  ! jNwk_old/
+  enddo  ! jNwk_tmp/
   close(un_lst)
 
   dgt_nCh = dgt(maxval(lst_nwk(:)%nCh))
@@ -367,7 +340,7 @@ endif
     enddo
   endif
   !-------------------------------------------------------------
-  !
+  ! Calc. dist. from nodes to river mouth
   !-------------------------------------------------------------
   call logent('Calculating distance from nodes to river mouth')
 
@@ -379,9 +352,14 @@ endif
 
   call logext()
   !-------------------------------------------------------------
-  ! 
+  ! Test copy_nwk2cmn for the specified network
   !-------------------------------------------------------------
   if( tmpuid_in /= '' )then
+    do jNwk = 1, nNwk
+      if( .not. allocated(lst_nwk(jNwk)%tmpuid) ) cycle
+      call copy_nwk2cmn(lst_nwk(jNwk), cmnnwk)
+    enddo
+
     call logret(PRCNAM, MODNAM)
     return
   endif
@@ -422,37 +400,9 @@ endif
     elseif( jjNwk == 4 )then
       call logmsg('...')
     endif
-    open(newunit=un, file=f, form='unformatted', access='sequential', status='replace')
 
-    write(un) nwk%nWsys
-    write(un) nwk%nCh
-    write(un) nwk%nNode
-
-    do jWsys = 1, nwk%nWsys
-      wsys => nwk%wsys(jWsys)
-      write(un) wsys%wsCode, wsys%leng
-    enddo
-
-    do iiCh = 1, nwk%nCh
-      ch => nwk%channel(iiCh)
-
-      write(un) len_trim(ch%wsCode), len_trim(ch%rvCode), len_trim(ch%rvName)
-      write(un) ch%wsCode
-      write(un) ch%rvCode
-      write(un) ch%rvName
-      write(un) ch%n
-      write(un) ch%lon(:)
-      write(un) ch%lat(:)
-      write(un) ch%leng
-      do jNode = 1, 2
-        node => ch%node(jNode)
-        nwknode => nwk%node(node%iNode)
-        write(un) node%iNode, node%typ, node%elv, nwknode%downleng
-      enddo  ! jNode/
-      write(un) nwk%jCh(iiCh)  ! Index in old network
-    enddo  ! iiCh/
-
-    close(un)
+    call copy_nwk2cmn(nwk, cmnnwk)
+    call write_network(f, cmnnwk)
   enddo  ! jNwk/
 
   call logext()
@@ -489,7 +439,7 @@ endif
                           ', '//str((/ch%south,ch%north/),'f15.11',', ')//'],'
       write(un,"(6x,a)")  '"num_point": "'//str(ch%n)//'",'
       write(un,"(6x,a)")  '"lon": ['//str(ch%lon,'f16.11',',')//'],'
-      write(un,"(6x,a)")  '"lat": ['//str(ch%lat,'f15.11',',')//'],'
+      write(un,"(6x,a)")  '"lat": ['//str(ch%lat,'f16.11',',')//'],'
       write(un,"(6x,a)")  '"length": '//str(ch%leng,'es15.8')//','
       write(un,"(6x,a)")  '"node": ['
       do jNode = 1, 2
@@ -540,10 +490,7 @@ subroutine separate_network(uid)
         jflw_gys_of_lat, &
         jflw_gye_of_lat
   use mod_util, only: &
-        jNode2jPt, &
-        slonlat, &
-        sBBox, &
-        sMeshRange
+        jNode2jPt
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'separate_network'
   character(*), intent(in) :: uid
@@ -552,7 +499,7 @@ subroutine separate_network(uid)
   type(channel_), pointer :: ch, ch2
   type(node_), pointer :: node
   type(nwknode_), pointer :: nwknode
-  type(wsys_), pointer :: wsys, wsys2
+  type(watsys_), pointer :: wsys, wsys2
   type(conn_), pointer :: mtx_conn(:,:), conn
   type(conn_mem_), pointer :: cmem
   type(network_new_), pointer :: snetwork_tmp(:), snetwork_new(:), snwk, snwktmp
@@ -566,6 +513,7 @@ subroutine separate_network(uid)
   integer, allocatable :: arg(:)
   integer :: jCh, jCh2
   integer :: iiCh, iiCh2
+  integer :: jPt, jPt0
   integer :: jNode
   integer :: iNode
   integer :: jMem
@@ -576,7 +524,8 @@ subroutine separate_network(uid)
   real(8) :: elv_mean, elv_min, elv_max
   integer :: n, nmax
   logical :: is_updated, is_finished
-  real(8) :: leng_max
+  logical :: flag
+  real(8) :: leng, leng_max
 
   character(CLEN_PATH) :: f
   integer :: un
@@ -649,10 +598,58 @@ subroutine separate_network(uid)
 
   dgt_nCh = dgt(nwk%nCh)
 
-  nwk%gxs = jflw_gxs_of_lon(nwk%west)
-  nwk%gxe = jflw_gxe_of_lon(nwk%east)
-  nwk%gys = jflw_gys_of_lat(nwk%north)
-  nwk%gye = jflw_gye_of_lat(nwk%south)
+  call logext()
+  !-------------------------------------------------------------
+  ! Remove extremely short sections
+  !-------------------------------------------------------------
+  call logent('Removing extremely short sections')
+
+  do jCh = 1, nwk%nCh
+    ch => nwk%channel(jCh)
+
+    flag = .false.
+    ch%leng = 0.d0
+    do jPt = 1, ch%n-1
+      leng = dist_sphere( &
+        ch%lon(jPt)*d2r, ch%lat(jPt)*d2r, ch%lon(jPt+1)*d2r, ch%lat(jPt+1)*d2r &
+      ) * EARTH_R
+      call add(ch%leng, leng)
+      if( leng < THRESH_LENG_SECTION ) flag = .true.
+    enddo
+
+    if( ch%leng < THRESH_LENG_SECTION )then
+      call logmsg('ch #'//str(jCh,dgt(nwk%nCh))//' leng: '//str(ch%leng))
+    elseif( flag )then
+      jPt = 1
+      do while( jPt < ch%n )
+        leng = dist_sphere( &
+          ch%lon(jPt)*d2r, ch%lat(jPt)*d2r, ch%lon(jPt+1)*d2r, ch%lat(jPt+1)*d2r &
+        ) * EARTH_R
+
+        if( leng < THRESH_LENG_SECTION )then
+          jPt0 = jPt
+          if( jPt == 1 ) jPt0 = 2
+          ch%lon(jPt0:ch%n-1) = ch%lon(jPt0+1:ch%n)
+          ch%lat(jPt0:ch%n-1) = ch%lat(jPt0+1:ch%n)
+          call add(ch%n, -1)
+        else
+          call add(jPt)
+        endif
+      enddo  ! jPt/
+
+      if( ch%n < size(ch%lon) )then
+        call realloc(ch%lon, ch%n, clear=.false.)
+        call realloc(ch%lat, ch%n, clear=.false.)
+
+        ch%leng = 0.d0
+        do jPt = 1, ch%n-1
+          call add(ch%leng, dist_sphere( &
+            ch%lon(jPt)*d2r, ch%lat(jPt)*d2r, ch%lon(jPt+1)*d2r, ch%lat(jPt+1)*d2r &
+          ) * EARTH_R)
+        enddo  ! jPt/
+      endif
+    endif
+  enddo  ! jCh/
 
   call logext()
   !-------------------------------------------------------------
@@ -723,8 +720,6 @@ subroutine separate_network(uid)
     nwknode => nwk%node(iNode)
     nwknode%lon = lst_lon(iis)
     nwknode%lat = lst_lat(iis)
-    nwknode%gx = jflw_gxs_of_lon(nwknode%lon)
-    nwknode%gy = jflw_gys_of_lat(nwknode%lat)
 
     nwknode%nCh = iie - iis + 1
     allocate(nwknode%jCh(nwknode%nCh))
@@ -1055,9 +1050,9 @@ subroutine separate_network(uid)
 
   call logext()
   !-------------------------------------------------------------
-  ! Separate new networks that are actually not connected
+  ! Separate networks that are actually not connected
   !-------------------------------------------------------------
-  call logent('Separating new networks')
+  call logent('Separating networks')
 
   nNwk = 0
   do jNwk = 1, nNwk_tmp
@@ -1443,8 +1438,7 @@ end subroutine separate_network
 !===============================================================
 subroutine set_separated_network_ids(lst_nwk, lst_jNwk)
   use c2_nlni_const, only: &
-        DIV_WSCODE_RVUNKNOWN, &
-        DGT_WSCODE
+        DIV_WSCODE_RVUNKNOWN
   use c2_strnk_const, only: &
         DGT_NWK_SAME_WSCODE, &
         DGT_NWKUID
@@ -1834,8 +1828,6 @@ subroutine make_node_list()
 
       nwknode%lon = lst_lon(iis)
       nwknode%lat = lst_lat(iis)
-      nwknode%gx = gxs_of_lon(nwknode%lon)
-      nwknode%gy = gys_of_lat(nwknode%lat)
 
       nwknode%nCh = iie - iis + 1
 
@@ -1931,572 +1923,70 @@ end subroutine calc_distance_to_river_mouth
 !===============================================================
 !
 !===============================================================
-subroutine makeModelNetworkData(name_leng, leng_standard, uid_in)
-  use c2_strnk_const, only: &
-     DGT_NWKUID
-  use c2_strnk_io, only: &
-    get_f_lst_networks_channel
+subroutine copy_nwk2cmn(nwk, cmn)
   implicit none
-  character(CLEN_PROC), parameter :: PRCNAM = 'makeModelNetworkData'
-  character(*), intent(in) :: name_leng
-  real(8), intent(in) :: leng_standard
-  character(*), intent(in) :: uid_in
+  type(network_), intent(in) :: nwk
+  type(cmn_network_), intent(out) :: cmn
 
-  character(DGT_NWKUID) :: uid
-  integer :: nNwk, jNwk
-
-  character(CLEN_PATH) :: f
-  integer :: un
-  character :: c_
-
-  call logbgn(PRCNAM, MODNAM)
-  !-------------------------------------------------------------
-  !
-  !-------------------------------------------------------------
-  if( uid_in == '' )then
-    f = get_f_lst_networks_channel()
-    open(newunit=un, file=f, status='old')
-    read(un,*) c_, nNwk
-    read(un,*)
-    do jNwk = 1, nNwk
-      read(un,*) c_, uid
-      call make_model_network_data(name_leng, leng_standard, uid)
-    enddo  ! jNwk/
-    close(un)
-  else
-    call make_model_network_data(name_leng, leng_standard, uid_in)
-  endif
-  !-------------------------------------------------------------
-  call logret(PRCNAM, MODNAM)
-end subroutine makeModelNetworkData
-!===============================================================
-!
-!===============================================================
-subroutine make_model_network_data(name_leng, leng_standard, uid)
-  use c2_strnk_const
-  use c2_strnk_io, only: &
-    get_f_network_channel, &
-    get_f_network_model
-  use mod_util, only: &
-    slonlat
-  implicit none
-  character(CLEN_PROC), parameter :: PRCNAM = 'make_model_network_data'
-  character(*), intent(in) :: name_leng
-  real(8), intent(in) :: leng_standard  ! [m]
-  character(*), intent(in) :: uid
-
-  type edge_
-    real(8) :: pos
-    logical :: is_outlet
-    real(8) :: lon, lat
-    real(8) :: downleng
-  end type
-
-  type div_
-    integer :: n
-    integer, pointer :: jPt(:)
-    type(edge_) :: edge(2)
-    real(8), pointer :: lon(:), lat(:)
-    real(8) :: leng
-  end type
-
-  type chdiv_
-    integer :: n
-    type(div_), pointer :: div(:)
-  end type
-
-  type(network_) :: nwk
-  type(wsys_), pointer :: wsys
+  type(cmn_watsys_), pointer :: cwsys
+  type(cmn_channel_), pointer :: cch
+  type(cmn_node_), pointer :: cnode
+  type(watsys_), pointer :: wsys
   type(channel_), pointer :: ch
   type(node_), pointer :: node
-  integer :: clen_wsCode, clen_rvCode, clen_rvName
-  type(chdiv_), pointer :: lst_chdiv(:), chdiv
-  type(div_), pointer :: div
-  type(edge_), pointer :: edge
-  integer :: iDiv
-  real(8) :: leng_section, leng_next, leng_prev, leng_acc
-  real(8) :: pos, pos_prev
-  real(8) :: downleng
   integer :: jWsys
   integer :: jCh
-  integer :: iCh
   integer :: jNode
-  integer :: jPt, jPt0, jjPt
-  logical :: is_ok
 
-  character(CLEN_PATH) :: f
-  integer :: un
+  allocate(character(1) :: cmn%uid)
+  cmn%uid = nwk%uid
 
-  real(8), parameter :: LENG_NEXT_LLIM = 1d-8
-  real(8), parameter :: THRESH_DIST_BTW_POINTS = 1.d-3
-
-logical :: debug_this
-
-  call logbgn(PRCNAM, MODNAM)
-
-  call logmsg('Network '//str(uid))
-  !-------------------------------------------------------------
-  ! Prepare network data
-  !-------------------------------------------------------------
-  nwk%uid = uid
-
-  f = get_f_network_channel(nwk%uid, 'sbin')
-  call logmsg('Reading '//str(f))
-  open(newunit=un, file=f, form='unformatted', access='sequential', status='old')
-
-  read(un) nwk%nWsys
-  read(un) nwk%nCh
-  read(un) nwk%nNode
-
-  allocate(nwk%wsys(nwk%nWsys))
-  allocate(nwk%channel(nwk%nCh))
-
-  do jWsys = 1, nwk%nWsys
+  cmn%nWsys = nwk%nWsys
+  allocate(cmn%wsys_(cmn%nWsys))
+  do jWsys = 1, cmn%nWsys
+    cwsys => cmn%wsys_(jWsys)
     wsys => nwk%wsys(jWsys)
-    read(un) wsys%wsCode, wsys%leng
-  enddo
 
-  do jCh = 1, nwk%nCh
+    allocate(character(1) :: cwsys%wsCode)
+    cwsys%wsCode = wsys%wsCode
+
+    cwsys%leng = wsys%leng
+  enddo  ! jWsys/
+
+  cmn%nCh = nwk%nCh
+  allocate(cmn%channel_(cmn%nCh))
+  do jCh = 1, cmn%nCh
+    cch => cmn%channel_(jCh)
     ch => nwk%channel(jCh)
 
-    read(un) clen_wsCode, clen_rvCode, clen_rvName
-    allocate(character(clen_wsCode) :: ch%wsCode)
-    allocate(character(clen_rvCode) :: ch%rvCode)
-    allocate(character(clen_rvName) :: ch%rvName)
-    read(un) ch%wsCode
-    read(un) ch%rvCode
-    read(un) ch%rvName
+    allocate(character(1) :: cch%wsCode)
+    allocate(character(1) :: cch%rvCode)
+    allocate(character(1) :: cch%rvName)
+    cch%wsCode = ch%wsCode
+    cch%rvCode = ch%rvCode
+    cch%rvName = ch%rvName
 
-    read(un) ch%n
-    allocate(ch%lon(ch%n))
-    allocate(ch%lat(ch%n))
-    read(un) ch%lon(:)
-    read(un) ch%lat(:)
+    cch%n = ch%n
+    allocate(cch%lon(cch%n))
+    allocate(cch%lat(cch%n))
+    cch%lon(:) = ch%lon(:)
+    cch%lat(:) = ch%lat(:)
 
-    read(un) ch%leng
+    cch%leng = ch%leng
 
-    allocate(ch%node(2))
+    allocate(cch%node_(2))
     do jNode = 1, 2
+      cnode => cch%node_(jNode)
       node => ch%node(jNode)
-      read(un) node%iNode, node%typ, node%elv, node%downleng
+      cnode%lon = node%lon
+      cnode%lat = node%lat
+      cnode%typ = node%typ
+      cnode%elv = node%elv
+      cnode%downleng = node%downleng
+      cnode%iNode = node%iNode
     enddo  ! jNode/
-    read(un) ! Index in old network
   enddo  ! jCh/
-
-  close(un)
-  !-------------------------------------------------------------
-  ! Check if outlet exists
-  !-------------------------------------------------------------
-  is_ok = .false.
-  do jCh = 1, nwk%nCh
-    ch => nwk%channel(jCh)
-    if( any(ch%node(:)%typ == NODETYPE_NEW__OUT) )then
-      is_ok = .true.
-      exit
-    endif
-  enddo  ! jCh/
-
-  if( .not. is_ok )then
-    call logmsg('Outlet was not found. Model network is not generated.')
-    call logret(PRCNAM, MODNAM)
-    return
-  endif
-  !-------------------------------------------------------------
-  ! Remove the points that are very close to the neighbour
-  !-------------------------------------------------------------
-  call logent('Removing points that are very close to the neighbour')
-
-  do jCh = 1, nwk%nCh
-    ch => nwk%channel(jCh)
-
-    if( ch%leng < THRESH_DIST_BTW_POINTS )then
-      call errend('ch%leng < THRESH')
-    endif
-
-    jPt = 0
-    do while( jPt < ch%n-1 )
-      call add(jPt)
-
-      leng_next = dist_sphere(&
-        ch%lon(jPt)*d2r, ch%lat(jPt)*d2r, &
-        ch%lon(jPt+1)*d2r, ch%lat(jPt+1)*d2r &
-      ) * EARTH_R
-
-      if( leng_next < THRESH_DIST_BTW_POINTS )then
-        jPt0 = jPt  ! remove point #jPt
-        if( jPt == 1 ) jPt0 = 2  ! remove point #2
-
-        call logmsg('ch #'//str(jCh)//' leng='//str(leng_next)//&
-          '. pt #'//str(jPt0)//' was removed')
-
-        ch%lon(jPt0:ch%n-1) = ch%lon(jPt0+1:ch%n)
-        ch%lat(jPt0:ch%n-1) = ch%lat(jPt0+1:ch%n)
-        call add(ch%n, -1)
-      else
-        call add(jPt)
-      endif
-    enddo  ! jPt/
-
-    if( ch%n < size(ch%lon) )then
-      call realloc(ch%lon, ch%n, clear=.false.)
-      call realloc(ch%lat, ch%n, clear=.false.)
-    endif
-
-    ch%leng = 0.d0
-    do jPt = 1, ch%n-1
-      call add(ch%leng, dist_sphere(&
-        ch%lon(jPt)*d2r, ch%lat(jPt)*d2r, &
-        ch%lon(jPt+1)*d2r, ch%lat(jPt+1)*d2r &
-      ) * EARTH_R)
-    enddo
-  enddo  ! jCh/
-
-
-
-  call logext()
-  !-------------------------------------------------------------
-  ! Divide channels
-  !-------------------------------------------------------------
-  call logent('Dividing channels into suitable length of sections')
-
-  allocate(lst_chdiv(nwk%nCh))
-
-  do jCh = 1, nwk%nCh
-!print*, jCh
-debug_this = jCh == 27
-!debug_this = .false.
-
-    ch => nwk%channel(jCh)
-
-if( debug_this )then
-  call logmsg(ch%wsCode//' '//ch%rvCode//' '//ch%rvName)
-endif
-
-    chdiv => lst_chdiv(jCh)
-    !-----------------------------------------------------------
-    ! Calc. number of division
-    !-----------------------------------------------------------
-    chdiv%n = int(ch%leng / leng_standard)
-
-    if( chdiv%n == 0 )then
-      chdiv%n = 1
-    else
-      if( abs(ch%leng / chdiv%n - leng_standard) > abs(ch%leng / (chdiv%n+1) - leng_standard) )then
-        call add(chdiv%n)
-      endif
-    endif
-
-    leng_section = ch%leng / chdiv%n
-if( debug_this )then
-  leng_acc = 0.d0
-  do jPt = 1, ch%n-1
-    call add(leng_acc, dist_sphere(&
-      ch%lon(jPt)*d2r, ch%lat(jPt)*d2r, ch%lon(jPt+1)*d2r, ch%lat(jPt+1)*d2r &
-    ) * EARTH_R)
-  enddo
-    call logmsg('('//str(jCh)//') nPt '//str(ch%n)//' leng '//str(ch%leng)//&
-      ' leng_sum '//str(leng_acc)//&
-      ' nDiv '//str(chdiv%n)//' leng_section '//str(leng_section))
-endif
-
-    allocate(chdiv%div(chdiv%n))
-    do iDiv = 1, chdiv%n
-      div => chdiv%div(iDiv)
-      div%n = 0
-      allocate(div%jPt(ch%n))
-    enddo  ! iDiv/
-    !-----------------------------------------------------------
-    ! Determine points where the channel is divided
-    !-----------------------------------------------------------
-    iDiv = 0
-    jPt = 1
-    pos = 0.d0
-    leng_acc = 0.d0
-    do while( jPt < ch%n )
-      call add(iDiv)
-      div => chdiv%div(iDiv)
-      div%n = 1
-      div%jPt(1) = jPt
-      div%edge(1)%pos = pos
-      div%leng = 0.d0
-
-      do while( jPt < ch%n )
-        leng_next = dist_sphere(&
-          ch%lon(jPt)*d2r, ch%lat(jPt)*d2r, ch%lon(jPt+1)*d2r, ch%lat(jPt+1)*d2r &
-        ) * EARTH_R
-if( debug_this )then
-  call logmsg(str(jPt)//' pos '//str(pos,'f5.3')//&
-    ' sum '//str(div%leng)//' next '//str(leng_next)//&
-    ' sum+next*(1-pos) '//str(div%leng+leng_next*(1-pos)))
-endif
-        if( div%leng + leng_next*(1.d0-pos) > leng_section ) exit
-        call add(div%leng, leng_next*(1.d0-pos))
-        call add(jPt)
-        pos = 0.d0
-        call add(div%n)
-        div%jPt(div%n) = jPt
-      enddo  ! jPt/
-
-      pos_prev = pos
-      if( leng_next < LENG_NEXT_LLIM )then
-        pos = 1.d0
-      else
-        pos = min(pos + min(max(leng_section - div%leng, 0.d0) / leng_next, 1.d0), 1.d0)
-      endif
-
-      if( pos < 1d-8 )then
-        pos = 0.d0
-      elseif( 1.d0 - pos < 1d-8 )then
-        pos = 1.d0
-      endif
-
-      div%edge(2)%pos = pos
-
-      leng_prev = div%leng
-
-      call add(div%leng, leng_next*(pos-pos_prev))
-
-      call add(leng_acc, div%leng)
-
-if( debug_this )then
-      !if( abs((div%leng + leng_next*(pos-pos_prev)) - leng_section) > 1d-2 )then
-        call logmsg('div '//str(iDiv)//' pt '//str(jPt)//&
-          ' pos '//str(pos,'f5.3')//' pos_prev '//str(pos_prev,'f5.3')//&
-        '\nsum '//str(leng_prev)//' + '//str(leng_next)//' x (pos-pos_prev) -> '//str(div%leng)//&
-        '\nerr '//str(div%leng - leng_section)//' acc '//str(leng_acc))
-      !endif
-endif
-
-      if( pos == 1.d0 )then
-        pos_prev = 0.d0
-        pos = 0.d0
-        call add(jPt)
-      endif
-
-      if( jPt < ch%n .and. iDiv == chdiv%n )then
-        call errend('jPt < ch%n and iDiv == chdiv%n'//&
-          '\n  channel #'//str(jCh))
-      endif
-    enddo  ! jPt, iDiv/
-    !-----------------------------------------------------------
-    ! Calc. coords. of edges
-    !-----------------------------------------------------------
-if( debug_this )then
-  call logmsg('ch '//slonlat(ch%lon(1),ch%lat(1))//' - '//slonlat(ch%lon(ch%n),ch%lat(ch%n)))
-endif
-    do iDiv = 1, chdiv%n
-      div => chdiv%div(iDiv)
-      call realloc(div%jPt, div%n, clear=.false.)
-
-      jPt = div%jPt(1)
-      edge => div%edge(1)
-      edge%lon = ch%lon(jPt)*(1.d0-edge%pos) + ch%lon(jPt+1)*edge%pos
-      edge%lat = ch%lat(jPt)*(1.d0-edge%pos) + ch%lat(jPt+1)*edge%pos
-
-      jPt = div%jPt(div%n)
-      edge => div%edge(2)
-      if( jPt == ch%n )then
-        edge%lon = ch%lon(jPt)
-        edge%lat = ch%lat(jPt)
-      else
-        edge%lon = ch%lon(jPt)*(1.d0-edge%pos) + ch%lon(jPt+1)*edge%pos
-        edge%lat = ch%lat(jPt)*(1.d0-edge%pos) + ch%lat(jPt+1)*edge%pos
-      endif
-if( debug_this )then
-  call logmsg('div('//str(iDiv,dgt(chdiv%n))//') '//&
-    str(div%edge(1)%pos,'f5.3')//' '//str(div%jPt(1))//' '//&
-    slonlat(div%edge(1)%lon,div%edge(1)%lat)//' - '//&
-    str(div%edge(2)%pos,'f5.3')//' '//str(div%jPt(div%n))//' '//&
-    slonlat(div%edge(2)%lon,div%edge(2)%lat))
- 
-endif
-      !---------------------------------------------------------
-      ! Put coords. of points
-      !---------------------------------------------------------
-      allocate(div%lon(div%n+2))
-      allocate(div%lat(div%n+2))
-      div%lon(1) = div%edge(1)%lon
-      div%lat(1) = div%edge(1)%lat
-      do jjPt = 1, div%n
-        div%lon(jjPt+1) = ch%lon(div%jPt(jjPt))
-        div%lat(jjPt+1) = ch%lat(div%jPt(jjPt))
-      enddo
-      div%lon(div%n+2) = div%edge(2)%lon
-      div%lat(div%n+2) = div%edge(2)%lat
-    enddo  ! iDiv/
-    !-----------------------------------------------------------
-    ! Determine whether edges are outlet or not
-    !-----------------------------------------------------------
-    do iDiv = 1, chdiv%n
-      chdiv%div(iDiv)%edge(:)%is_outlet = .false.
-    enddo
-    chdiv%div(1)%edge(1)%is_outlet = ch%node(1)%typ == NODETYPE_NEW__OUT
-    chdiv%div(chdiv%n)%edge(2)%is_outlet = ch%node(2)%typ == NODETYPE_NEW__OUT
-    !-----------------------------------------------------------
-    !
-    !-----------------------------------------------------------
-if( debug_this )then
-  call logmsg('node%downleng: '//str(ch%node(:)%downleng)//&
-     '\nsum(div%leng): '//str(sum(chdiv%div(:)%leng))//&
-     '\nch%leng      : '//str(ch%leng))
-endif
-    downleng = ch%node(2)%downleng
-
-    do iDiv = chdiv%n, 1, -1
-      div => chdiv%div(iDiv)
-
-      div%edge(2)%downleng = downleng
-
-      call add(downleng, div%leng)
-
-      div%edge(1)%downleng = downleng
-    enddo  ! iDiv/
-
-    ! Case: Nodes takes different shortest routes to the outlet
-    ! e.g., network 0010002001 channel 79
-    !div => chdiv%div(1)
-    !if( div%edge(1)%downleng - ch%node(1)%downleng > 1d-2 )then
-    !  call logmsg('chdiv%div(1)%edge(1)%downleng - ch%node(1)%downleng > 1d-2'//&
-    !    '\n  channel #'//str(jCh))
-    !endif
-  enddo  ! jCh/
-
-  call logext()
-  !-------------------------------------------------------------
-  ! Output
-  !-------------------------------------------------------------
-  f = get_f_network_model(name_leng, uid)
-  call logmsg('Writing '//str(f))
-  open(newunit=un, file=f, status='replace')
-
-  write(un,"(a)") 'channel '//str(sum(lst_chdiv(:)%n))
-
-  iCh = 0
-  do jCh = 1, nwk%nCh
-    ch => nwk%channel(jCh)
-    chdiv => lst_chdiv(jCh)
-
-    do iDiv = 1, chdiv%n
-      div => chdiv%div(iDiv)
-      call add(iCh)
-
-      write(un,"(a)") '  channel '//str(iCh)
-      write(un,"(a)") '  node_outlet '//str(div%edge(:)%is_outlet)
-      write(un,"(a)") '  distToMouth '//str(div%edge(:)%downleng,'f10.2')
-      write(un,"(a)") '  points '//str(div%n+2)
-      write(un,"(a)") '  lon '//str(div%lon,'f12.7')
-      write(un,"(a)") '  lat '//str(div%lat,'f11.7')
-    enddo  ! iDiv/
-  enddo  ! jCh/
-
-  close(un)
-  !-------------------------------------------------------------
-  call logret(PRCNAM, MODNAM)
-end subroutine make_model_network_data
-!===============================================================
-!
-!===============================================================
-!
-!
-!
-!
-!
-!===============================================================
-!
-!===============================================================
-subroutine estimateRectCrossSection(name_leng, uid, param_s, param_c)
-  use c2_strnk_const
-  use c2_strnk_io, only: &
-    get_f_lst_networks_channel
-  implicit none
-  character(CLEN_PROC), parameter :: PRCNAM = 'estimateRectCrossSection'
-  character(*), intent(in) :: name_leng
-  character(*), intent(in) :: uid
-  real(8), intent(in) :: param_s, param_c
-
-  integer :: nNwk, jNwk
-  character(DGT_NWKUID) :: uid_this
-  character(CLEN_PATH) :: f
-  integer :: un
-  character :: c_
-
-  call logbgn(PRCNAM, MODNAM)
-  !-------------------------------------------------------------
-  !
-  !-------------------------------------------------------------
-  if( uid == '' )then
-    f = get_f_lst_networks_channel()
-    open(newunit=un, file=f, status='old')
-    read(un,*) c_, nNwk
-    read(un,*)
-    do jNwk = 1, nNwk
-      read(un,*) c_, uid_this
-      call estimate_rect_cross_section(name_leng, uid_this, param_s, param_c)
-    enddo
-    close(un)
-  else
-    call estimate_rect_cross_section(name_leng, uid, param_s, param_c)
-  endif
-  !-------------------------------------------------------------
-  call logret(PRCNAM, MODNAM)
-end subroutine estimateRectCrossSection
-!===============================================================
-!
-!===============================================================
-subroutine estimate_rect_cross_section(name_leng, uid, param_s, param_c)
-  use c2_strnk_io, only: &
-        get_f_network_model
-  implicit none
-  character(CLEN_PROC), parameter :: PRCNAM = 'estimate_rect_cross_section'
-  character(*), intent(in) :: name_leng
-  character(*), intent(in) :: uid
-  real(8), intent(in) :: param_s, param_c
-
-  character(CLEN_PATH) :: f
-
-  call logbgn(PRCNAM, MODNAM)
-
-  call logmsg('Network '//str(uid))
-  !-------------------------------------------------------------
-  !
-  !-------------------------------------------------------------
-  f = get_f_network_model(name_leng, uid)
-  call logmsg('Reading '//str(f))
-
-  !-------------------------------------------------------------
-  call logret(PRCNAM, MODNAM)
-end subroutine estimate_rect_cross_section
-!===============================================================
-!
-!===============================================================
-subroutine read_divided_channels(f, ch)
-  implicit none
-  character(*), intent(in) :: f
-  type(channel_), intent(inout) :: ch
-
-  integer :: un
-
-  open(newunit=un, file=f, status='old')
-  read(un,*) 
-
-  allocate(ch%node(2))
-  read(un,*) ch%node(:)%is_outlet
-
-  read(un,*) ch%n
-  allocate(ch%lon(ch%n))
-  allocate(ch%lat(ch%n))
-  read(un,*) ch%lon
-  read(un,*) ch%lat
-  close(un)
-end subroutine read_divided_channels
-!===============================================================
-!
-!===============================================================
-!
-!
-!
-!
-!
+end subroutine copy_nwk2cmn
 !===============================================================
 !
 !===============================================================

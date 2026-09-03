@@ -2,6 +2,7 @@ module c2_jflw_grid
   use lib_const
   use lib_base
   use lib_log
+  use lib_array
   use lib_math
   use c2_jflw_const
   implicit none
@@ -52,6 +53,8 @@ module c2_jflw_grid
 
   public :: get_nextxy
   public :: get_fdr
+
+  public :: calc_lineleng_in_pixels
   !-------------------------------------------------------------
   ! Private module variables
   !-------------------------------------------------------------
@@ -119,7 +122,6 @@ integer function tys_of_lat(lat) result(res)
   implicit none
   real(8), intent(in) :: lat
 
-  !res = floor((lat-REGION_SOUTH) / TILESIZE_LAT) + 1
   res = floor((REGION_NORTH-lat) / TILESIZE_LAT) + 1
 end function tys_of_lat
 !===============================================================
@@ -129,7 +131,6 @@ integer function tye_of_lat(lat) result(res)
   implicit none
   real(8), intent(in) :: lat
 
-  !res = ceiling((lat-REGION_SOUTH) / TILESIZE_LAT)
   res = ceiling((REGION_NORTH-lat) / TILESIZE_LAT)
 end function tye_of_lat
 !===============================================================
@@ -529,6 +530,139 @@ integer(1) function get_fdr(gx, gy, gxx, gyy) result(fdr)
                 '', PRCNAM, MODNAM)
   endselect
 end function get_fdr
+!===============================================================
+!
+!===============================================================
+!
+!
+!
+!
+!
+!===============================================================
+!
+!===============================================================
+subroutine calc_lineleng_in_pixels(&
+    lon1, lat1, lon2, lat2, &
+    n, lst_gx, lst_gy, lst_leng)
+  use c1_grid, only: &
+        apprx_isct_with_meridian, &
+        apprx_isct_with_parallel
+  use c2_jflw_const
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'calc_lineleng_in_pixels'
+  real(8), intent(in) :: lon1, lat1, lon2, lat2
+  integer, pointer :: lst_gx(:), lst_gy(:) ! out
+  real(8), pointer :: lst_leng(:)  ! out
+  integer, intent(out) :: n
+
+  real(8) :: wlon, wlat, elon, elat
+  integer :: gxs, gxe, gys, gye, igx, igy
+  integer :: sgn_gy
+  real(8) :: clon_west, clat_west, clon_east, clat_east
+  real(8) :: dlon_west, dlat_west, dlon_east, dlat_east
+  integer :: nn
+
+  call logbgn(PRCNAM, MODNAM, '-p')
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  if( lon1 < lon2 )then
+    wlon = lon1
+    wlat = lat1
+    elon = lon2
+    elat = lat2
+  else
+    wlon = lon2
+    wlat = lat2
+    elon = lon1
+    elat = lat1
+  endif
+
+  gxs = gxs_of_lon(wlon)
+  gxe = gxe_of_lon(elon)
+
+  gys = gys_of_lat(wlat)
+  gye = gye_of_lat(elat)
+  if( wlat == elat ) gye = gys
+  sgn_gy = int(sign(1.d0, wlat-elat))
+
+  !call logmsg('('//str((/lon1,lat1/),'f12.7',',')//') - ('//str((/lon2,lat2/),'f12.7',',')//')')
+  !call logmsg('('//str((/wlon,wlat/),'f12.7',',')//') - ('//str((/elon,elat/),'f12.7',',')//')')
+  !call logmsg('gx: '//str((/gxs,gxe/),DGT_GXY,' - ')//', gy: '//str((/gys,gye/),DGT_GXY,' - ')//&
+  !    ' (sgn_y: '//str(sgn_gy)//')')
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  n = 0
+  call realloc(lst_gx, abs(gye-gys)+1, clear=.true.)
+  call realloc(lst_gy, abs(gye-gys)+1, clear=.true.)
+  call realloc(lst_leng, abs(gye-gys)+1, clear=.true.)
+
+  do igy = gys, gye, sgn_gy
+    if( igy == gys )then
+      clat_west = wlat
+      clon_west = wlon
+    else
+      clat_west = clat_east
+      clon_west = clon_east
+    endif
+    if( igy == gye )then
+      clat_east = elat
+      clon_east = elon
+    else
+      if( sgn_gy == 1 )then
+        clat_east = south_of_gy(igy)
+      else
+        clat_east = north_of_gy(igy)
+      endif
+      clon_east = apprx_isct_with_parallel(&
+          wlon, wlat, elon, elat, clat_east)
+    endif
+
+    gxs = gxs_of_lon(clon_west)
+    gxe = gxe_of_lon(clon_east)
+    if( clon_west == clon_east ) gxe = gxs
+
+    nn = n + (gxe - gxs + 1)
+    if( nn > size(lst_gx) )then
+      call realloc(lst_gx, nn*2, clear=.false.)
+      call realloc(lst_gy, nn*2, clear=.false.)
+      call realloc(lst_leng, nn*2, clear=.false.)
+    endif
+
+    do igx = gxs, gxe
+      if( igx == gxs )then
+        dlon_west = clon_west
+        dlat_west = clat_west
+      else
+        dlon_west = dlon_east
+        dlat_west = dlat_east
+      endif
+      if( igx == gxe )then
+        dlon_east = clon_east
+        dlat_east = clat_east
+      else
+        dlon_east = east_of_gx(igx)
+        !call traperr( intersection_sphere_normal_meridian(&
+        !       wlon*d2r, wlat*d2r, elon*d2r, elat*d2r, dlon_east*d2r, dlat_east) )
+        !dlat_east = dlat_east * r2d
+        dlat_east = apprx_isct_with_meridian(&
+            wlon, wlat, elon, elat, dlon_east)
+      endif
+
+      call add(n)
+      lst_gx(n) = igx
+      lst_gy(n) = igy
+      lst_leng(n) = dist_sphere(wlon*d2r, wlat*d2r, elon*d2r, elat*d2r)
+    enddo  ! igx/
+  enddo  ! igy/
+
+  call realloc(lst_gx, n, clear=.false.)
+  call realloc(lst_gy, n, clear=.false.)
+  call realloc(lst_leng, n, clear=.false.)
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
+end subroutine calc_lineleng_in_pixels
 !===============================================================
 !
 !===============================================================

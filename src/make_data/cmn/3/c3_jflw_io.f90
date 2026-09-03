@@ -1,11 +1,12 @@
 module c3_jflw_io
   use c2_jflw_io, only: &
     jflw_tilename => tilename, &
-    jflw_strid    => strid, &
+    jflw_strId    => strId, &
+    jflw_intId    => intId, &
 !
-    jflw_read_basin_range_from_all  => read_basin_range_from_all, &
-    jflw_read_basin_range_from_each => read_basin_range_from_each, &
-    jflw_write_basin_range_for_each => write_basin_range_for_each, &
+    jflw_read_basin_domain_from_all  => read_basin_domain_from_all, &
+    jflw_read_basin_domain_from_each => read_basin_domain_from_each, &
+    jflw_write_basin_domain_for_each => write_basin_domain_for_each, &
 !
     jflw_read_map_from_tile       => read_map_from_tile, &
     jflw_read_basin_map_from_tile => read_basin_map_from_tile, &

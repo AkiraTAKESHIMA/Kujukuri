@@ -25,9 +25,7 @@ module mod_util
   public :: search_nearest_2
 
   public :: comma_json
-  public :: slonlat
-  public :: sBBox
-  public :: sMeshRange
+  public :: sMeshDomain
   !-------------------------------------------------------------
   ! Interfaces
   !-------------------------------------------------------------
@@ -484,28 +482,7 @@ end function comma_json
 !===============================================================
 !
 !===============================================================
-character(26) function slonlat(lon, lat) result(res)
-  implicit none
-  real(8), intent(in) :: lon, lat
-
-  res = '('//str(lon,'f12.7')//','//str(lat,'f11.7')//')'
-end function slonlat
-!===============================================================
-!
-!===============================================================
-function sBBox(west, east, south, north) result(res)
-  implicit none
-  real(8), intent(in) :: west, east, south, north
-  character(:), allocatable ::res
-
-  allocate(character(1) :: res)
-  res = '['//str((/west,east/),'f12.7',', ')//&
-        ', '//str((/south,north/),'f11.7',', ')//']'
-end function sBBox
-!===============================================================
-!
-!===============================================================
-function sMeshRange(gxs, gxe, gys, gye) result(res)
+function sMeshDomain(gxs, gxe, gys, gye) result(res)
   use c2_jflw_const
   implicit none
   integer, intent(in) :: gxs, gxe, gys, gye
@@ -513,7 +490,7 @@ function sMeshRange(gxs, gxe, gys, gye) result(res)
 
   res = '['//str((/gxs,gxe/),DGT_GXY,':')//&
         ','//str((/gys,gye/),DGT_GXY,':')//']'
-end function sMeshRange
+end function sMeshDomain
 !===============================================================
 !
 !===============================================================

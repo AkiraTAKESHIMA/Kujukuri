@@ -17,8 +17,7 @@ program main
         connectChannels    , &
         postConnectChannels
   use mod_separate_networks, only: &
-        separateNetworks, &
-        makeModelNetworkData
+        separateNetworks
   use mod_modify_channeldir, only: &
         modifyChannelDir
   use mod_modify_flwdir, only: &
@@ -32,13 +31,10 @@ program main
   character(CLEN_KEY) :: region
   character(32) :: uid
   character(CLEN_KEY) :: resolution
-  character(CLEN_KEY) :: resl_in, resl_out
   real(8) :: leng
-  character(CLEN_PATH) :: name_leng
 
   character(CLEN_PROC), parameter :: PRCNAM = 'program const_river'
 
-  call logbgn(PRCNAM, '', '+tr -p -x2')
   !-------------------------------------------------------------
   ! Read arguments
   !-------------------------------------------------------------
@@ -62,35 +58,28 @@ program main
 
   case( 'separateNetworks' )
     call addarg('-tmpuid', '', '', .false., 'Temporal network id')
-    call parsearg(istart=2)
+    call parsearg()
+
     uid = arg_char('-tmpuid')
 
     call separateNetworks(uid)
 
-  case( 'makeModelNetworkData' )
-    call addarg('name_leng', 's', 'Product name')
-    call addarg('leng', 0.d0, 'Standard length of divided sections')
-    call addarg('-uid', '', '', .false., 'Network id')
-    call parsearg()
-    name_leng = arg_char('name_leng')
-    leng = arg_dble('leng')
-    uid = arg_char('-uid')
-  
-    call makeModelNetworkData(name_leng, leng, uid)
-
+  ! ****** NOT USED ******
   ! Main Step 2. Modify flow direction
   !-------------------------------------------------------------
   case( 'modifyChannelDir' )
-    call addarg('-uid', '', '', .false., 'Network index')
-    call parsearg(istart=2)
+    call addarg('-uid', '', '', .false., 'Network id')
+    call parsearg()
+
     uid = arg_char('-uid')
 
     call modifyChannelDir(uid)
 
   case( 'modifyFlwdir' )
     call addarg('resolution', 's', 'Resolution')
-    call addarg('-uid', '', '', .false., 'Global index of network')
-    call parsearg(istart=2)
+    call addarg('-uid', '', '', .false., 'Network id')
+    call parsearg()
+
     resolution = arg_char('resolution')
     uid = arg_char('-uid')
 
@@ -122,7 +111,8 @@ program main
 
   case( 'evalWsCodeConsistency' )
     call addarg('region', 's', 'Region name ["Hokkaido", "Honshu", "Shikoku", "Kyushu", "Okinawa"]')
-    call parsearg(istart=2)
+    call parsearg()
+
     region = arg_char('region')
 
     call evalWsCodeConsistency(region)
@@ -141,6 +131,4 @@ program main
   case default
     call errend(msg_invalid_value('task', task))
   endselect
-  !-------------------------------------------------------------
-  call logret(PRCNAM, '')
 end program main

@@ -18,7 +18,7 @@ program main
         makeNewBasinMaps   , &
         makeTiledBasinLists, &
         makeLowresBasinMaps, &
-        makeBasinRangeList , &
+        makeBasinDomainData, &
         makeBasinTopoMap
   implicit none
   character(CLEN_VAR) :: task
@@ -152,14 +152,14 @@ program main
   ! Make data of each basin
   !-------------------------------------------------------------
   ! Step 2.1
-  case( 'makeBasinRangeList' )
+  case( 'makeBasinDomainData' )
     call addarg('bsnId_min', 0, '(description)')
     call addarg('bsnId_max', 0, '(description)')
     call parsearg(istart=2)
     bsnId_min = arg_int4('bsnId_min')
     bsnId_max = arg_int4('bsnId_max')
 
-    call makeBasinRangeList(bsnId_min, bsnId_max)
+    call makeBasinDomainData(bsnId_min, bsnId_max)
 
   ! Step 2.2
   case( 'makeBasinTopoMap' )

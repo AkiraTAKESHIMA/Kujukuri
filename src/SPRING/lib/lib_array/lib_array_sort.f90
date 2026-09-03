@@ -270,7 +270,7 @@ end subroutine sort_arg__dble_arg8
 subroutine sort_arg__char_arg8(array, arg)
   implicit none
   character(*), intent(inout) :: array(:)
-  integer(8), intent(in)    :: arg(:)
+  integer(8)  , intent(in)    :: arg(:)
 
   character(len(array(1))), allocatable :: arr(:)
   integer(8) :: n, i
@@ -438,7 +438,7 @@ end subroutine sort_arg__dble_arg4
 subroutine sort_arg__char_arg4(array, arg)
   implicit none
   character(*), intent(inout) :: array(:)
-  integer(4), intent(in)    :: arg(:)
+  integer(4)  , intent(in)    :: arg(:)
 
   character(len(array(1))), allocatable :: arr(:)
   integer(4) :: n, i

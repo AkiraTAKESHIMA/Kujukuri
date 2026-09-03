@@ -5,13 +5,15 @@ program main
   use lib_io
   use c2_strnk_const, only: &
         DGT_NWKUID
-  use mod_make_mesh_data, only: &
-        makeRemappingTables, &
-        remap              , &
-        findChannelPix     , &
-        make1secNetworkMesh, &
-        scaleUpNetworkMesh , &
-        trimBasin
+  use mod_remap, only: &
+        makeRemappingTables     , &
+        remap                   
+  use mod_mesh, only: &
+        rasterizeNetworks       , &
+        make1secNetworkMask     , &
+        make1secNetworkUpperArea, &
+        scaleUpNetworkMask      , &
+        trimBasin               
   implicit none
   character(CLEN_KEY) :: task
 
@@ -21,6 +23,7 @@ program main
   character(CLEN_KEY) :: name_src
   character(CLEN_KEY) :: resl_src
   character(CLEN_KEY) :: var
+  character(CLEN_KEY) :: outfmt
   logical :: overwrite
 
   character(CLEN_PROC), parameter :: PRCNAM = 'program make_mesh_data'
@@ -39,33 +42,43 @@ program main
 
   ! Main 1.a.1
   !-------------------------------------------------------------
-  case( 'findChannelPix' )
-    call addarg('-uid', '', 'all', .false., 'Network ID')
-    call parsearg(istart=2)
+  case( 'rasterizeNetworks' )
+    call addarg('-uid', '', '', .false., 'Network ID')
+    call parsearg()
 
     uid = arg_char('-uid')
 
-    call findChannelPix(uid)
+    call rasterizeNetworks(uid)
 
   ! Main 1.a.2
   !-------------------------------------------------------------
-  case( 'make1secNetworkMesh' )
+  case( 'make1secNetworkMask' )
     call addarg('-uid', '', 'all', .false., 'Network ID')
-    call parsearg(istart=2)
+    call parsearg()
 
     uid = arg_char('-uid')
 
-    call make1secNetworkMesh(uid)
+    call make1secNetworkMask(uid)
 
   ! Main 1.a.3
   !-------------------------------------------------------------
-  case( 'scaleUpNetworkMesh' )
+  case( 'make1secNetworkUpperArea' )
+    call addarg('-uid', '', 'all', .false., 'Network ID')
+    call parsearg()
+
+    uid = arg_char('-uid')
+
+    call make1secNetworkUpperArea(uid)
+
+  ! Main 1.a.4
+  !-------------------------------------------------------------
+  case( 'scaleUpNetworkMask' )
     call addarg('resl', '', 'Target resolution')
-    call parsearg(istart=2)
+    call parsearg()
 
     resl = arg_char('resl')
 
-    call scaleUpNetworkMesh(resl)
+    call scaleUpNetworkMask(resl)
 
   ! Main 1.b.1
   !-------------------------------------------------------------
@@ -74,7 +87,7 @@ program main
     call addarg('name_src', 's', 'Name of source mesh')
     call addarg('resl_src', 's', 'Resolution of source mesh')
     call addarg('-w', '--overwrite', .false., .false., 'Overwrite existing output files')
-    call parsearg(istart=2)
+    call parsearg()
 
     resl = arg_char('resl')
     name_src = arg_char('name_src')
@@ -91,7 +104,7 @@ program main
     call addarg('resl_src', 's', 'Resolution of source mesh')
     call addarg('var', 's', 'Variable')
     call addarg('-w', '--overwrite', .false., .false., 'Overwrite existing output files')
-    call parsearg(istart=2)
+    call parsearg()
 
     resl = arg_char('resl')
     name_src = arg_char('name_src')
@@ -106,16 +119,18 @@ program main
   case( 'trimBasin' )
     call addarg('basinType', 's', 'Type of J-FlwDir basin')
     call addarg('resl', 's', 'Resolution of J-FlwDir mesh')
-    call addarg('var', 's', 'Variable')
     call addarg('uid', 's', 'Basin/Network/NetworkSet ID')
-    call parsearg(istart=2)
+    call addarg('var', 's', 'Variable name')
+    call addarg('outfmt', 's', 'Output format {default|RRI}')
+    call parsearg()
 
     basinType = arg_char('basinType')
     resl = arg_char('resl')
-    var = arg_char('var')
     uid = arg_char('uid')
+    var = arg_char('var')
+    outfmt = arg_char('outfmt')
 
-    call trimBasin(basinType, resl, var, uid)
+    call trimBasin(basinType, resl, uid, var, outfmt)
 
   !
   !-------------------------------------------------------------

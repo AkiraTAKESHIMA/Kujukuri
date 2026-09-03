@@ -6,6 +6,10 @@ module mod_modify_flwdir
   use lib_array
   use lib_math
   use lib_io
+  use c1_const
+  use c1_util, only: &
+        slonlat, &
+        sBBox
   implicit none
   private
   !-------------------------------------------------------------
@@ -120,8 +124,9 @@ subroutine modify_flwdir_network(resolution, uid)
         get_nextxy, &
         get_fdr
   use c2_jflw_io, only: &
-        read_map_from_tile, &
-        read_basin_range_from_each, &
+        strId                      , &
+        read_map_from_tile         , &
+        read_basin_domain_from_each, &
         get_f_dat_basin
   use c2_strnk_io, only: &
         strnk_get_f_network_channel => get_f_network_channel
@@ -135,9 +140,7 @@ subroutine modify_flwdir_network(resolution, uid)
   use mod_util, only: &
         jNode2jPt, &
         search_2, &
-        slonlat, &
-        sBBox, &
-        sMeshRange
+        sMeshDomain
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'modify_flwdir_network'
   character(*), intent(in) :: resolution
@@ -257,7 +260,7 @@ subroutine modify_flwdir_network(resolution, uid)
   call logmsg('BBox     : '//sbbox(west,east,south,north))
   call logmsg('Mesh BBox: '//sbbox(west_of_gx(gxs),east_of_gx(gxe),&
               south_of_gy(gye),north_of_gy(gys)))
-  call logmsg('Mesh range: '//sMeshRange(gxs,gxe,gys,gye))
+  call logmsg('Mesh domain: '//sMeshDomain(gxs,gxe,gys,gye))
 
   allocate(fdrmap(gxs:gxe,gys:gye))
   call read_map_from_tile(&
@@ -907,15 +910,17 @@ debug = jCh == 3555
   agye = gye
   nBsn = 0
   do iBsn = 1, size(lst_bsn)
-    if( access(get_f_dat_basin(resolution, 'range', lst_bsn(iBsn)),' ') /= 0 )then
+    if( access(get_f_dat_basin(resolution, 'domain', strId(lst_bsn(iBsn))),' ') /= 0 )then
       call logmsg('bsn '//str(lst_bsn(iBsn),dgt(maxval(lst_bsn)))//&
                   ': Not found')
       cycle
     endif
-    call read_basin_range_from_each(resolution, lst_bsn(iBsn), &
-        bgxs, bgxe, bgys, bgye, bwest, beast, bsouth, bnorth)
+    call read_basin_domain_from_each( &
+      resolution, strId(lst_bsn(iBsn)), &
+      bgxs, bgxe, bgys, bgye, bwest, beast, bsouth, bnorth &
+    )
     call logmsg('bsn '//str(lst_bsn(iBsn),dgt(maxval(lst_bsn)))//&
-                ': '//sMeshRange(bgxs,bgxe,bgys,bgye))
+                ': '//sMeshDomain(bgxs,bgxe,bgys,bgye))
     agxs = min(agxs, bgxs)
     agxe = max(agxe, bgxe)
     agys = min(agys, bgys)
@@ -941,8 +946,8 @@ debug = jCh == 3555
   anorth = north_of_gy(gys)
 
   call logmsg('Basins: '//str(nBsn))
-  call logmsg('Mesh range: '//sMeshRange(gxs,gxe,gys,gye)//&
-            '\n         -> '//sMeshRange(agxs,agxe,agys,agye))
+  call logmsg('Mesh domain: '//sMeshDomain(gxs,gxe,gys,gye)//&
+            '\n         -> '//sMeshDomain(agxs,agxe,agys,agye))
 
   call realloc(lst_bsn, nBsn, clear=.false.)
 
