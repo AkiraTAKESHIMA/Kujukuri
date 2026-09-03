@@ -69,6 +69,6 @@ Testing/
 
 # Input data or experimental results
 dat/
-run/
+runs/
 tmp/
 configs/

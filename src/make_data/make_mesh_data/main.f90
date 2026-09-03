@@ -5,9 +5,10 @@ program main
   use lib_io
   use c2_strnk_const, only: &
         DGT_NWKUID
-  use mod_make_mesh_data, only: &
+  use mod_remap, only: &
         makeRemappingTables     , &
-        remap                   , &
+        remap                   
+  use mod_mesh, only: &
         rasterizeNetworks       , &
         make1secNetworkMask     , &
         make1secNetworkUpperArea, &
@@ -22,6 +23,7 @@ program main
   character(CLEN_KEY) :: name_src
   character(CLEN_KEY) :: resl_src
   character(CLEN_KEY) :: var
+  character(CLEN_KEY) :: outfmt
   logical :: overwrite
 
   character(CLEN_PROC), parameter :: PRCNAM = 'program make_mesh_data'
@@ -117,16 +119,18 @@ program main
   case( 'trimBasin' )
     call addarg('basinType', 's', 'Type of J-FlwDir basin')
     call addarg('resl', 's', 'Resolution of J-FlwDir mesh')
-    call addarg('var', 's', 'Variable')
     call addarg('uid', 's', 'Basin/Network/NetworkSet ID')
+    call addarg('var', 's', 'Variable name')
+    call addarg('outfmt', 's', 'Output format {default|RRI}')
     call parsearg()
 
     basinType = arg_char('basinType')
     resl = arg_char('resl')
-    var = arg_char('var')
     uid = arg_char('uid')
+    var = arg_char('var')
+    outfmt = arg_char('outfmt')
 
-    call trimBasin(basinType, resl, var, uid)
+    call trimBasin(basinType, resl, uid, var, outfmt)
 
   !
   !-------------------------------------------------------------

@@ -9,7 +9,8 @@ include $(TOPSRCDIR)/make_data/Mkinclude
 	@:
 
 OBJS = \
-mod_make_mesh_data.o\
+mod_remap.o\
+mod_mesh.o\
 main.o
 
 TARGET = main.exe

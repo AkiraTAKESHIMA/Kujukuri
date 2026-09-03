@@ -25,7 +25,7 @@ module mod_util
   public :: search_nearest_2
 
   public :: comma_json
-  public :: sMeshRange
+  public :: sMeshDomain
   !-------------------------------------------------------------
   ! Interfaces
   !-------------------------------------------------------------
@@ -482,7 +482,7 @@ end function comma_json
 !===============================================================
 !
 !===============================================================
-function sMeshRange(gxs, gxe, gys, gye) result(res)
+function sMeshDomain(gxs, gxe, gys, gye) result(res)
   use c2_jflw_const
   implicit none
   integer, intent(in) :: gxs, gxe, gys, gye
@@ -490,7 +490,7 @@ function sMeshRange(gxs, gxe, gys, gye) result(res)
 
   res = '['//str((/gxs,gxe/),DGT_GXY,':')//&
         ','//str((/gys,gye/),DGT_GXY,':')//']'
-end function sMeshRange
+end function sMeshDomain
 !===============================================================
 !
 !===============================================================

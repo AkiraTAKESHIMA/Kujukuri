@@ -5,7 +5,6 @@ module c2_rri_const
   public
 
   character(CLEN_PATH), parameter :: DIR_RRI   = trim(DIR_DAT)//'/RRI'
-  character(CLEN_PATH), parameter :: DIR_TOPO  = trim(DIR_RRI)//'/topo'
 
   integer(4), parameter :: FDR_EAST      =   1
   integer(4), parameter :: FDR_SOUTHEAST =   2
@@ -17,16 +16,18 @@ module c2_rri_const
   integer(4), parameter :: FDR_NORTHEAST = 128
   integer(4), parameter :: FDR_RIVERMOUTH = 0
 
-  ! Missing values for topography
+  ! Missing values of topographic data
   integer(4), parameter :: FDR_MISS = -9
   integer(4), parameter :: ACC_MISS = -9999
-  integer(4), parameter :: UPG_MISS = -9999
-  real(4)   , parameter :: ELV_MISS = -9999.0
-  real(4)   , parameter :: UPA_MISS = -9999.0
+  real(8)   , parameter :: ELV_MISS = -9999.d0
+  real(8)   , parameter :: UPA_MISS = -9999.d0
 
-  ! Missing values for river parameters
-  real(4), parameter :: WIDTH_MISS = -9999.0
-  real(4), parameter :: HIGHT_MISS = -9999.0
-  real(4), parameter :: DEPTH_MISS = -9999.0
-  real(4), parameter :: LEVEE_MISS = -9999.0
+  ! Missing values of land use category
+  integer(1), parameter :: LANDUSE_MISS = -9_1
+
+  ! Missing values of river parameters
+  real(8), parameter :: WIDTH_MISS = -9999.d0
+  real(8), parameter :: HIGHT_MISS = -9999.d0
+  real(8), parameter :: DEPTH_MISS = -9999.d0
+  real(8), parameter :: LEVEE_MISS = -9999.d0
 end module c2_rri_const

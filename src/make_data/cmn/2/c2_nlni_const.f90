@@ -16,7 +16,7 @@ module c2_nlni_const
   character(CLEN_PATH), parameter :: DIR_DL      = trim(DIR_NLNI)//'/dl'
   character(CLEN_PATH), parameter :: DIR_PRD     = trim(DIR_NLNI)//'/dat'
 
-  character(CLEN_KEY), parameter :: VARNAME_LNDUSE = 'landuse'
+  character(CLEN_KEY), parameter :: VARNAME_LANDUSE = 'landuse'
 
   integer, parameter :: DGT_WSCODE = 6
   integer, parameter :: DGT_RVCODE = 10
@@ -24,7 +24,7 @@ module c2_nlni_const
   integer(4)   , parameter :: DIV_WSCODE_RVUNKNOWN = 10000
   character(16), parameter :: RVNAME_UNKNOWN = '名称不明'
 
-  integer(1), parameter :: LNDUSE_MISS = -9_1
+  integer(1), parameter :: LANDUSE_MISS = -9_1
 
   real(8), parameter :: REGION_WEST  = 122.d0
   real(8), parameter :: REGION_EAST  = 149.d0

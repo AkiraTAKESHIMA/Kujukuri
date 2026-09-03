@@ -10,26 +10,25 @@ module c2_rri_io
   !-------------------------------------------------------------
   ! Public procedures
   !-------------------------------------------------------------
-!  public :: get_f_basin_range
-!  public :: get_f_topo
+  public :: get_f_data
 
-  public :: read_basin_range
-  public :: write_basin_range
-  public :: read_topo
-  public :: write_topo
+  public :: read_basin_domain
+  public :: write_basin_domain
+  public :: read_map
+  public :: write_map
   !-------------------------------------------------------------
   ! Interfaces
   !-------------------------------------------------------------
-  interface read_topo
-    module procedure read_topo__int4
-    module procedure read_topo__real
+  interface read_map
+    module procedure read_map__int4
+    module procedure read_map__real
   end interface
 
-  interface write_topo
-    module procedure write_topo__int1
-    module procedure write_topo__int4
-    module procedure write_topo__real
-    module procedure write_topo__dble
+  interface write_map
+    module procedure write_map__int1
+    module procedure write_map__int4
+    module procedure write_map__real
+    module procedure write_map__dble
   end interface
   !-------------------------------------------------------------
   ! Private module procedure
@@ -40,79 +39,57 @@ contains
 !===============================================================
 !
 !===============================================================
-character(CLEN_PATH) function get_f_basin_range(&
-    resolution, bsnId) result(res)
+character(CLEN_PATH) function get_f_data(&
+  basinType, resl, varName, bsnId &
+) result(res)
   implicit none
-  character(*), intent(in) :: resolution
-  integer     , intent(in) :: bsnId
-
-  character(CLEN_PROC), parameter :: PRCNAM = 'get_f_basin_range'
+  character(CLEN_PROC), parameter :: PRCNAM = 'get_f_data'
+  character(*), intent(in) :: basinType
+  character(*), intent(in) :: resl
+  character(*), intent(in) :: varName
+  character(*), intent(in) :: bsnId
 
   call logbgn(PRCNAM, MODNAM, '-p')
   !-------------------------------------------------------------
-  res = joined(DIR_RRI,'range/'//str(resolution)//'/'//&
-               str(bsnId,-DGT_BSNID_MAX)//'.txt')
+  res = joined(DIR_RRI, str(basinType)//'/'//str(resl)//&
+          '/'//str(bsnId,-DGT_BSNID_MAX)//'/'//str(varName)//'.txt')
 
   call traperr( mkdir(dirname(res)) )
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
-end function get_f_basin_range
+end function get_f_data
 !===============================================================
 !
 !===============================================================
-character(CLEN_PATH) function get_f_topo(&
-    resolution, varname, bsnId, ext) result(res)
+!
+!
+!
+!
+!
+!===============================================================
+!
+!===============================================================
+subroutine read_basin_domain(&
+  basinType, resl, bsnId, &
+  gxi, gxf, gyi, gyf, west, east, south, north &
+)
   implicit none
-  character(*), intent(in) :: resolution
-  character(*), intent(in) :: varname
-  integer     , intent(in) :: bsnId
-  character(*), intent(in) :: ext
-
-  character(CLEN_PROC), parameter :: PRCNAM = 'get_f_topo'
-
-  call logbgn(PRCNAM, MODNAM, '-p')
-  !-------------------------------------------------------------
-  res = joined(DIR_TOPO, str(resolution)//'/'//str(bsnId,-DGT_BSNID_MAX)//&
-               '/'//str(varname)//'.'//str(ext))
-
-  call traperr( mkdir(dirname(res)) )
-  !-------------------------------------------------------------
-  call logret(PRCNAM, MODNAM)
-end function get_f_topo
-!===============================================================
-!
-!===============================================================
-!
-!
-!
-!
-!
-!===============================================================
-!
-!===============================================================
-subroutine read_basin_range(&
-    resolution, bsnId, &
-    gxi, gxf, gyi, gyf, west, east, south, north)
-  use c2_rri_grid, only: &
-        ratio_resolution
-  implicit none
-  character(*), intent(in)  :: resolution
-  integer     , intent(in)  :: bsnId
+  character(CLEN_PROC), parameter :: PRCNAM = 'read_basin_domain'
+  character(*), intent(in) :: basinType
+  character(*), intent(in) :: resl
+  character(*), intent(in) :: bsnId
   integer     , intent(out) :: gxi, gxf, gyi, gyf
   real(8)     , intent(out) :: west, east, south, north
 
   character :: c_
-  integer :: n
   character(CLEN_PATH) :: f
   integer :: un
-
-  character(CLEN_PROC), parameter :: PRCNAM = 'read_basin_range'
 
   call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
-  f = get_f_basin_range(RESOLUTION_1SEC,bsnId)
+  f = get_f_data(basinType, resl, 'domain', bsnId)
   call logmsg('Reading '//str(f))
   open(newunit=un, file=f, status='old')
   read(un,*)
@@ -124,37 +101,27 @@ subroutine read_basin_range(&
   read(un,*) c_, south
   read(un,*) c_, north
   close(un)
-
-  call logmsg('Grid indices are converted from '//&
-              str(RESOLUTION_1SEC)//' to '//str(resolution)//'.')
-  n = ratio_resolution(resolution)
-  if( mod(gxi-1,n) /= 0 .or. mod(gxf,n) /= 0 .or. &
-      mod(gyi-1,n) /= 0 .or. mod(gyf,n) /= 0 )then
-    call errend('Invalid value in $gxi, $gxf, $gyi or $gyf.')
-  endif
-  gxi = (gxi-1) / n + 1
-  gxf = gxf / n
-  gyi = (gyi-1) / n + 1
-  gyf = gyf / n
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
-end subroutine read_basin_range
+end subroutine read_basin_domain
 !===============================================================
 !
 !===============================================================
-subroutine write_basin_range(&
-    bsnId, &
-    gxi, gxf, gyi, gyf, west, east, south, north)
+subroutine write_basin_domain(&
+  basinType, resl, bsnId, &
+  gxi, gxf, gyi, gyf, west, east, south, north &
+)
   implicit none
-  integer, intent(in) :: bsnId
+  character(CLEN_PROC), parameter :: PRCNAM = 'write_basin_domain'
+  character(*), intent(in) :: basinType
+  character(*), intent(in) :: resl
+  character(*), intent(in) :: bsnId
   integer, intent(in) :: gxi, gxf, gyi, gyf
   real(8), intent(in) :: west, east, south, north
 
   integer :: mgx, mgy
   character(CLEN_PATH) :: f
   integer :: un
-
-  character(CLEN_PROC), parameter :: PRCNAM = 'write_basin_range'
 
   call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
@@ -163,7 +130,7 @@ subroutine write_basin_range(&
   mgx = gxf - gxi + 1
   mgy = gyf - gyi + 1
 
-  f = get_f_basin_range(RESOLUTION_1SEC,bsnId)
+  f = get_f_data(basinType, resl, 'domain', bsnId)
   call logmsg('Writing '//str(f))
   open(newunit=un, file=f, status='replace')
   write(un,"(a)") 'nx '//str(mgx,dgt(max(mgx,mgy)))
@@ -177,29 +144,35 @@ subroutine write_basin_range(&
   close(un)
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
-end subroutine write_basin_range
+end subroutine write_basin_domain
 !===============================================================
 !
 !===============================================================
-subroutine read_topo__int4(dat, miss, resolution, varname, bsnId)
+subroutine read_map__int4(&
+  basinType, resl, varName, bsnId, &
+  dat, miss &
+)
   implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'read_map__int4'
+  character(*), intent(in)  :: basinType
+  character(*), intent(in)  :: resl
+  character(*), intent(in)  :: varName
+  character(*), intent(in)  :: bsnId
   integer(4)  , intent(out) :: dat(:,:)
   integer(4)  , intent(out) :: miss
-  character(*), intent(in)  :: resolution
-  character(*), intent(in)  :: varname
-  integer     , intent(in)  :: bsnId
 
   integer :: ngx, ngy, igy
   character :: c_
+  character(CLEN_PATH) :: f
   integer :: un
-
-  character(CLEN_PROC), parameter :: PRCNAM = 'read_topo__int4'
 
   call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
-  open(newunit=un, file=get_f_topo(resolution, varname, bsnId, 'txt'), status='old')
+  f = get_f_data(basinType, resl, varName, bsnId)
+  call logmsg('Reading '//str(f))
+  open(newunit=un, file=f, status='old')
   read(un,*) c_, ngx
   read(un,*) c_, ngy
   if( size(dat,1) /= ngx .or. size(dat,2) /= ngy )then
@@ -215,29 +188,35 @@ subroutine read_topo__int4(dat, miss, resolution, varname, bsnId)
   close(un)
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
-end subroutine read_topo__int4
+end subroutine read_map__int4
 !===============================================================
 !
 !===============================================================
-subroutine read_topo__real(dat, miss, resolution, varname, bsnId)
+subroutine read_map__real(&
+  basinType, resl, varName, bsnId, &
+  dat, miss &
+)
   implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'read_map__int4'
+  character(*), intent(in)  :: basinType
+  character(*), intent(in)  :: resl
+  character(*), intent(in)  :: varName
+  character(*), intent(in)  :: bsnId
   real(4)     , intent(out) :: dat(:,:)
   real(4)     , intent(out) :: miss
-  character(*), intent(in)  :: resolution
-  character(*), intent(in)  :: varname
-  integer     , intent(in)  :: bsnId
 
   integer :: ngx, ngy, igy
   character :: c_
+  character(CLEN_PATH) :: f
   integer :: un
-
-  character(CLEN_PROC), parameter :: PRCNAM = 'read_topo__int4'
 
   call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
-  open(newunit=un, file=get_f_topo(resolution, varname, bsnId, 'txt'), status='old')
+  f = get_f_data(basinType, resl, varName, bsnId)
+  call logmsg('Reading '//str(f))
+  open(newunit=un, file=f, status='old')
   read(un,*) c_, ngx
   read(un,*) c_, ngy
   if( size(dat,1) /= ngx .or. size(dat,2) /= ngy )then
@@ -253,31 +232,35 @@ subroutine read_topo__real(dat, miss, resolution, varname, bsnId)
   close(un)
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
-end subroutine read_topo__real
+end subroutine read_map__real
 !===============================================================
 !
 !===============================================================
-subroutine write_topo__int1(&
-    dat, miss, resolution, varname, bsnId, &
-    west, south, cellsize)
+subroutine write_map__int1(&
+  basinType, resl, varName, bsnId, &
+  dat, miss, west, south, cellsize &
+)
   implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'write_map__int4'
+  character(*), intent(in) :: basinType
+  character(*), intent(in) :: resl
+  character(*), intent(in) :: varName
+  character(*), intent(in) :: bsnId
   integer(1)  , intent(in) :: dat(:,:)
   integer(1)  , intent(in) :: miss
-  character(*), intent(in) :: resolution
-  character(*), intent(in) :: varname
-  integer     , intent(in) :: bsnId
   real(8)     , intent(in) :: west, south, cellsize
 
   integer :: iy
+  character(CLEN_PATH) :: f
   integer :: un
-
-  character(CLEN_PROC), parameter :: PRCNAM = 'write_topo__int4'
 
   call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
-  open(newunit=un, file=get_f_topo(resolution, varname, bsnId, 'txt'), status='replace')
+  f = get_f_data(basinType, resl, varName, bsnId)
+  call logmsg('Writing '//str(f))
+  open(newunit=un, file=f, status='replace')
   write(un,"(a)") 'ncols '//str(size(dat,1))
   write(un,"(a)") 'nrows '//str(size(dat,2))
   write(un,"(a)") 'xllcorner '//str(west,'f20.15')
@@ -290,31 +273,35 @@ subroutine write_topo__int1(&
   close(un)
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
-end subroutine write_topo__int1
+end subroutine write_map__int1
 !===============================================================
 !
 !===============================================================
-subroutine write_topo__int4(&
-    dat, miss, resolution, varname, bsnId, &
-    west, south, cellsize)
+subroutine write_map__int4(&
+  basinType, resl, varName, bsnId, &
+  dat, miss, west, south, cellsize &
+)
   implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'write_map__int4'
+  character(*), intent(in) :: basinType
+  character(*), intent(in) :: resl
+  character(*), intent(in) :: varName
+  character(*), intent(in) :: bsnId
   integer(4)  , intent(in) :: dat(:,:)
   integer(4)  , intent(in) :: miss
-  character(*), intent(in) :: resolution
-  character(*), intent(in) :: varname
-  integer     , intent(in) :: bsnId
   real(8)     , intent(in) :: west, south, cellsize
 
   integer :: iy
+  character(CLEN_PATH) :: f
   integer :: un
-
-  character(CLEN_PROC), parameter :: PRCNAM = 'write_topo__int4'
 
   call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
-  open(newunit=un, file=get_f_topo(resolution, varname, bsnId, 'txt'), status='replace')
+  f = get_f_data(basinType, resl, varName, bsnId)
+  call logmsg('Writing '//str(f))
+  open(newunit=un, file=f, status='replace')
   write(un,"(a)") 'ncols '//str(size(dat,1))
   write(un,"(a)") 'nrows '//str(size(dat,2))
   write(un,"(a)") 'xllcorner '//str(west,'f20.15')
@@ -327,31 +314,35 @@ subroutine write_topo__int4(&
   close(un)
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
-end subroutine write_topo__int4
+end subroutine write_map__int4
 !===============================================================
 !
 !===============================================================
-subroutine write_topo__real(&
-    dat, miss, resolution, varname, bsnId, &
-    west, south, cellsize)
+subroutine write_map__real(&
+  basinType, resl, varName, bsnId, &
+  dat, miss, west, south, cellsize &
+)
   implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'write_map__real'
+  character(*), intent(in) :: basinType
+  character(*), intent(in) :: resl
+  character(*), intent(in) :: varName
+  character(*), intent(in) :: bsnId
   real(4)     , intent(in) :: dat(:,:)
   real(4)     , intent(in) :: miss
-  character(*), intent(in) :: resolution
-  character(*), intent(in) :: varname
-  integer     , intent(in) :: bsnId
   real(8)     , intent(in) :: west, south, cellsize
 
   integer :: iy
+  character(CLEN_PATH) :: f
   integer :: un
-
-  character(CLEN_PROC), parameter :: PRCNAM = 'write_topo__real'
 
   call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
-  open(newunit=un, file=get_f_topo(resolution, varname, bsnId, 'txt'), status='replace')
+  f = get_f_data(basinType, resl, varName, bsnId)
+  call logmsg('Writing '//str(f))
+  open(newunit=un, file=f, status='replace')
   write(un,"(a)") 'ncols '//str(size(dat,1))
   write(un,"(a)") 'nrows '//str(size(dat,2))
   write(un,"(a)") 'xllcorner '//str(west,'f20.15')
@@ -364,31 +355,35 @@ subroutine write_topo__real(&
   close(un)
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
-end subroutine write_topo__real
+end subroutine write_map__real
 !===============================================================
 !
 !===============================================================
-subroutine write_topo__dble(&
-    dat, miss, resolution, varname, bsnId, &
-    west, south, cellsize)
+subroutine write_map__dble(&
+  basinType, resl, varName, bsnId, &
+  dat, miss, west, south, cellsize &
+)
   implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'write_map__dble'
+  character(*), intent(in) :: basinType
+  character(*), intent(in) :: resl
+  character(*), intent(in) :: varName
+  character(*), intent(in) :: bsnId
   real(8)     , intent(in) :: dat(:,:)
   real(8)     , intent(in) :: miss
-  character(*), intent(in) :: resolution
-  character(*), intent(in) :: varname
-  integer     , intent(in) :: bsnId
   real(8)     , intent(in) :: west, south, cellsize
 
   integer :: iy
+  character(CLEN_PATH) :: f
   integer :: un
-
-  character(CLEN_PROC), parameter :: PRCNAM = 'write_topo__dble'
 
   call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
-  open(newunit=un, file=get_f_topo(resolution, varname, bsnId, 'txt'), status='replace')
+  f = get_f_data(basinType, resl, varName, bsnId)
+  call logmsg('Writing '//str(f))
+  open(newunit=un, file=f, status='replace')
   write(un,"(a)") 'ncols '//str(size(dat,1))
   write(un,"(a)") 'nrows '//str(size(dat,2))
   write(un,"(a)") 'xllcorner '//str(west,'f20.15')
@@ -401,7 +396,7 @@ subroutine write_topo__dble(&
   close(un)
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
-end subroutine write_topo__dble
+end subroutine write_map__dble
 !===============================================================
 !
 !===============================================================

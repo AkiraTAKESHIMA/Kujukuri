@@ -48,7 +48,7 @@ module c2_jflw_const
   integer(4), parameter :: BSN_MISS  = 0
   integer(4), parameter :: BSN_UNDEF = -9
 
-  integer(1), parameter :: LNDUSE_MISS = -9_1
+  integer(1), parameter :: LANDUSE_MISS = -9_1
 
   integer, parameter :: NX_1SEC = 3600
   integer, parameter :: NY_1SEC = 3600

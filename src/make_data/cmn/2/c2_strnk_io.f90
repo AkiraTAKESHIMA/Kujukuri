@@ -56,7 +56,7 @@ module c2_strnk_io
   !-------------------------------------------------------------
   ! Private module variables
   !-------------------------------------------------------------
-  character(CLEN_PROC), parameter :: MODNAM = 'c2_strrank_io'
+  character(CLEN_PROC), parameter :: MODNAM = 'c2_strnk_io'
   !-------------------------------------------------------------
 contains
 !===============================================================
@@ -569,7 +569,7 @@ character(CLEN_PATH) function get_f_network_mesh(&
   call logbgn(PRCNAM, MODNAM, '-p')
   !-------------------------------------------------------------
   selectcase( var )
-  case( 'mask', 'upa', 'elv', 'landuse' )
+  case( 'mask', 'upg', 'dir', 'elv', 'upa', 'landuse' )
     ext = 'bin'
   case( 'domain' )
     ext = 'txt'

@@ -490,8 +490,7 @@ subroutine separate_network(uid)
         jflw_gys_of_lat, &
         jflw_gye_of_lat
   use mod_util, only: &
-        jNode2jPt, &
-        sMeshRange
+        jNode2jPt
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'separate_network'
   character(*), intent(in) :: uid

@@ -147,8 +147,7 @@ subroutine modify_channeldir(uid)
   use c3_joint_io, only: &
         joint_get_f_nwk_chn_dirstat => get_f_nwk_chn_dirstat
   use mod_util, only: &
-        jNode2jPt, &
-        sMeshRange
+        jNode2jPt
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'modify_channeldir'
   character(*), intent(in) :: uid

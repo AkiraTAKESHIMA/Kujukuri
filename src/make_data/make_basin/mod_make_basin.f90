@@ -21,7 +21,7 @@ module mod_make_basin
   public :: renewBasinList
   public :: makeNewBasinMaps
   public :: makeTiledBasinLists
-  public :: makeBasinRangeList
+  public :: makeBasinDomainData
   public :: makeLowresBasinMaps
 
   public :: makeBasinTopoMap
@@ -1648,15 +1648,15 @@ subroutine makeNewBasinMaps(tx, ty)
 end subroutine makeNewBasinMaps
 !===============================================================
 ! FUNCTION:
-! - To make a list of id and range of basins in each tile.
+! - To make a list of id and domain of basins in each tile.
 ! REQUIREMENTS:
 ! - 
 ! IN:
 ! - ${DIR_TILED}/id_all.txt
 ! - ${DIR_TILED}/basin_final/${tilename(tx,ty)}.txt
 ! OUT:
-! - ${DIR_TILED}/basin_range/${tilename(tx,ty)}.txt
-! - ${DIR_TILED}/basin_range/all.txt
+! - ${DIR_TILED}/basin_domain/${tilename(tx,ty)}.txt
+! - ${DIR_TILED}/basin_domain/all.txt
 !===============================================================
 subroutine makeTiledBasinLists()
   use c1_const
@@ -1672,6 +1672,8 @@ subroutine makeTiledBasinLists()
         get_f_lst_tile
   use mod_io, only: &
         tileinfo
+use c2_jflw_io, only: &
+  tilename
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'makeTiledBasinLists'
 
@@ -1700,7 +1702,7 @@ subroutine makeTiledBasinLists()
 
   character(CLEN_PATH) :: f_id_all
   character(CLEN_PATH) :: f_bsn
-  character(CLEN_PATH) :: f_basin_range_tile, f_basin_range
+  character(CLEN_PATH) :: f_basin_domain_tile, f_basin_domain
   integer :: un
   integer :: ios
 
@@ -1708,7 +1710,7 @@ subroutine makeTiledBasinLists()
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
-  f_id_all = trim(DIR_TILED)//'/id_all.txt'
+  f_id_all = get_f_lst_tile(RESOLUTION_1SEC, 'id_all')
   open(newunit=un, file=f_id_all, status='old')
   read(un,*)
   do
@@ -1789,7 +1791,7 @@ subroutine makeTiledBasinLists()
       endif
     enddo
     !-----------------------------------------------------------
-    ! Get ranges of the basins
+    ! Get domains of the basins
     !-----------------------------------------------------------
     do iBsn = 1, nBsn
       basin => lst_basin(lst_bsnId(iBsn))
@@ -1824,9 +1826,9 @@ subroutine makeTiledBasinLists()
     !-----------------------------------------------------------
     ! Output
     !-----------------------------------------------------------
-    f_basin_range_tile = get_f_lst_tile(RESOLUTION_1SEC, 'basin_range', itx, ity)
-    call logmsg('Writing '//str(f_basin_range_tile))
-    open(newunit=un, file=f_basin_range_tile, status='replace')
+    f_basin_domain_tile = get_f_lst_tile(RESOLUTION_1SEC, 'basin_domain', itx, ity)
+    call logmsg('Writing '//str(f_basin_domain_tile))
+    open(newunit=un, file=f_basin_domain_tile, status='replace')
     write(un,"(3(1x,i0))") nBsn, bsnId_min_this, bsnId_max_this
     do iBsn = 1, nBsn
       basin => lst_basin(lst_bsnId(iBsn))
@@ -1850,9 +1852,9 @@ subroutine makeTiledBasinLists()
   !-------------------------------------------------------------
   ! Output
   !-------------------------------------------------------------
-  f_basin_range = get_f_lst_tile(RESOLUTION_1SEC, 'basin_range')
-  call logmsg('Writing '//str(f_basin_range))
-  open(newunit=un, file=f_basin_range, status='replace')
+  f_basin_domain = get_f_lst_tile(RESOLUTION_1SEC, 'basin_domain')
+  call logmsg('Writing '//str(f_basin_domain))
+  open(newunit=un, file=f_basin_domain, status='replace')
   write(un,"(1x,i10)") bsnId_max
   do bsnId = 1, bsnId_max
     basin => lst_basin(bsnId)
@@ -1871,11 +1873,12 @@ subroutine makeTiledBasinLists()
     basin%nx = basin%gxf - basin%gxi + 1
     basin%ny = basin%gyf - basin%gyi + 1
 
+
     write(un,"(1x,i10,1x,i4,2(1x,i6),4(1x,i6))") &
           bsnId, basin%n, &
           basin%nx, basin%ny, &
           basin%gxi, basin%gxf, basin%gyi, basin%gyf
-    write(un,"(1x,4(1x,f12.7))") &
+    write(un,"(1x,4(1x,f20.15))") &
           west_of_gx(basin%gxi), east_of_gx(basin%gxf), &
           south_of_gy(basin%gyf), north_of_gy(basin%gyi)
     do i = 1, basin%n
@@ -1895,18 +1898,19 @@ subroutine makeTiledBasinLists()
 end subroutine makeTiledBasinLists
 !===============================================================
 ! IN:
-! - ${DIR_TILED}/basin_range/all.txt
+! - ${DIR_TILED}/basin_domain/all.txt
 ! OUT:
-! - ${DIR_BASIN}/1sec/range/${bsnId}.txt
+! - ${DIR_BASIN}/1sec/domain/${bsnId}.txt
 !     for bsnId in (bsnId_min,bsnId_max)
 !===============================================================
-subroutine makeBasinRangeList(bsnId_min, bsnId_max)
+subroutine makeBasinDomainData(bsnId_min, bsnId_max)
   use c2_jflw_const
   use c2_jflw_io, only: &
+        strId          , &
         get_f_lst_tile , &
         get_f_dat_basin
   implicit none
-  character(CLEN_PROC), parameter :: PRCNAM = 'makeBasinRangeList'
+  character(CLEN_PROC), parameter :: PRCNAM = 'makeBasinDomainData'
   integer, intent(in) :: bsnId_min, bsnId_max
 
   integer :: bsnId
@@ -1918,13 +1922,13 @@ subroutine makeBasinRangeList(bsnId_min, bsnId_max)
   real(8) :: west, east, south, north
   integer :: i_
   integer :: un, un_out
-  character(CLEN_PATH) :: f, f_range
+  character(CLEN_PATH) :: f, f_domain
 
   call logbgn(PRCNAM, MODNAM)
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
-  f = get_f_lst_tile(RESOLUTION_1SEC, 'basin_range')
+  f = get_f_lst_tile(RESOLUTION_1SEC, 'basin_domain')
   call logmsg('Reading '//str(f))
   open(newunit=un, file=f, status='old')
   read(un,*)
@@ -1937,13 +1941,13 @@ subroutine makeBasinRangeList(bsnId_min, bsnId_max)
   enddo
 
   do bsnId = bsnId_min, bsnId_max
-    f_range = get_f_dat_basin(RESOLUTION_1SEC, 'range', bsnId)
+    f_domain = get_f_dat_basin(RESOLUTION_1SEC, 'domain', strId(bsnId))
     if( bsnId <= bsnId_min+1 .or. bsnId >= bsnId_max-1 )then
-      call logmsg('Writing '//str(f_range))
+      call logmsg('Writing '//str(f_domain))
     elseif( bsnId == bsnId_min+2 )then
       call logmsg('...')
     endif
-    open(newunit=un_out, file=f_range, status='replace')
+    open(newunit=un_out, file=f_domain, status='replace')
     read(un,*) i_, n, mx, my, gxi, gxf, gyi, gyf
     read(un,*) west, east, south, north
     write(un_out,"(a)") 'nx '//str(mx,DGT_GXY)
@@ -1965,7 +1969,7 @@ subroutine makeBasinRangeList(bsnId_min, bsnId_max)
   close(un)
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
-end subroutine makeBasinRangeList
+end subroutine makeBasinDomainData
 !===============================================================
 ! IN:
 ! - ${DIR_TILED}/bsn/${tilename(tx,ty)}.bin
@@ -2176,7 +2180,7 @@ end function read_f_upper
 !
 !===============================================================
 ! IN:
-! - ${DIR_BASIN}/1sec/range/${bsnId}.txt
+! - ${DIR_BASIN}/1sec/domain/${bsnId}.txt
 ! - ${DIR_TILED}/bsn/${tilename(tx,ty)}.bin
 !     for the sets of (tx,ty) that overlap with bbox of the basin
 ! OUT:
@@ -2185,8 +2189,9 @@ end function read_f_upper
 subroutine makeBasinTopoMap(var, bsnId)
   use c2_jflw_const
   use c2_jflw_io, only: &
-        read_basin_range_from_each, &
-        read_basin_map_from_tile  , &
+        strId                      , &
+        read_basin_domain_from_each, &
+        read_basin_map_from_tile   , &
         get_f_map_basin         
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'makeBasinTopoMap'
@@ -2208,14 +2213,15 @@ subroutine makeBasinTopoMap(var, bsnId)
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
-  call read_basin_range_from_each(&
-         RESOLUTION_1SEC, bsnId, &
+  call read_basin_domain_from_each(&
+         RESOLUTION_1SEC, strId(bsnId), &
          gxi, gxf, gyi, gyf, &
          west, east, south, north)
 
   allocate(bsn(gxi:gxf,gyi:gyf))
   call read_basin_map_from_tile(&
-         RESOLUTION_1SEC, bsnId, 'bsn', bsn, DTYPE_INT4, gxi, gyi, BSN_MISS)
+         RESOLUTION_1SEC, strId(bsnId), &
+         'bsn', bsn, DTYPE_INT4, gxi, gyi, BSN_MISS)
   do igy = gyi, gyf
   do igx = gxi, gxf
     if( bsn(igx,igy) /= bsnId ) bsn(igx,igy) = BSN_MISS
@@ -2232,8 +2238,9 @@ subroutine makeBasinTopoMap(var, bsnId)
 
     allocate(dati1(gxi:gxf,gyi:gyf))
     call read_basin_map_from_tile(&
-           RESOLUTION_1SEC, bsnId, var, dati1, DTYPE_INT1, gxi, gyi, missi1, bsn)
-    f = get_f_map_basin(RESOLUTION_1SEC, var, bsnId)
+           RESOLUTION_1SEC, strId(bsnId), &
+           var, dati1, DTYPE_INT1, gxi, gyi, missi1, bsn)
+    f = get_f_map_basin(RESOLUTION_1SEC, var, strId(bsnId))
     call logmsg('Writing '//str(f))
     call traperr( mkdir(dirname(f)) )
     call traperr( wbin(dati1, f) )
@@ -2252,8 +2259,9 @@ subroutine makeBasinTopoMap(var, bsnId)
 
     allocate(dati4(gxi:gxf,gyi:gyf))
     call read_basin_map_from_tile(&
-           RESOLUTION_1SEC, bsnId, var, dati4, DTYPE_INT4, gxi, gyi, missi4, bsn)
-    f = get_f_map_basin(RESOLUTION_1SEC, var, bsnId)
+           RESOLUTION_1SEC, strId(bsnId), &
+           var, dati4, DTYPE_INT4, gxi, gyi, missi4, bsn)
+    f = get_f_map_basin(RESOLUTION_1SEC, var, strId(bsnId))
     call traperr( mkdir(dirname(f)) )
     call logmsg('Writing '//str(f))
     call traperr( wbin(dati4, f) )
@@ -2274,8 +2282,9 @@ subroutine makeBasinTopoMap(var, bsnId)
 
     allocate(datr4(gxi:gxf,gyi:gyf))
     call read_basin_map_from_tile(&
-           RESOLUTION_1SEC, bsnId, var, datr4, DTYPE_REAL, gxi, gyi, missr4, bsn)
-    f = get_f_map_basin(RESOLUTION_1SEC, var, bsnId)
+           RESOLUTION_1SEC, strId(bsnId), &
+           var, datr4, DTYPE_REAL, gxi, gyi, missr4, bsn)
+    f = get_f_map_basin(RESOLUTION_1SEC, var, strId(bsnId))
     call traperr( mkdir(dirname(f)) )
     call logmsg('Writing '//str(f))
     call traperr( wbin(datr4, f) )

@@ -122,7 +122,6 @@ integer function tys_of_lat(lat) result(res)
   implicit none
   real(8), intent(in) :: lat
 
-  !res = floor((lat-REGION_SOUTH) / TILESIZE_LAT) + 1
   res = floor((REGION_NORTH-lat) / TILESIZE_LAT) + 1
 end function tys_of_lat
 !===============================================================
@@ -132,7 +131,6 @@ integer function tye_of_lat(lat) result(res)
   implicit none
   real(8), intent(in) :: lat
 
-  !res = ceiling((lat-REGION_SOUTH) / TILESIZE_LAT)
   res = ceiling((REGION_NORTH-lat) / TILESIZE_LAT)
 end function tye_of_lat
 !===============================================================
