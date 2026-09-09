@@ -172,6 +172,8 @@ endif
 !where(riv.eq.1) area_ratio = width / length
 !where(riv.eq.1) area_ratio = width / len_riv
 where(riv.eq.1) area_ratio = width * len_riv / area ! modified by T.Sayama on Nov. 27, 2021
+print"(2(1x,a,1x,es22.15))", 'length', length, 'area', area
+print"(1x,a,1x,es22.15)", 'area_ratio mean: ', sum(area_ratio)/count(riv==1)
 
 zb_riv = zs
 do i = 1, ny

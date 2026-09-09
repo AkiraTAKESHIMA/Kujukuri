@@ -91,9 +91,13 @@ subroutine read_config()
 
   read(un,*)
   read(un,*) ns_river
+print*
+write(*,'("ns_river : ", f12.3)') ns_river
 
   read(un,*)
   read(un,*) num_of_landuse
+print*
+write(*,'("num_of_landuse : ", i5)') num_of_landuse
 
   allocate(dif(num_of_landuse))
   allocate(ns_slope(num_of_landuse))
@@ -114,15 +118,26 @@ subroutine read_config()
   read(un,*) ns_slope(:)
   read(un,*) soildepth(:)
   read(un,*) gammaa(:)
+write(*,'("dif : ", 100i5)') dif(:)
+write(*,'("ns_slope : ", 100f12.3)') ns_slope(:)
+write(*,'("soildepth : ", 100f12.3)') soildepth(:)
+write(*,'("gammaa : ", 100f12.3)') gammaa(:)
 
   read(un,*) 
   read(un,*) ksv(:)
   read(un,*) faif(:)
+print*
+write(*,'("ksv : ", 100e12.3)') ksv(:)
+write(*,'("faif : ", 100f12.3)') faif(:)
 
   read(un,*) 
   read(un,*) ka(:)
   read(un,*) gammam(:)
   read(un,*) beta(:)
+print*
+write(*,'("ka : ", 100e12.3)') ka(:)
+write(*,'("gammam : ", 100f12.3)') gammam(:)
+write(*,'("beta : ", 100f12.3)') beta(:)
 
   read(un,*) 
   read(un,*) ksg(:)
@@ -130,6 +145,12 @@ subroutine read_config()
   read(un,*) kg0(:)
   read(un,*) fpg(:)
   read(un,*) rgl(:)
+print*
+write(*,'("ksg : ", 100e12.3)') ksg(:)
+write(*,'("gammag : ", 100f12.3)') gammag(:)
+write(*,'("kg0 : ", 100e12.3)') kg0(:)
+write(*,'("fpg : ", 100f12.3)') fpg(:)
+write(*,'("rgl : ", 100e12.3)') rgl(:)
 
   read(un,*) 
   read(un,*) riv_thresh
@@ -360,6 +381,8 @@ subroutine prep_topography()
 
   area_ratio(:,:) = 0.d0
   where( riv == 1 ) area_ratio = width * len_riv / area
+  print"(2(1x,a,1x,es22.15))", 'length', length, 'area', area
+  print"(1x,a,1x,es22.15)", 'area_ratio mean: ', sum(transpose(area_ratio))/count(riv==1)
 
   ! Elevations of slope bed rock (zb) and river bed (zb_riv)
   zb_riv(:,:) = zs(:,:)
@@ -392,6 +415,7 @@ subroutine prep_riv_idx()
   real(8) :: distance
 
   riv_count = count(domain /= DOMAIN__OUTSIDE .and. riv == 1)
+  print*, 'river cell num: ', count(riv==1)
 
   allocate( riv_idx2i(riv_count), riv_idx2j(riv_count), riv_ij2idx(nx,ny) )
   allocate( down_riv_idx(riv_count), domain_riv_idx(riv_count) )
@@ -550,7 +574,7 @@ subroutine prep_slo_idx()
   slo_ij2idx(:,:) = 0
   do j = 1, ny
   do i = 1, nx
-    if( domain(i,j) == 0 ) cycle
+    if( domain(i,j) == DOMAIN__OUTSIDE ) cycle
 
     slo_count = slo_count + 1
     slo_idx2i(slo_count) = i
@@ -819,7 +843,8 @@ real(8) function deg2rad(deg) result(rad)
   implicit none
   real(8), intent(in) ::deg
 
-  rad = deg * PI / 180.d0
+  rad = deg * 3.1415926535897d0 / 180.d0
+  !rad = deg * PI / 180.d0
 end function deg2rad
 !===============================================================
 !

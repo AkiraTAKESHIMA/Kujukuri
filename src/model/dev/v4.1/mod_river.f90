@@ -35,7 +35,7 @@ end subroutine prep_mod_river
 !
 !===============================================================
 subroutine advance_river(&
-    time_start, time_end, &
+    time_start, &
     hr_idx &
 )
   use def_runge
@@ -43,15 +43,16 @@ subroutine advance_river(&
     hr2vr, &
     vr2hr
   implicit none
-  real(8), intent(in) :: time_start, time_end
+  real(8), intent(in) :: time_start
   real(8), intent(inout) :: hr_idx(:)
 
-  real(8) :: time
+  real(8) :: time, time_end
   real(8) :: ddt
   real(8) :: errmax
   integer :: k
 
   time = time_start
+  time_end = time + dt_model
   ddt = dt_riv
 
   do k = 1, riv_count
@@ -59,6 +60,8 @@ subroutine advance_river(&
   enddo
 
   do while( time < time_end )
+    ddt = min( ddt, time_end - time )
+
     do
       call funcr(vr_idx, fr1)
 
@@ -83,16 +86,16 @@ subroutine advance_river(&
       call funcr(vr_tmp, fr6)
 
       vr_err = ddt * (dc1 * fr1 + dc3 * fr3 + dc4 * fr4 + dc5 * fr5 + dc6 * fr6)
-
       hr_err = vr_err / (area * area_ratio_idx)
       where( domain_riv_idx == 0 ) hr_err = 0.d0
-
-      errmax = maxval( hr_err, mask=domain_riv_idx/=DOMAIN__OUTSIDE ) / eps
+      errmax = maxval( hr_err ) / eps
 
       if( errmax <= 1.d0 .or. ddt <= ddt_min_riv ) exit
 
       ddt = max( ddt * safety * errmax**pshrnk, ddt * 0.5d0 )
-      ddt = min( max( ddt, ddt_min_slo ), time_end - time )
+      ddt = max( ddt, ddt_min_riv )
+      print*, "shrink (riv): ", ddt, errmax, maxloc( vr_err )
+      ddt = min( ddt, time_end - time )
     enddo
 
     time = time + ddt
@@ -177,10 +180,13 @@ subroutine calc_discharge(hr_idx, qr_idx)
       call grad_to_disc(hw, dh, k, width_idx(k), qr_tmp)
       qr_idx(k) = qr_tmp
     else
+      hw = hr_n
+      if( zb_n < zb_p ) hw = max(0.d0, zb_n + hr_n - zb_p)
       call grad_to_disc(hw, -dh, kk, width_idx(k), qr_tmp)
       qr_idx(k) = -qr_tmp
     endif
   enddo
+  !$omp end parallel do
 end subroutine calc_discharge
 !===============================================================
 !

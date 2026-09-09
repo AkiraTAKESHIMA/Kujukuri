@@ -16,6 +16,7 @@ mod_section.o\
 mod_forcing.o\
 mod_river.o\
 mod_slope.o\
+mod_gwat.o\
 mod_rivslo.o\
 mod_driver.o\
 mod_config.o\

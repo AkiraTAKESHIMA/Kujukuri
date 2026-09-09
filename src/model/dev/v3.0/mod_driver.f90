@@ -329,6 +329,8 @@ do t = 1, maxt
 
  if(mod(t, 1).eq.0) write(*,*) t, "/", maxt
 
+!TMP
+if( .false. )then
  !******* RIVER CALCULATION ******************************
  if( riv_thresh .lt. 0 ) go to 2
 
@@ -453,7 +455,7 @@ do t = 1, maxt
  call sub_riv_idx2ij( qr_ave_idx, qr_ave )
 
  if( dam_switch.eq.1 ) call dam_checkstate(qr_ave)
-
+endif
  !******* SLOPE CALCULATION ******************************
 2 continue
 
@@ -565,7 +567,6 @@ do t = 1, maxt
   if(time.ge.t * dt) exit ! finish for this timestep
  enddo
  qs_ave_idx = qs_ave_idx / dble(dt) / 6.d0 ! modified on ver 1.4.1
-
  !******* GW CALCULATION ******************************
  if( gw_switch .eq. 0 ) go to 6
 
@@ -685,12 +686,14 @@ do t = 1, maxt
  !call levee_break(t, hr, hs, xllcorner, yllcorner, cellsize)
 
  !******* RIVER-SLOPE INTERACTIONS ***********************
- if( riv_thresh .ge. 0 ) call funcrs(hr, hs, qrs)
+!TMP
+! if( riv_thresh .ge. 0 ) call funcrs(hr, hs, qrs)
  call sub_riv_ij2idx( hr, hr_idx )
  call sub_slo_ij2idx( hs, hs_idx )
 
  !******* INFILTRATION (Green Ampt) **********************
- call infilt(hs_idx, gampt_ff_idx, gampt_f_idx)
+!TMP
+! call infilt(hs_idx, gampt_ff_idx, gampt_f_idx)
  call sub_slo_idx2ij( hs_idx, hs )
  call sub_slo_idx2ij( gampt_ff_idx, gampt_ff )
  call sub_slo_idx2ij( gampt_f_idx, gampt_f )

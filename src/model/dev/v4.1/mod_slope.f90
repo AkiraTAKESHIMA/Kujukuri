@@ -9,6 +9,7 @@ module mod_slope
   public :: prep_mod_slope
   public :: advance_slope
   public :: h2lev
+  public :: infilt
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
@@ -46,27 +47,29 @@ end subroutine prep_mod_slope
 !
 !===============================================================
 subroutine advance_slope(&
-  time_start, time_end, &
+  time_start, &
   hs_idx &
 )
   use def_runge
   use mod_forcing, only: &
     get_timestep_prcp
   implicit none
-  real(8), intent(in) :: time_start, time_end
+  real(8), intent(in) :: time_start
   real(8), intent(inout) :: hs_idx(:)
 
-  real(8) :: time
+  real(8) :: time, time_end
   real(8) :: ddt
   real(8) :: errmax
   integer :: it_prcp
 
   time = time_start
+  time_end = time + dt_model
   ddt = dt_slo
 
   do while( time < time_end )
+    ddt = min(time_end - time, ddt)
+
     call get_timestep_prcp(time+ddt, it_prcp)
-print*, 't_prcp', it_prcp, maxval(prcp_idx_all(:,it_prcp))
 
     do
       call funcs( time, ddt, hs_idx, prcp_idx_all(:,it_prcp), fs1, qs_idx )
@@ -334,18 +337,53 @@ subroutine h2lev(h, k, lev)
   real(8) rho
   real(8) da_temp
 
-da_temp = soildepth_idx(k) * gammaa_idx(k)
+  da_temp = soildepth_idx(k) * gammaa_idx(k)
 
-if( soildepth_idx(k) .eq. 0.d0 ) then
- lev = h
-elseif( h .ge. da_temp ) then ! including da = 0
- lev = soildepth_idx(k) + (h - da_temp) ! surface water
-else
- if(soildepth_idx(k) .gt. 0.d0 ) rho = da_temp / soildepth_idx(k)
- lev = h / rho
-endif
-
+  if( soildepth_idx(k) == 0.d0 ) then
+    lev = h
+  elseif( h >= da_temp ) then ! including da = 0
+    lev = soildepth_idx(k) + (h - da_temp) ! surface water
+  else
+    if( soildepth_idx(k) > 0.d0 ) rho = da_temp / soildepth_idx(k)
+    lev = h / rho
+    ! equivalent to:
+    ! lev = h / gammaa_idx(k)
+  endif
 end subroutine h2lev
+!===============================================================
+!
+!===============================================================
+subroutine infilt(hs_idx, gampt_ff_idx, gampt_f_idx)
+  implicit none
+  real(8), intent(inout) :: hs_idx(:)
+  real(8), intent(inout) :: gampt_ff_idx(:)
+  real(8), intent(out) :: gampt_f_idx(:)
+  real(8) :: gampt_ff_temp
+  integer :: k
+
+  do k = 1, slo_count
+    gampt_f_idx(k) = 0.d0
+    gampt_ff_temp = gampt_ff_idx(k)
+    if( gampt_ff_temp .le. 0.01d0 ) gampt_ff_temp = 0.01d0
+
+    ! gampt_f_idx(k) : infiltration capacity [m/s]
+    ! gampt_ff : accumulated infiltration depth [m]
+    gampt_f_idx(k) = ksv_idx(k) * (1.d0 + faif_idx(k) * gammaa_idx(k) / gampt_ff_temp)
+
+    ! gampt_f_idx(k) : infiltration capacity -> infiltration rate [m/s]
+    if( gampt_f_idx(k) .ge. hs_idx(k) / dt_model ) gampt_f_idx(k) = hs_idx(k) / dt_model
+
+    ! gampt_ff should not exceeds a certain level
+    if( infilt_limit_idx(k) .ge. 0.d0 .and. gampt_ff_idx(k) .ge. infilt_limit_idx(k) ) gampt_f_idx(k) = 0.d0
+
+    ! update gampt_ff [m]
+    gampt_ff_idx(k) = gampt_ff_idx(k) + gampt_f_idx(k) * dt_model
+
+    ! hs : hs - infiltration rate * dt [m]
+    hs_idx(k) = hs_idx(k) - gampt_f_idx(k) * dt_model
+    if( hs_idx(k) .le. 0.d0 ) hs_idx(k) = 0.d0
+  enddo
+end subroutine infilt
 !===============================================================
 !
 !===============================================================
