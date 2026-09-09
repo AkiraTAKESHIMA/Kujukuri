@@ -200,11 +200,15 @@ subroutine read_basin_domain_from_each(&
   read(un,*) c_, east
   read(un,*) c_, south
   read(un,*) c_, north
-  read(un,*) n
-  ! raster ranges in tiles
-  do i = 1, n
-    read(un,*)
-  enddo
+
+  if( resl == RESOLUTION_1SEC )then
+    read(un,*) n
+    ! raster ranges in tiles
+    do i = 1, n
+      read(un,*)
+    enddo
+  endif
+
   close(un)
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -556,7 +560,7 @@ subroutine read_basin_map_from_tile__int4(&
   if( present(bsn) )then
     where( bsn /= intId(id) ) dat = miss
   else
-    where( bsn == undef ) dat = miss
+    where( dat == undef ) dat = miss
   endif
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -623,7 +627,7 @@ subroutine read_basin_map_from_tile__real(&
   if( present(bsn) )then
     where( bsn /= intId(id) ) dat = miss
   else
-    where( bsn == undef ) dat = miss
+    where( dat == undef ) dat = miss
   endif
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -690,7 +694,7 @@ subroutine read_basin_map_from_tile__dble(&
   if( present(bsn) )then
     where( bsn /= intId(id) ) dat = miss
   else
-    where( bsn == undef ) dat = miss
+    where( dat == undef ) dat = miss
   endif
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)

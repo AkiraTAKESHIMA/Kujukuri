@@ -76,7 +76,7 @@ program main
     call addarg('resl', '', 'Target resolution')
     call parsearg()
 
-    resl = arg_char('resl')
+    resl = lower(arg_char('resl'))
 
     call scaleUpNetworkMask(resl)
 
@@ -89,9 +89,9 @@ program main
     call addarg('-w', '--overwrite', .false., .false., 'Overwrite existing output files')
     call parsearg()
 
-    resl = arg_char('resl')
+    resl = lower(arg_char('resl'))
     name_src = arg_char('name_src')
-    resl_src = arg_char('resl_src')
+    resl_src = lower(arg_char('resl_src'))
     overwrite = arg_flag('--overwrite')
 
     call makeRemappingTables(resl, name_src, resl_src, overwrite)
@@ -106,10 +106,10 @@ program main
     call addarg('-w', '--overwrite', .false., .false., 'Overwrite existing output files')
     call parsearg()
 
-    resl = arg_char('resl')
+    resl = lower(arg_char('resl'))
     name_src = arg_char('name_src')
-    resl_src = arg_char('resl_src')
-    var = arg_char('var')
+    resl_src = lower(arg_char('resl_src'))
+    var = lower(arg_char('var'))
     overwrite = arg_flag('--overwrite')
 
     call remap(resl, name_src, resl_src, var, overwrite)
@@ -122,15 +122,17 @@ program main
     call addarg('uid', 's', 'Basin/Network/NetworkSet ID')
     call addarg('var', 's', 'Variable name')
     call addarg('outfmt', 's', 'Output format {default|RRI}')
+    call addarg('-w', '--overwrite', .false., .false., 'Overwrite existing output files')
     call parsearg()
 
-    basinType = arg_char('basinType')
-    resl = arg_char('resl')
+    basinType = lower(arg_char('basinType'))
+    resl = lower(arg_char('resl'))
     uid = arg_char('uid')
-    var = arg_char('var')
-    outfmt = arg_char('outfmt')
+    var = lower(arg_char('var'))
+    outfmt = lower(arg_char('outfmt'))
+    overwrite = arg_flag('--overwrite')
 
-    call trimBasin(basinType, resl, uid, var, outfmt)
+    call trimBasin(basinType, resl, uid, var, outfmt, overwrite)
 
   !
   !-------------------------------------------------------------
