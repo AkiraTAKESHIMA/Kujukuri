@@ -4,7 +4,7 @@ module c1_const
 
   ! Directory
   character(CLEN_PATH), parameter :: DIR_TOP = '/data10/atakeshima/Kujukuri'
-  character(CLEN_PATH), parameter :: DIR_DAT = trim(DIR_TOP)//'/dat'
+  character(CLEN_PATH), parameter :: DIR_DAT = trim(DIR_TOP)//'/data'
 
   ! SPRING
   character(CLEN_PATH), parameter :: DIR_SPRING_MAIN = trim(DIR_TOP)//'/src/SPRING/main/std'
