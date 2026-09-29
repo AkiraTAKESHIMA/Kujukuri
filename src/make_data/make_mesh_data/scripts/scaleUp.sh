@@ -11,7 +11,7 @@ RESL_IN=$3
 RESL_OUT=$4
 SCALE=$5
 
-DIR_DATA="`cd ../../../dat && pwd`"
+DIR_DATA="`cd ../../../data && pwd`"
 
 PATH_CONF=configs/scaleUp/$BASINTYPE/${RESL_IN}_to_${RESL_OUT}/$BASINID.txt
 mkdir -p `dirname $PATH_CONF`
