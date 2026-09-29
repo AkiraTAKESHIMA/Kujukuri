@@ -163,11 +163,34 @@ subroutine exec_simulation()
   implicit none
   real(8) :: time
   integer :: it_model
+  integer :: it_out
   integer :: i, j
+
+  integer :: un_hr, un_hs
+
+  open(newunit=un_hr, file=trim(dir_out)//'/hr.bin', &
+       form='unformatted', access='direct', recl=8_8*nx*ny, status='replace')
+  open(newunit=un_hs, file=trim(dir_out)//'/hs.bin', &
+       form='unformatted', access='direct', recl=8_8*nx*ny, status='replace')
+
+  ! TMP
+!  open(901, file='out/hr1.bin', form='unformatted', access='direct', &
+!       status='replace', recl=8*nx*ny)
+!  open(902, file='out/hr2.bin', form='unformatted', access='direct', &
+!       status='replace', recl=8*nx*ny)
+!  open(903, file='out/hr3.bin', form='unformatted', access='direct', &
+!       status='replace', recl=8*nx*ny)
+!  open(904, file='out/hr4.bin', form='unformatted', access='direct', &
+!       status='replace', recl=8*nx*ny)
+
+  it_out = 0
 
   do it_model = 1, nt_model
     print*, 't: ',it_model,' / ',nt_model
     time = (it_model - 1) * dt_model
+
+    ! TMP
+!    write(901,rec=it_model) hr
     !-----------------------------------------------------------
     ! 2D -> 1D
     !-----------------------------------------------------------
@@ -196,6 +219,9 @@ subroutine exec_simulation()
     call reshape_slo_idx2ij( hs_idx, hs )
     call reshape_slo_idx2ij( hg_idx, hg )
     call reshape_slo_idx2ij( gampt_ff_idx, gampt_ff )
+
+    ! TMP
+!    write(902,rec=it_model) hr
     !-----------------------------------------------------------
     ! River-slope interactions
     !-----------------------------------------------------------
@@ -203,6 +229,9 @@ subroutine exec_simulation()
 
     call reshape_riv_ij2idx( hr, hr_idx )
     call reshape_slo_ij2idx( hs, hs_idx )
+
+    ! TMP
+!    write(903,rec=it_model) hr
     !-----------------------------------------------------------
     ! Infiltration (Green-Ampt)
     !-----------------------------------------------------------
@@ -226,13 +255,37 @@ subroutine exec_simulation()
       endif
     enddo  ! i/
     enddo  ! j/
+
+    ! TMP
+!    write(904,rec=it_model) hr
     !-----------------------------------------------------------
     ! Summary
     !-----------------------------------------------------------
     print*, 'max hr: ',maxval(hr),' loc: ',maxloc(hr)
     print*, 'max hs: ',maxval(hs),' loc: ',maxloc(hs)
     if( gw_switch == 1 ) print*, 'max hg: ', maxval(hg),' loc: ',maxloc(hg)
+
+    where( domain == DOMAIN__OUTSIDE ) hr = -0.1d0
+
+    do while( time >= it_out * dt_model )
+      it_out = it_out + 1
+      print*, 'output ', it_out
+      write(un_hr, rec=it_out) hr
+      write(un_hs, rec=it_out) hs
+    enddo
+
+
+!if( it_model == 8 ) exit
   enddo  ! it_model = 1, nt_model
+
+  close(un_hr)
+  close(un_hs)
+
+  ! TMP
+!  close(901)
+!  close(902)
+!  close(903)
+!  close(904)
 end subroutine exec_simulation
 !===============================================================
 !

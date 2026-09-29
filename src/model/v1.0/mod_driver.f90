@@ -314,10 +314,25 @@ subroutine exec_simulation()
   use mod_budget, only: &
     storage_calc
   implicit none
+! TMP
+integer :: k_debug
+integer :: i_debug = 127
+integer :: j_debug = 264
+k_debug = riv_ij2idx(i_debug,j_debug)
 
   ! Hydro output
   open(1012, file = hydro_file )
   open(1013, file = hydro_hr_file )
+
+  ! TMP
+!  open(901, file='out/hr1.bin', form='unformatted', access='direct', &
+!       recl=8*nx*ny, status='replace')
+!  open(902, file='out/hr2.bin', form='unformatted', access='direct', &
+!       recl=8*nx*ny, status='replace')
+!  open(903, file='out/hr3.bin', form='unformatted', access='direct', &
+!       recl=8*nx*ny, status='replace')
+!  open(904, file='out/hr4.bin', form='unformatted', access='direct', &
+!       recl=8*nx*ny, status='replace')
 
 ! output timestep
 out_dt = dble(maxt) / dble(outnum)
@@ -329,8 +344,9 @@ do t = 1, maxt
 
  if(mod(t, 1).eq.0) write(*,*) t, "/", maxt
 
-!TMP
-if( .false. )then
+  ! TMP
+!  write(901,rec=t) hr
+
  !******* RIVER CALCULATION ******************************
  if( riv_thresh .lt. 0 ) go to 2
 
@@ -372,41 +388,56 @@ if( .false. )then
    enddo
   endif
 
+! TMP
+!print*, 'ddt', ddt
+!print"(1x,a,1x,es22.15)", 'vr ', vr_idx(k_debug)
+
 1 continue
   qr_ave_temp_idx(:) = 0.d0
 
   ! Adaptive Runge-Kutta
   ! (1)
   call funcr( vr_idx, fr, qr_idx )
+!print"(1x,a,1x,es22.15)", 'fr1', fr(k_debug)
   vr_temp = vr_idx + b21 * ddt * fr
+!print"(1x,a,1x,es22.15)", 'vr ', vr_temp(k_debug)
   where(vr_temp .lt. 0) vr_temp = 0.d0
   qr_ave_temp_idx = qr_ave_temp_idx + qr_idx * ddt
 
   ! (2)
   call funcr( vr_temp, kr2, qr_idx )
+!print"(1x,a,1x,es22.15)", 'fr2', kr2(k_debug)
   vr_temp = vr_idx + ddt * (b31 * fr + b32 * kr2)
+!print"(1x,a,1x,es22.15)", 'vr ', vr_temp(k_debug)
   where(vr_temp .lt. 0) vr_temp = 0.d0
   qr_ave_temp_idx = qr_ave_temp_idx + qr_idx * ddt
 
   ! (3)
   call funcr( vr_temp, kr3, qr_idx )
+!print"(1x,a,1x,es22.15)", 'fr3', kr3(k_debug)
   vr_temp = vr_idx + ddt * (b41 * fr + b42 * kr2 + b43 * kr3)
+!print"(1x,a,1x,es22.15)", 'vr ', vr_temp(k_debug)
   where(vr_temp .lt. 0) vr_temp = 0.d0
   qr_ave_temp_idx = qr_ave_temp_idx + qr_idx * ddt
 
   ! (4)
   call funcr( vr_temp, kr4, qr_idx )
+!print"(1x,a,1x,es22.15)", 'fr4', kr4(k_debug)
   vr_temp = vr_idx + ddt * (b51 * fr + b52 * kr2 + b53 * kr3 + b54 * kr4)
+!print"(1x,a,1x,es22.15)", 'vr ', vr_temp(k_debug)
   where(vr_temp .lt. 0) vr_temp = 0.d0
   qr_ave_temp_idx = qr_ave_temp_idx + qr_idx * ddt
 
   ! (5)
+!print"(1x,a,1x,es22.15)", 'fr5', kr5(k_debug)
   call funcr( vr_temp, kr5, qr_idx )
   vr_temp = vr_idx + ddt * (b61 * fr + b62 * kr2 + b63 * kr3 + b64 * kr4 + b65 * kr5)
+!print"(1x,a,1x,es22.15)", 'vr ', vr_temp(k_debug)
   where(vr_temp .lt. 0) vr_temp = 0.d0
   qr_ave_temp_idx = qr_ave_temp_idx + qr_idx * ddt
 
   ! (6)
+!print"(1x,a,1x,es22.15)", 'fr6', kr6(k_debug)
   call funcr( vr_temp, kr6, qr_idx )
   vr_temp = vr_idx + ddt * (c1 * fr + c3 * kr3 + c4 * kr4 + c6 * kr6)
   where(vr_temp .lt. 0) vr_temp = 0.d0
@@ -442,6 +473,9 @@ if( .false. )then
    vr_idx = vr_temp
    qr_ave_idx = qr_ave_idx + qr_ave_temp_idx
   endif
+! TMP
+!print"(1x,a,1x,es22.15)", 'vr ', vr_idx(k_debug)
+
   if(time.ge.t * dt) exit ! finish for this timestep
  enddo
  qr_ave_idx = qr_ave_idx / dble(dt) / 6.d0
@@ -455,7 +489,10 @@ if( .false. )then
  call sub_riv_idx2ij( qr_ave_idx, qr_ave )
 
  if( dam_switch.eq.1 ) call dam_checkstate(qr_ave)
-endif
+!endif
+
+  ! TMP
+!  write(902,rec=t) hr
  !******* SLOPE CALCULATION ******************************
 2 continue
 
@@ -686,14 +723,15 @@ endif
  !call levee_break(t, hr, hs, xllcorner, yllcorner, cellsize)
 
  !******* RIVER-SLOPE INTERACTIONS ***********************
-!TMP
-! if( riv_thresh .ge. 0 ) call funcrs(hr, hs, qrs)
+ if( riv_thresh .ge. 0 ) call funcrs(hr, hs, qrs)
  call sub_riv_ij2idx( hr, hr_idx )
  call sub_slo_ij2idx( hs, hs_idx )
 
+  ! TMP
+!  write(903,rec=t) hr
+
  !******* INFILTRATION (Green Ampt) **********************
-!TMP
-! call infilt(hs_idx, gampt_ff_idx, gampt_f_idx)
+ call infilt(hs_idx, gampt_ff_idx, gampt_f_idx)
  call sub_slo_idx2ij( hs_idx, hs )
  call sub_slo_idx2ij( gampt_ff_idx, gampt_ff )
  call sub_slo_idx2ij( gampt_f_idx, gampt_f )
@@ -717,6 +755,9 @@ endif
  call sub_riv_ij2idx( hr, hr_idx )
  call sub_slo_ij2idx( hs, hs_idx )
  call sub_slo_ij2idx( hg, hg_idx )
+
+  ! TMP
+!  write(904,rec=t) hr
 
  write(*,*) "max hr: ", maxval(hr), "loc : ", maxloc(hr)
  write(*,*) "max hs: ", maxval(hs), "loc : ", maxloc(hs)
@@ -934,7 +975,15 @@ i = ny, 1, -1)
 (rain_sum - aevp_sum - sout - (ss + sr + si + sg) + sinit), ss, sr, si, sg
  endif
 
+  ! TMP
+!  if( t == 8 ) exit
 enddo
+
+  ! TMP
+!  close(901)
+!  close(902)
+!  close(903)
+!  close(904)
 end subroutine exec_simulation
 !===============================================================
 !

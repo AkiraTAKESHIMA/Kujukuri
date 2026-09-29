@@ -38,11 +38,22 @@ end subroutine prep_static_data
 !
 !===============================================================
 subroutine read_config()
+  use mod_base, only: &
+    int2char
   implicit none
   !character(32) :: sdate_start, sdate_end
+  character(1024) :: f_conf
   integer :: un
+  integer :: access
+  integer :: ios
+  character(6) :: c
 
-  open(newunit=un, file='config.txt', status='old')
+  call get_command_argument(1, f_conf)
+  if( access(f_conf,' ') /= 0 )then
+    write(0,"(a)") 'Configuration file not found: '//trim(f_conf)
+    stop 1
+  endif
+  open(newunit=un, file=f_conf, status='old')
 
   read(un,*)
 
@@ -51,10 +62,10 @@ subroutine read_config()
   read(un,"(a)") demfile
   read(un,"(a)") accfile
   read(un,"(a)") dirfile
-  print"(a)", 'prcp: '//trim(prcpfile)
-  print"(a)", 'dem: '//trim(demfile)
-  print"(a)", 'acc: '//trim(accfile)
-  print"(a)", 'dir: '//trim(dirfile)
+  print"(1x,a)", 'prcp: '//trim(prcpfile)
+  print"(1x,a)", 'dem: '//trim(demfile)
+  print"(1x,a)", 'acc: '//trim(accfile)
+  print"(1x,a)", 'dir: '//trim(dirfile)
 
   ! TMP
   read(un,*)
@@ -74,16 +85,33 @@ subroutine read_config()
   read(un,*) dt_model
   read(un,*) dt_slo
   read(un,*) dt_riv
-  print"(a,f10.3)", 'dt model: ',dt_model
-  print"(a,f10.3)", 'dt slope: ',dt_slo
-  print"(a,f10.3)", 'dt river: ',dt_riv
+  print"(1x,a,f10.3)", 'dt model: ',dt_model
+  print"(1x,a,f10.3)", 'dt slope: ',dt_slo
+  print"(1x,a,f10.3)", 'dt river: ',dt_riv
 
   ! TMP
   nt_model = time_end / dt_model
 
   read(un,*)
-  read(un,*) dir_out
+  read(un,"(a)") dir_out
   read(un,*) dt_out
+
+  if( index(dir_out,'#') /= 0 )then
+    dir_out = dir_out(:index(dir_out,'#')-1)
+  endif
+  if( dir_out(len_trim(dir_out):) == '/' )then
+    dir_out = dir_out(:len_trim(dir_out)-1)
+  endif
+  print*
+  print"(1x,a)", 'dir_out: '//trim(dir_out)
+
+  ! Check output directory
+  open(11, file=trim(dir_out)//'/tmp', status='replace', iostat=ios)
+  if( ios /= 0 )then
+    print"(a)", 'Failed to make a new file in the output directory.'
+    stop 1
+  endif
+  close(11, status='delete')
 
   read(un,*)
   read(un,*) utm
@@ -91,13 +119,13 @@ subroutine read_config()
 
   read(un,*)
   read(un,*) ns_river
-print*
-write(*,'("ns_river : ", f12.3)') ns_river
+  print*
+  print"(1x,a,f12.3)", 'ns_river: ', ns_river
 
   read(un,*)
   read(un,*) num_of_landuse
-print*
-write(*,'("num_of_landuse : ", i5)') num_of_landuse
+  print*
+  print"(1x,a,i5)", 'num_of_landuse: ', num_of_landuse
 
   allocate(dif(num_of_landuse))
   allocate(ns_slope(num_of_landuse))
@@ -118,26 +146,29 @@ write(*,'("num_of_landuse : ", i5)') num_of_landuse
   read(un,*) ns_slope(:)
   read(un,*) soildepth(:)
   read(un,*) gammaa(:)
-write(*,'("dif : ", 100i5)') dif(:)
-write(*,'("ns_slope : ", 100f12.3)') ns_slope(:)
-write(*,'("soildepth : ", 100f12.3)') soildepth(:)
-write(*,'("gammaa : ", 100f12.3)') gammaa(:)
+
+  call int2char(num_of_landuse, c)
+  print"(1x,a,"//trim(c)//"(1x,i12))", 'dif:', dif(:)
+  print"(1x,a,"//trim(c)//"(1x,f12.3))", 'ns_slope :', ns_slope(:)
+  print"(1x,a,"//trim(c)//"(1x,f12.3))", 'soildepth:', soildepth(:)
+  print"(1x,a,"//trim(c)//"(1x,f12.3))", 'gammaa   :', gammaa(:)
 
   read(un,*) 
   read(un,*) ksv(:)
   read(un,*) faif(:)
-print*
-write(*,'("ksv : ", 100e12.3)') ksv(:)
-write(*,'("faif : ", 100f12.3)') faif(:)
+
+  print*
+  print"(1x,a,"//trim(c)//"(1x,f12.3))", 'ksv      :', ksv(:)
+  print"(1x,a,"//trim(c)//"(1x,f12.3))", 'faif     :', faif(:)
 
   read(un,*) 
   read(un,*) ka(:)
   read(un,*) gammam(:)
   read(un,*) beta(:)
-print*
-write(*,'("ka : ", 100e12.3)') ka(:)
-write(*,'("gammam : ", 100f12.3)') gammam(:)
-write(*,'("beta : ", 100f12.3)') beta(:)
+  print*
+  print"(1x,a,"//trim(c)//"(1x,f12.3))", 'ka       :', ka(:)
+  print"(1x,a,"//trim(c)//"(1x,f12.3))", 'gammam   :', gammam(:)
+  print"(1x,a,"//trim(c)//"(1x,f12.3))", 'beta     :', beta(:)
 
   read(un,*) 
   read(un,*) ksg(:)
@@ -145,12 +176,12 @@ write(*,'("beta : ", 100f12.3)') beta(:)
   read(un,*) kg0(:)
   read(un,*) fpg(:)
   read(un,*) rgl(:)
-print*
-write(*,'("ksg : ", 100e12.3)') ksg(:)
-write(*,'("gammag : ", 100f12.3)') gammag(:)
-write(*,'("kg0 : ", 100e12.3)') kg0(:)
-write(*,'("fpg : ", 100f12.3)') fpg(:)
-write(*,'("rgl : ", 100e12.3)') rgl(:)
+  print*
+  print"(1x,a,"//trim(c)//"(1x,f12.3))", 'ksg      :', ksg(:)
+  print"(1x,a,"//trim(c)//"(1x,f12.3))", 'gammag   :', gammag(:)
+  print"(1x,a,"//trim(c)//"(1x,f12.3))", 'kg0      :', kg0(:)
+  print"(1x,a,"//trim(c)//"(1x,f12.3))", 'fpg      :', fpg(:)
+  print"(1x,a,"//trim(c)//"(1x,f12.3))", 'rgl      :', rgl(:)
 
   read(un,*) 
   read(un,*) riv_thresh
@@ -187,7 +218,7 @@ write(*,'("rgl : ", 100e12.3)') rgl(:)
   read(un,*)
   read(un,*) land_switch
   read(un,"(a)") landfile
-  if( land_switch == 1 ) print"(a)", 'landfile: '//trim(landfile)
+  if( land_switch == 1 ) print"(1x,a)", 'landfile: '//trim(landfile)
 
   read(un,*)
   read(un,*) dam_switch

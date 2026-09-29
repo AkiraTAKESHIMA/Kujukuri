@@ -51,6 +51,11 @@ subroutine advance_river(&
   real(8) :: errmax
   integer :: k
 
+integer :: k_debug
+integer :: i_debug = 264
+integer :: j_debug = 127
+  k_debug = riv_ij2idx(i_debug,j_debug)
+
   time = time_start
   time_end = time + dt_model
   ddt = dt_riv
@@ -62,29 +67,43 @@ subroutine advance_river(&
   do while( time < time_end )
     ddt = min( ddt, time_end - time )
 
+!print*, 'ddt', ddt
+!print"(1x,a,1x,es22.15)", 'vr ', vr_idx(k_debug)
     do
       call funcr(vr_idx, fr1)
+!print"(1x,a,1x,es22.15)", 'fr1', fr1(k_debug)
+      !vr_tmp = vr_idx + ddt * b21 * fr1
+      vr_tmp = vr_idx + b21 * ddt * fr1
+!print"(1x,a,1x,es22.15)", 'vr ', vr_tmp(k_debug)
 
-      vr_tmp = vr_idx + ddt * b21 * fr1
       where( vr_tmp < 0.d0 ) vr_tmp = 0.d0
       call funcr(vr_tmp, fr2)
 
+!print"(1x,a,1x,es22.15)", 'fr2', fr2(k_debug)
       vr_tmp = vr_idx + ddt * (b31 * fr1 + b32 * fr2)
+!print"(1x,a,1x,es22.15)", 'vr ', vr_tmp(k_debug)
       where( vr_tmp < 0.d0 ) vr_tmp = 0.d0
       call funcr(vr_tmp, fr3)
 
+!print"(1x,a,1x,es22.15)", 'fr3', fr3(k_debug)
       vr_tmp = vr_idx + ddt * (b41 * fr1 + b42 * fr2 + b43 * fr3)
+!print"(1x,a,1x,es22.15)", 'vr ', vr_tmp(k_debug)
       where( vr_tmp < 0.d0 ) vr_tmp = 0.d0
       call funcr(vr_tmp, fr4)
 
+!print"(1x,a,1x,es22.15)", 'fr4', fr4(k_debug)
       vr_tmp = vr_idx + ddt * (b51 * fr1 + b52 * fr2 + b53 * fr3 + b54 * fr4)
+!print"(1x,a,1x,es22.15)", 'vr ', vr_tmp(k_debug)
       where( vr_tmp < 0.d0 ) vr_tmp = 0.d0
       call funcr(vr_tmp, fr5)
 
+!print"(1x,a,1x,es22.15)", 'fr5', fr5(k_debug)
       vr_tmp = vr_idx + ddt * (b61 * fr1 + b62 * fr2 + b63 * fr3 + b64 * fr4 + b65 * fr5)
+!print"(1x,a,1x,es22.15)", 'vr ', vr_tmp(k_debug)
       where( vr_tmp < 0.d0 ) vr_tmp = 0.d0
       call funcr(vr_tmp, fr6)
 
+!print"(1x,a,1x,es22.15)", 'fr6', fr6(k_debug)
       vr_err = ddt * (dc1 * fr1 + dc3 * fr3 + dc4 * fr4 + dc5 * fr5 + dc6 * fr6)
       hr_err = vr_err / (area * area_ratio_idx)
       where( domain_riv_idx == 0 ) hr_err = 0.d0
@@ -101,6 +120,7 @@ subroutine advance_river(&
     time = time + ddt
 
     vr_idx = vr_idx + ddt * (c1 * fr1 + c3 * fr3 + c4 * fr4 + c6 * fr6)
+!print"(1x,a,1x,es22.15)", 'vr ', vr_idx(k_debug)
     where( vr_idx < 0.d0 ) vr_idx = 0.d0
   enddo  ! while time < time_end/
 
