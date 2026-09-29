@@ -46,9 +46,10 @@ if [ $RESL_IN == "1sec" ]; then
     exit 1
   fi
 
-  ln -s $FILE_DOMAIN $DIR_IN/domain.txt
+  rm -f $DIR_IN/domain.txt && ln -s $FILE_DOMAIN $DIR_IN/domain.txt
 fi
 
+mkdir -p $DIR_OUT
 
 ./scripts/scaleUp_at01 $PATH_CONF
 
@@ -62,3 +63,5 @@ fi
 mkdir -p `dirname $FILE_DOMAIN`
 rm -f $FILE_DOMAIN
 ln -s $DIR_OUT/domain.txt $FILE_DOMAIN
+
+echo "out: $DIR_OUT"

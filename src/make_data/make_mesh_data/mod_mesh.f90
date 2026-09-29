@@ -1309,7 +1309,9 @@ end subroutine make_network_set
 !===============================================================
 !
 !===============================================================
-subroutine trimBasin(basinType, resl, uid, varName, outfmt)
+subroutine trimBasin(&
+  basinType, resl, uid, varName, outfmt, overwrite &
+)
   use c3_jflw_const, &
         jflw_set_resolution => jflw_set_resolution
   implicit none
@@ -1319,6 +1321,7 @@ subroutine trimBasin(basinType, resl, uid, varName, outfmt)
   character(*), intent(in) :: varName
   character(*), intent(in) :: uid
   character(*), intent(in) :: outfmt
+  logical     , intent(in) :: overwrite
 
   call logbgn(PRCNAM, MODNAM)
   !-------------------------------------------------------------
@@ -1326,14 +1329,18 @@ subroutine trimBasin(basinType, resl, uid, varName, outfmt)
   !-------------------------------------------------------------
   call jflw_set_resolution(resl)
 
-  call trim_basin(basinType, resl, uid, varName, outfmt)
+  call trim_basin(&
+    basinType, resl, uid, varName, outfmt, overwrite &
+  )
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
 end subroutine trimBasin
 !===============================================================
 !
 !===============================================================
-subroutine trim_basin(basinType, resl, uid, varName, outfmt)
+subroutine trim_basin(&
+  basinType, resl, uid, varName, outfmt, overwrite &
+)
   use c3_jflw_const
   use c3_jflw_io, only: &
     jflw_intId                      , &
@@ -1346,6 +1353,7 @@ subroutine trim_basin(basinType, resl, uid, varName, outfmt)
     strnk_read_network_mesh_domain
   use c3_rri_io, only: &
     rri_get_f_data, &
+    rri_read_map  , &
     rri_write_map
   use c3_joint_const
   use c3_joint_util, only: &
@@ -1358,9 +1366,9 @@ subroutine trim_basin(basinType, resl, uid, varName, outfmt)
   character(*), intent(in) :: uid
   character(*), intent(in) :: varName
   character(*), intent(in) :: outfmt
+  logical     , intent(in) :: overwrite
 
-  integer(4), allocatable :: bsnmap(:,:)
-  integer(1), allocatable :: nwkmap(:,:)
+  integer(1), allocatable :: i1map(:,:)
   integer(4), allocatable :: i4map(:,:)
   real(4)   , allocatable :: r4map(:,:)
   logical(1), allocatable :: mskmap(:,:)
@@ -1381,18 +1389,38 @@ subroutine trim_basin(basinType, resl, uid, varName, outfmt)
   !-------------------------------------------------------------
   ! Setup
   !-------------------------------------------------------------
-  selectcase( lower(outfmt) )
+  selectcase( outfmt )
   case( OUTFMT__DEFAULT )
     inputDataName = DATANAME__JFLW
+
+    selectcase( basinType )
+    case( BASINTYPE__BASIN )
+      f_var = jflw_get_f_map_basin(resl, varName, uid)
+    case( BASINTYPE__NETWORK )
+      f_var = strnk_get_f_network_mesh(resl, varName, uid)
+    case( BASINTYPE__NETWORKSET )
+      call errend(msg_not_implemented()//&
+        '\n  basinType: '//str(basinType))
+    case default
+      call errend(msg_invalid_value('basinType', basinType))
+    endselect
   case( OUTFMT__RRI )
     inputDataName = DATANAME__RRI
+
+    f_var = rri_get_f_data(basinType, resl, varName, uid)
   case default
     call errend(msg_invalid_value('outfmt', outfmt))
   endselect
+
+  if( .not. overwrite .and. access(f_var,' ') == 0 )then
+    call logmsg('File already exists: '//str(f_var))
+    call logret(PRCNAM, MODNAM)
+    return
+  endif
   !-------------------------------------------------------------
   ! Make a mask
   !-------------------------------------------------------------
-  selectcase( lower(basinType) )
+  selectcase( basinType )
   !-------------------------------------------------------------
   ! Case: J-FlwDir basin map
   case( BASINTYPE__BASIN )
@@ -1407,21 +1435,28 @@ subroutine trim_basin(basinType, resl, uid, varName, outfmt)
     call logmsg('BBox: '//sBBox(west,east,south,north))
 
     allocate(mskmap(gxs:gxe,gys:gye))
-    allocate(bsnmap(gxs:gxe,gys:gye))
 
-    f_msk = jflw_get_f_map_basin(resl, 'bsn', uid)
-    f_var = jflw_get_f_map_basin(resl, varName, uid)
-
-    call jflw_read_map_from_tile(&
-        resl, 'bsn', DTYPE_INT4, JFLW_BSN_MISS, gxs, gys, bsnmap)
-
-    where( bsnmap == jflw_intId(uid) )
-      mskmap = .true.
-    elsewhere
-      mskmap = .false.
-    endwhere
-
-    deallocate(bsnmap)
+    if( resl == RESOLUTION_1SEC )then
+      allocate(i4map(gxs:gxe,gys:gye))
+      call jflw_read_map_from_tile(&
+        resl, 'bsn', DTYPE_INT4, JFLW_BSN_MISS, gxs, gys, i4map)
+      where( i4map == jflw_intId(uid) )
+        mskmap = .true.
+      elsewhere
+        mskmap = .false.
+      endwhere
+      deallocate(i4map)
+    else
+      allocate(r4map(gxs:gxe,gys:gye))
+      call rri_read_map(&
+        basinType, resl, 'elv', uid, r4map, r4miss)
+      where( r4map == r4miss )
+        mskmap = .false.
+      elsewhere
+        mskmap = .true.
+      endwhere
+      deallocate(r4map)
+    endif
   !-------------------------------------------------------------
   ! Case: Network mesh
   case( BASINTYPE__NETWORK )
@@ -1431,20 +1466,19 @@ subroutine trim_basin(basinType, resl, uid, varName, outfmt)
     )
 
     allocate(mskmap(gxs:gxe,gys:gye))
-    allocate(nwkmap(gxs:gxe,gys:gye))
+
+    allocate(i1map(gxs:gxe,gys:gye))
 
     f_msk = strnk_get_f_network_mesh(resl, 'mask', uid)
-    f_var = strnk_get_f_network_mesh(resl, varName, uid)
+    call traperr( rbin(i1map, f_msk) )
 
-    call traperr( rbin(nwkmap, f_msk) )
-
-    where( nwkmap > 0_1 )
+    where( i1map > 0_1 )
       mskmap = .true.
     elsewhere
       mskmap = .false.
     endwhere
 
-    deallocate(nwkmap)
+    deallocate(i1map)
   !-------------------------------------------------------------
   ! Case: Network set mesh
   case( BASINTYPE__NETWORKSET )
@@ -1517,7 +1551,7 @@ subroutine trim_basin(basinType, resl, uid, varName, outfmt)
   !-------------------------------------------------------------
   ! Output
   !-------------------------------------------------------------
-  selectcase( lower(outfmt) )
+  selectcase( outfmt )
   !-------------------------------------------------------------
   ! Case: Default (plain binary)
   case( OUTFMT__DEFAULT )
