@@ -6,8 +6,9 @@ module mod_driver
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
-  public :: prep_mod_driver
+  public :: prep_driver
   public :: exec_simulation
+  public :: finalize
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
@@ -22,20 +23,20 @@ contains
 !===============================================================
 !
 !===============================================================
-subroutine prep_mod_driver()
+subroutine prep_driver()
   use mod_forcing, only: &
-    load_forcing
+    prep_forcing
   use mod_river, only: &
-    prep_mod_river
+    prep_river
   use mod_slope, only: &
-    prep_mod_slope
+    prep_slope
   implicit none
 
-  call load_forcing()
+  call prep_forcing()
 
-  call prep_mod_river()
+  call prep_river()
 
-  call prep_mod_slope()
+  call prep_slope()
 
   allocate(hr(nx,ny))
   allocate(hr_idx(riv_count))
@@ -55,7 +56,7 @@ subroutine prep_mod_driver()
   allocate(qrs(nx,ny))
 
   call load_initial_conditions()
-end subroutine prep_mod_driver
+end subroutine prep_driver
 !===============================================================
 !
 !===============================================================
@@ -151,17 +152,23 @@ end subroutine load_initial_conditions
 !===============================================================
 subroutine exec_simulation()
   use mod_base
+  use mod_forcing, only: &
+    load_rain
+  use mod_budget, only: &
+    calc_water_budget
   use mod_river, only: &
-    advance_river
+    advance_river, &
+    outflow_river
   use mod_slope, only: &
     advance_slope, &
-    infilt
+    infilt       , &
+    outflow_slope
   use mod_gwat, only: &
     advance_gwat
   use mod_rivslo, only: &
     funcrs
   implicit none
-  real(8) :: time
+  real(8) :: time, time_next
   integer :: it_model
   integer :: it_out
   integer :: i, j
@@ -173,24 +180,18 @@ subroutine exec_simulation()
   open(newunit=un_hs, file=trim(dir_out)//'/hs.bin', &
        form='unformatted', access='direct', recl=8_8*nx*ny, status='replace')
 
-  ! TMP
-!  open(901, file='out/hr1.bin', form='unformatted', access='direct', &
-!       status='replace', recl=8*nx*ny)
-!  open(902, file='out/hr2.bin', form='unformatted', access='direct', &
-!       status='replace', recl=8*nx*ny)
-!  open(903, file='out/hr3.bin', form='unformatted', access='direct', &
-!       status='replace', recl=8*nx*ny)
-!  open(904, file='out/hr4.bin', form='unformatted', access='direct', &
-!       status='replace', recl=8*nx*ny)
+  time = 0.d0
+
+  call calc_water_budget(time, hr, hs, gampt_ff, hg)
 
   it_out = 1
 
   do it_model = 1, nt_model
-    time = (it_model - 1) * dt_model
-    print"(1x,2(a,i6),1x,a,f10.2)", 't: ',it_model,' / ',nt_model, 'time: ', time
+    time_next = it_model * dt_model
+    print"(1x,2(a,i6),2(a,f10.2))", &
+      't: ',it_model,' / ',nt_model, ' time: ', time, ' - ', time_next
 
-    ! TMP
-!    write(901,rec=it_model) hr
+    call load_rain(time, time_next)
     !-----------------------------------------------------------
     ! 2D -> 1D
     !-----------------------------------------------------------
@@ -219,9 +220,6 @@ subroutine exec_simulation()
     call reshape_slo_idx2ij( hs_idx, hs )
     call reshape_slo_idx2ij( hg_idx, hg )
     call reshape_slo_idx2ij( gampt_ff_idx, gampt_ff )
-
-    ! TMP
-!    write(902,rec=it_model) hr
     !-----------------------------------------------------------
     ! River-slope interactions
     !-----------------------------------------------------------
@@ -229,9 +227,6 @@ subroutine exec_simulation()
 
     call reshape_riv_ij2idx( hr, hr_idx )
     call reshape_slo_ij2idx( hs, hs_idx )
-
-    ! TMP
-!    write(903,rec=it_model) hr
     !-----------------------------------------------------------
     ! Infiltration (Green-Ampt)
     !-----------------------------------------------------------
@@ -243,21 +238,12 @@ subroutine exec_simulation()
     !-----------------------------------------------------------
     ! Set water depth 0 at outlets
     !-----------------------------------------------------------
-    do j = 1, ny
-    do i = 1, nx
-      if( domain(i,j) /= DOMAIN__OUTLET ) cycle
-      !sout = sout + hs(i,j) * area
-      hs(i,j) = 0.d0
-      if( riv(i,j) == 1 )then
-        !call hr2vr(hr(i,j), riv_ij2idx(i,j), vr_out)
-        !sout = sout + vr_out
-        hr(i,j) = 0.d0
-      endif
-    enddo  ! i/
-    enddo  ! j/
-
-    ! TMP
-!    write(904,rec=it_model) hr
+    call outflow_river(hr)
+    call outflow_slope(hs)
+    !-----------------------------------------------------------
+    ! Update the time
+    !-----------------------------------------------------------
+    time = time_next
     !-----------------------------------------------------------
     ! Summary
     !-----------------------------------------------------------
@@ -267,26 +253,29 @@ subroutine exec_simulation()
 
     where( domain == DOMAIN__OUTSIDE ) hr = -0.1d0
 
-    do while( it_model * dt_model >= it_out * dt_out )
+    do while( it_out * dt_out <= time )
       print*, 'output ', it_out
       write(un_hr, rec=it_out) hr
       write(un_hs, rec=it_out) hs
       it_out = it_out + 1
     enddo
 
-
-!if( it_model == 18 ) exit
+    call calc_water_budget(time, hr, hs, gampt_ff, hg)
   enddo  ! it_model = 1, nt_model
 
   close(un_hr)
   close(un_hs)
-
-  ! TMP
-!  close(901)
-!  close(902)
-!  close(903)
-!  close(904)
 end subroutine exec_simulation
+!===============================================================
+!
+!===============================================================
+subroutine finalize()
+  use mod_forcing, only: &
+    finalize_forcing 
+  implicit none
+
+  call finalize_forcing()
+end subroutine finalize
 !===============================================================
 !
 !===============================================================

@@ -12,8 +12,9 @@ def_const.o\
 def_static.o\
 def_runge.o\
 mod_base.o\
-mod_section.o\
 mod_forcing.o\
+mod_section.o\
+mod_budget.o\
 mod_river.o\
 mod_slope.o\
 mod_gwat.o\

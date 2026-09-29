@@ -58,11 +58,11 @@ subroutine read_config()
   read(un,*)
 
   read(un,*)
-  read(un,"(a)") prcpfile
+  read(un,"(a)") rainfile
   read(un,"(a)") demfile
   read(un,"(a)") accfile
   read(un,"(a)") dirfile
-  print"(1x,a)", 'prcp: '//trim(prcpfile)
+  print"(1x,a)", 'rain: '//trim(rainfile)
   print"(1x,a)", 'dem: '//trim(demfile)
   print"(1x,a)", 'acc: '//trim(accfile)
   print"(1x,a)", 'dir: '//trim(dirfile)
