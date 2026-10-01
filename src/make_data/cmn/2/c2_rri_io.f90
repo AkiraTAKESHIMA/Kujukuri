@@ -52,7 +52,7 @@ character(CLEN_PATH) function get_f_data(&
   call logbgn(PRCNAM, MODNAM, '-p')
   !-------------------------------------------------------------
   res = joined(DIR_RRI, str(basinType)//'/'//str(resl)//&
-          '/'//str(bsnId,-DGT_BSNID_MAX)//'/'//str(varName)//'.txt')
+          '/'//str(bsnId)//'/'//str(varName)//'.txt')
 
   call traperr( mkdir(dirname(res)) )
   !-------------------------------------------------------------
