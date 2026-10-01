@@ -67,3 +67,6 @@ vcpkg_installed/
 Testing/
 .cache/
 tmp/
+
+# file or directory other than source code
+configs/
