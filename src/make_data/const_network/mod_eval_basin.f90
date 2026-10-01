@@ -499,7 +499,7 @@ subroutine calc_channel_intersections(uid)
                 clat_west = wlat
                 clon_west = wlon
               else
-                !clat_west = north_of_gy(igy)
+                !clat_west = south_of_gy(igy)
                 !clon_west = apprx_isct_with_parallel(&
                 !    wlon, wlat, elon, elat, clat_west)
                 clat_west = clat_east

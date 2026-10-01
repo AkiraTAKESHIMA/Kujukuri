@@ -220,10 +220,14 @@ subroutine write_network_mesh_domain(&
 
   f = get_f_network_mesh(resl, 'domain', uid)
   open(newunit=un, file=f, status='replace')
-  write(un,"(a)") 'nx '//str(gxe-gxs+1)//' gx '//str((/gxs,gxe/))
-  write(un,"(a)") 'ny '//str(gye-gys+1)//' gy '//str((/gys,gye/))
-  write(un,"(a)") 'BBox '//str((/west,east/),'f12.7',' ')//&
-                  str((/south,north/),'f11.7',' ')
+  write(un,"(a)") 'nx '//str(gxe-gxs+1)
+  write(un,"(a)") 'ny '//str(gye-gys+1)
+  write(un,"(a)") 'gx '//str((/gxs,gxe/))
+  write(un,"(a)") 'gy '//str((/gys,gye/))
+  write(un,"(a)") 'west '//str(west,'f20.15')
+  write(un,"(a)") 'east '//str(east,'f20.15')
+  write(un,"(a)") 'south '//str(south,'f19.15')
+  write(un,"(a)") 'north '//str(north,'f19.15')
   close(un)
 end subroutine write_network_mesh_domain
 !===============================================================
@@ -247,9 +251,14 @@ subroutine read_network_mesh_domain(&
 
   f = get_f_network_mesh(resl, 'domain', uid)
   open(newunit=un, file=f, status='old')
-  read(un,*) c_, nx, c_, gxs, gxe
-  read(un,*) c_, ny, c_, gys, gye
-  read(un,*) c_, west, east, south, north
+  read(un,*) c_, nx
+  read(un,*) c_, ny
+  read(un,*) c_, gxs, gxe
+  read(un,*) c_, gys, gye
+  read(un,*) c_, west
+  read(un,*) c_, east
+  read(un,*) c_, south
+  read(un,*) c_, north
   close(un)
 end subroutine read_network_mesh_domain
 !===============================================================

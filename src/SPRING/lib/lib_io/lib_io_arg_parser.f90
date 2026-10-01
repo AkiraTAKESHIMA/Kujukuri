@@ -1286,6 +1286,7 @@ subroutine print_usage()
   integer :: i
   character(:), allocatable :: s
   character(1) :: parenthl, parenthr
+  integer, parameter :: N_SPACE = 4
 
   call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
@@ -1350,7 +1351,15 @@ subroutine print_usage()
   endif
 
   do i = 1, ad%n_pos
-    call logmsg(ad%cmn_pos(i)%name, opt='x2')
+    cmn => ad%cmn_pos(i)
+
+    s = cmn%name
+
+    if( cmn%description /= '' )then
+      s = s//str('',N_SPACE)//cmn%description
+    endif
+
+    call logmsg(s, opt='x2')
   enddo
   !-------------------------------------------------------------
   ! Optional arguments
@@ -1375,7 +1384,7 @@ subroutine print_usage()
     endselect
 
     if( cmn%description /= '' )then
-      s = s//'    '//cmn%description
+      s = s//str('',N_SPACE)//cmn%description
     endif
 
     call logmsg(s, opt='x2')
@@ -1491,8 +1500,6 @@ end function get_keys
 subroutine init_arg_cmn(cmn)
   implicit none
   type(arg_cmn_), intent(inout) :: cmn
-
-  integer :: i
 
   allocate(character(1) :: cmn%name)
   allocate(character(1) :: cmn%key_short)

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 if [ $# != 5 ]; then
   echo "usage: $0 BASINTYPE BASINID RESL_IN RESL_OUT SCALE"
