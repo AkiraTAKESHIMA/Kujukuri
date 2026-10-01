@@ -68,7 +68,6 @@ Testing/
 .cache/
 
 # Input data or experimental results
-dat/
+data/
 runs/
-tmp/
-configs/
+.venv/
