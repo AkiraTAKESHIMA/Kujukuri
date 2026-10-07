@@ -19,6 +19,9 @@ module mod_river
   ! Private module variables
   !-------------------------------------------------------------
 
+  ! Static data
+  real(8), allocatable :: riv_area_idx(:)
+
   ! Workspace
   real(8), allocatable :: vr_idx(:)
   real(8), allocatable :: hr_idx(:)
@@ -32,10 +35,14 @@ subroutine prep_river()
   use def_runge
   implicit none
 
+  allocate(riv_area_idx(riv_count))
   allocate(vr_idx(riv_count))
   allocate(hr_idx(riv_count))
   allocate(qr_tmp(maxval(channel(:)%nCh_down),riv_count))
 
+  riv_area_idx(:) = channel(:)%area
+
+  ! Runge-Kutta
   allocate(fr1(riv_count), fr2(riv_count), fr3(riv_count), &
            fr4(riv_count), fr5(riv_count), fr6(riv_count))
   allocate(vr_tmp(riv_count), vr_err(riv_count), hr_err(riv_count))

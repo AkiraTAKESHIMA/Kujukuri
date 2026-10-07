@@ -119,16 +119,23 @@ module def_static
   integer, allocatable, save :: flow_slo_idx(:)
   real(8), allocatable, save :: acc_slo_idx(:)
 
+  ! -- intersection with rivers
+  type slo_riv_isct_
+    integer :: nCh
+    integer, pointer :: iCh(:)
+    integer, pointer :: jSlo(:)  ! index in ch%isct
+  end type
+
+  type(slo_riv_isct_), pointer :: slo_riv_isct(:)  !(slo_count)
+
   ! Land cover
   integer, allocatable, save :: land(:,:)
 
   ! River
   integer, allocatable, save :: dir(:,:)
   real(8), allocatable, save :: upa(:,:)
-  real(8), allocatable, save :: area_ratio(:,:)
 
   integer :: riv_count
-  real(8), allocatable :: riv_area_idx(:)
 
   ! -- River network
   type ch_point_
@@ -145,11 +152,13 @@ module def_static
 
   ! intersection with slope grids
   type ch_isct_
-    integer :: nGrid
-    integer, pointer :: x(:)  !(nGrid)
-    integer, pointer :: y(:)  !(nGrid)
-    real(8), pointer :: leng(:)  !(nGrid)
-    integer, pointer :: domain(:)  !(nGrid)
+    integer :: nSlo
+    integer, pointer :: x(:)  !(nSlo)
+    integer, pointer :: y(:)  !(nSlo)
+    integer, pointer :: iSlo(:)  !(nSlo)
+    integer, pointer :: jCh(:)  !(nSlo) index in slo_riv_isct
+    real(8), pointer :: leng(:)  !(nSlo)
+    integer, pointer :: domain(:)  !(nSlo)
     real(8) :: leng_domain
   end type
 
@@ -187,7 +196,7 @@ module def_static
     type(nwk_node_), pointer :: node(:)
   end type
 
-  type(channel_), pointer :: channel(:)
+  type(channel_), pointer :: channel(:)  !(riv_count)
   type(network_) :: nwk
 
   ! -- River section

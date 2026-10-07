@@ -1,4 +1,7 @@
 module mod_slope
+  use lib_const
+  use lib_base
+  use lib_log
   use def_const
   use def_static
   implicit none

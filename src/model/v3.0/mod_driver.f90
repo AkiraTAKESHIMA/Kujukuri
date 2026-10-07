@@ -1,4 +1,7 @@
 module mod_driver
+  use lib_const
+  use lib_base
+  use lib_log
   use def_const
   use def_static
   implicit none
@@ -30,6 +33,8 @@ subroutine prep_driver()
     prep_river
   use mod_slope, only: &
     prep_slope
+  use mod_rivslo, only: &
+    prep_rivslo
   implicit none
 
   call prep_forcing()
@@ -37,6 +42,8 @@ subroutine prep_driver()
   call prep_river()
 
   call prep_slope()
+
+  call prep_rivslo()
 
   allocate(hr(nx,ny))
   allocate(hr_idx(riv_count))
@@ -188,8 +195,8 @@ subroutine exec_simulation()
 
   do it_model = 1, nt_model
     time_next = it_model * dt_model
-    print"(1x,2(a,i6),2(a,f10.2))", &
-      't: ',it_model,' / ',nt_model, ' time: ', time, ' - ', time_next
+    call logmsg('t: '//str(it_model)//' / '//str(nt_model)//&
+        ' time: '//str(time)//' - '//str(time_next))
 
     call load_rain(time, time_next)
     !-----------------------------------------------------------
@@ -213,25 +220,21 @@ subroutine exec_simulation()
       call advance_gwat( time, hs_idx, gampt_ff_idx, hg_idx )
     endif
     !-----------------------------------------------------------
-    ! 1D -> 2D
-    !-----------------------------------------------------------
-    call reshape_slo_idx2ij( hs_idx, hs )
-    call reshape_slo_idx2ij( hg_idx, hg )
-    call reshape_slo_idx2ij( gampt_ff_idx, gampt_ff )
-    !-----------------------------------------------------------
     ! River-slope interactions
     !-----------------------------------------------------------
-    call funcrs( hr_idx, hs, qrs )
-
-    call reshape_slo_ij2idx( hs, hs_idx )
+    call funcrs( hr_idx, hs_idx, qrs )
     !-----------------------------------------------------------
     ! Infiltration (Green-Ampt)
     !-----------------------------------------------------------
     call infilt( hs_idx, gampt_ff_idx, gampt_f_idx )
-
+    !-----------------------------------------------------------
+    ! 1D -> 2D
+    !-----------------------------------------------------------
     call reshape_slo_idx2ij( hs_idx, hs )
     call reshape_slo_idx2ij( gampt_ff_idx, gampt_ff )
     call reshape_slo_idx2ij( gampt_f_idx, gampt_f )
+
+    call reshape_slo_idx2ij( hg_idx, hg )
     !-----------------------------------------------------------
     ! Set water depth 0 at outlets
     !-----------------------------------------------------------

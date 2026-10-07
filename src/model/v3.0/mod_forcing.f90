@@ -1,4 +1,7 @@
 module mod_forcing
+  use lib_const
+  use lib_base
+  use lib_log
   use def_const
   use def_static
   implicit none
@@ -11,8 +14,10 @@ module mod_forcing
   public :: load_rain
   public :: get_rain
   !-------------------------------------------------------------
-  !
+  ! Private module variables
   !-------------------------------------------------------------
+  character(CLEN_PROC), parameter :: MODNAM = 'mod_forcing'
+
   integer :: un_rain
 
   type ds_rain_
@@ -96,6 +101,8 @@ subroutine load_rain(time_start, time_end)
   integer, save :: ts_prev = -1
   integer, save :: te_prev = -1
 
+  call logmsg('loading rain. time: '//str(time_start,'f10.2')//' - '//str(time_end,'f10.2'))
+
   ! Get $its such that time(its-1) <= time_start < time(its)
   call get_t_start(time_start, its)
 
@@ -137,10 +144,11 @@ subroutine load_rain(time_start, time_end)
   ! Read data
   print"(2(a,i0,2(a,f10.2),a))", &
     ' loading rain: t=',its,' (', ds_rain(its-1)%time, ' - ', ds_rain(its)%time, ')', &
-                ' - t=',ite,' (', ds_rain(ite-1)%time, ' - ', ds_rain(ite)%time, ')'
+               ' to t=',ite,' (', ds_rain(ite-1)%time, ' - ', ds_rain(ite)%time, ')'
 
   do it = its, ite
     ds => ds_rain(it)
+    if( ds%is_loaded ) cycle
 
     read(un_rain,*) time
     if( time /= ds%time )then
@@ -233,16 +241,23 @@ end subroutine get_rain
 !===============================================================
 subroutine get_t_start(time_start, its)
   implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'get_t_start'
   real(8), intent(in) :: time_start
   integer, intent(out) :: its
 
-  if( time_start <= ds_rain(0)%time )then
-    its = 0
-  else
-    its = 0
-    do while( ds_rain(its)%time <= time_start )
-      its = its + 1
-    enddo
+  its = 0
+  do while( ds_rain(its)%time <= time_start )
+    its = its + 1
+  enddo
+
+  if( .not. (ds_rain(its-1)%time <= time_start .and. &
+      time_start < ds_rain(its)%time) )then
+    call errend('not time_rain(t-1) <= time_start < time_rain(t)'//&
+      '\nt: '//str(its)//&
+      '\ntime_rain(t-1): '//str(ds_rain(its-1)%time)//&
+      '\ntime_rain(t)  : '//str(ds_rain(its)%time)//&
+      '\ntime_start    : '//str(time_start), &
+      '', PRCNAM, MODNAM)
   endif
 end subroutine get_t_start
 !===============================================================
@@ -250,16 +265,23 @@ end subroutine get_t_start
 !===============================================================
 subroutine get_t_end(time_end, ite)
   implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'get_t_end'
   real(8), intent(in) :: time_end
   integer, intent(out) :: ite
 
-  if( ds_rain(nt_rain)%time < time_end )then
-    ite = nt_rain + 1
-  else
-    ite = -1
-    do while( ds_rain(ite)%time < time_end )
-      ite = ite + 1
-    enddo
+  ite = 0
+  do while( ds_rain(ite)%time < time_end )
+    ite = ite + 1
+  enddo
+
+  if( .not. (ds_rain(ite-1)%time < time_end .and. &
+      time_end <= ds_rain(ite)%time) )then
+    call errend('not time_rain(t-1) <= time_end < time_rain(t)'//&
+      '\nt: '//str(ite)//&
+      '\ntime_rain(t-1): '//str(ds_rain(ite-1)%time)//&
+      '\ntime_rain(t)  : '//str(ds_rain(ite)%time)//&
+      '\ntime_end      : '//str(time_end), &
+      '', PRCNAM, MODNAM)
   endif
 end subroutine get_t_end
 !===============================================================

@@ -687,6 +687,9 @@ subroutine read_river_network()
   enddo  ! k/
 
   close(un)
+
+  call logmsg('channel length min: '//str(minval(channel(:)%leng))//&
+              ' max: '//str(maxval(channel(:)%leng)))
 end subroutine read_river_network
 !===============================================================
 !
@@ -699,17 +702,18 @@ subroutine prep_river_grid_isct()
   implicit none
 
   type(channel_), pointer :: ch
+  type(slo_riv_isct_), pointer :: sloriv
   integer :: xs, xe, ys, ye
   real(8) :: wlon, wlat, elon, elat
   real(8) :: clon_west, clat_west, clon_east, clat_east
   real(8) :: dlon_west, dlat_west, dlon_east, dlat_east
   real(8) :: leng
-  integer :: nGrid_tmp
+  integer :: nSlo_tmp
 
   integer :: k
   integer :: ix, iy
   integer :: jPoint
-  integer :: iGrid
+  integer :: iSlo, iiSlo
 
 !  integer :: k_debug = 490
 !  logical :: debug_this
@@ -721,17 +725,19 @@ subroutine prep_river_grid_isct()
 
 !    debug_this = k == k_debug
 
-    ch%isct%nGrid = 0
+    ch%isct%nSlo = 0
 
     xs = xs_of_lon(minval(ch%node(:)%lon))
     xe = xe_of_lon(maxval(ch%node(:)%lon))
     ys = ys_of_lat(maxval(ch%node(:)%lat))
     ye = ye_of_lat(minval(ch%node(:)%lat))
-    nGrid_tmp = (xe - xs + 1) * (ye - ys + 1) * 4
-    allocate(ch%isct%x(nGrid_tmp))
-    allocate(ch%isct%y(nGrid_tmp))
-    allocate(ch%isct%leng(nGrid_tmp))
-    allocate(ch%isct%domain(nGrid_tmp))
+    nSlo_tmp = (xe - xs + 1) * (ye - ys + 1) * 4
+    allocate(ch%isct%x(nSlo_tmp))
+    allocate(ch%isct%y(nSlo_tmp))
+    allocate(ch%isct%iSlo(nSlo_tmp))
+    allocate(ch%isct%jCh(nSlo_tmp))
+    allocate(ch%isct%leng(nSlo_tmp))
+    allocate(ch%isct%domain(nSlo_tmp))
 
     do jPoint = 1, ch%nPoint-1
       if( ch%point(jPoint)%lon < ch%point(jPoint+1)%lon )then
@@ -796,23 +802,26 @@ subroutine prep_river_grid_isct()
       endif
     enddo  ! jPoint/
 
-    call realloc(ch%isct%x, ch%isct%nGrid, clear=.false.)
-    call realloc(ch%isct%y, ch%isct%nGrid, clear=.false.)
-    call realloc(ch%isct%leng, ch%isct%nGrid, clear=.false.)
-    call realloc(ch%isct%domain, ch%isct%nGrid, clear=.false.)
+    call realloc(ch%isct%x, ch%isct%nSlo, clear=.false.)
+    call realloc(ch%isct%y, ch%isct%nSlo, clear=.false.)
+    call realloc(ch%isct%iSlo, ch%isct%nSlo, clear=.false.)
+    call realloc(ch%isct%leng, ch%isct%nSlo, clear=.false.)
+    call realloc(ch%isct%domain, ch%isct%nSlo, clear=.false.)
+
+    call realloc(ch%isct%jCh, ch%isct%nSlo, clear=.true.)
 
 !    if( debug_this )then
-!      call logmsg('nGrid: '//str(ch%isct%nGrid)//&
+!      call logmsg('nSlo: '//str(ch%isct%nSlo)//&
 !        ' x: '//str((/minval(ch%isct%x),maxval(ch%isct%x)/),' - ')//&
 !        ' y: '//str((/minval(ch%isct%y),maxval(ch%isct%y)/),' - '))
 !    endif
 
     ch%isct%leng_domain = 0.d0
-    do iGrid = 1, ch%isct%nGrid
-      if( ch%isct%domain(iGrid) == DOMAIN__OUTSIDE ) cycle
-      call add(ch%isct%leng_domain, ch%isct%leng(iGrid))
+    do iSlo = 1, ch%isct%nSlo
+      if( ch%isct%domain(iSlo) == DOMAIN__OUTSIDE ) cycle
+      call add(ch%isct%leng_domain, ch%isct%leng(iSlo))
 !      if( debug_this )then
-!        call logmsg('grid#'//str(iGrid)//' leng '//str(ch%isct%leng(iGrid)))
+!        call logmsg('grid#'//str(iSlo)//' leng '//str(ch%isct%leng(iSlo)))
 !      endif
     enddo
 
@@ -822,6 +831,45 @@ subroutine prep_river_grid_isct()
         '\nleng_domain: '//str(ch%isct%leng_domain)//&
         '\nleng: '//str(ch%leng))
     endif
+  enddo  ! k/
+  !-------------------------------------------------------------
+  ! prep. $slo_riv_isct
+  !-------------------------------------------------------------
+  allocate(slo_riv_isct(slo_count))
+  slo_riv_isct(:)%nCh = 0
+
+  do k = 1, riv_count
+    ch => channel(k)
+    do iiSlo = 1, ch%isct%nSlo
+      if( ch%isct%domain(iiSlo) == DOMAIN__OUTSIDE ) cycle
+      iSlo = ch%isct%iSlo(iiSlo)
+      sloriv => slo_riv_isct(iSlo)
+      sloriv%nCh = sloriv%nCh + 1
+    enddo
+  enddo  ! k/
+
+  do iSlo = 1, slo_count
+    sloriv => slo_riv_isct(iSlo)
+    if( sloriv%nCh == 0 ) cycle
+    allocate(sloriv%iCh(sloriv%nCh))
+    allocate(sloriv%jSlo(sloriv%nCh))
+  enddo
+
+  slo_riv_isct(:)%nCh = 0
+
+  do k = 1, riv_count
+    ch => channel(k)
+    do iiSlo = 1, ch%isct%nSlo
+      if( ch%isct%domain(iiSlo) == DOMAIN__OUTSIDE ) cycle
+      iSlo = ch%isct%iSlo(iiSlo)
+      sloriv => slo_riv_isct(iSlo)
+
+      sloriv%nCh = sloriv%nCh + 1
+      sloriv%iCh(sloriv%nCh) = k
+      sloriv%jSlo(sloriv%nCh) = iiSlo
+
+      ch%isct%jCh(iiSlo) = sloriv%nCh
+    enddo
   enddo  ! k/
 !---------------------------------------------------------------
 contains
@@ -836,12 +884,13 @@ subroutine loop_for_x()
 
   !call logmsg('x: '//str((/xs,xe/),' - '))
 
-  nGrid_tmp = ch%isct%nGrid + (xe - xs + 1)
-  if( size(ch%isct%x) < nGrid_tmp )then
-    call realloc(ch%isct%x, nGrid_tmp*2, clear=.false.)
-    call realloc(ch%isct%y, nGrid_tmp*2, clear=.false.)
-    call realloc(ch%isct%leng, nGrid_tmp*2, clear=.false.)
-    call realloc(ch%isct%domain, nGrid_tmp*2, clear=.false.)
+  nSlo_tmp = ch%isct%nSlo + (xe - xs + 1)
+  if( size(ch%isct%x) < nSlo_tmp )then
+    call realloc(ch%isct%x, nSlo_tmp*2, clear=.false.)
+    call realloc(ch%isct%y, nSlo_tmp*2, clear=.false.)
+    call realloc(ch%isct%iSlo, nSlo_tmp*2, clear=.false.)
+    call realloc(ch%isct%leng, nSlo_tmp*2, clear=.false.)
+    call realloc(ch%isct%domain, nSlo_tmp*2, clear=.false.)
   endif
 
   do ix = xs, xe
@@ -873,17 +922,18 @@ subroutine loop_for_x()
         slonlat(dlon_east,dlat_east)//') leng: '//str(leng))
     endif
 
-    call add(ch%isct%nGrid)
-    ch%isct%x(ch%isct%nGrid) = ix
-    ch%isct%y(ch%isct%nGrid) = iy
-    ch%isct%leng(ch%isct%nGrid) = leng
-    ch%isct%domain(ch%isct%nGrid) = domain(ix,iy)
+    call add(ch%isct%nSlo)
+    ch%isct%x(ch%isct%nSlo) = ix
+    ch%isct%y(ch%isct%nSlo) = iy
+    ch%isct%iSlo(ch%isct%nSlo) = slo_ij2idx(ix,iy)
+    ch%isct%leng(ch%isct%nSlo) = leng
+    ch%isct%domain(ch%isct%nSlo) = domain(ix,iy)
 
 !    if( debug_this )then
 !      call logmsg('ch#'//str(k)//' p#'//str(jPoint)//' ('//&
 !        slonlat(wlon,wlat)//')'//' - p#'//str(jPoint+1)//' ('//&
 !        slonlat(elon,elat)//')'//&
-!        '\n  isct#'//str(ch%isct%nGrid)//&
+!        '\n  isct#'//str(ch%isct%nSlo)//&
 !        ' ('//slonlat(dlon_west,dlat_west)//') - ('//&
 !        slonlat(dlon_east,dlat_east)//')'//&
 !        ' domain: '//str(domain(ix,iy))//' leng: '//str(leng))
@@ -908,29 +958,26 @@ subroutine prep_river_topography()
   integer, allocatable :: arg(:)
   real(8) :: leng_tmp
   integer :: k
-  integer :: iGrid
+  integer :: jSlo
 
   call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
-  ! Get width, depth
-  !-------------------------------------------------------------
-
   ! get median of upper area
   !-------------------------------------------------------------
   do k = 1, riv_count
     ch => channel(k)
 
-    allocate(lst_leng(ch%isct%nGrid))
-    allocate(lst_upa(ch%isct%nGrid))
+    allocate(lst_leng(ch%isct%nSlo))
+    allocate(lst_upa(ch%isct%nSlo))
     lst_leng(:) = 0.d0
     lst_upa(:) = 0.d0
-    do iGrid = 1, ch%isct%nGrid
-      if( ch%isct%domain(iGrid) == DOMAIN__OUTSIDE ) cycle
-      lst_leng(iGrid) = ch%isct%leng(iGrid)
-      lst_upa(iGrid) = upa(ch%isct%x(iGrid), ch%isct%y(iGrid))
+    do jSlo = 1, ch%isct%nSlo
+      if( ch%isct%domain(jSlo) == DOMAIN__OUTSIDE ) cycle
+      lst_leng(jSlo) = ch%isct%leng(jSlo)
+      lst_upa(jSlo) = upa(ch%isct%x(jSlo), ch%isct%y(jSlo))
     enddo
 
-    allocate(arg(ch%isct%nGrid))
+    allocate(arg(ch%isct%nSlo))
     call argsort(lst_upa, arg)
     call sort(lst_upa, arg)
     call sort(lst_leng, arg)
@@ -938,10 +985,10 @@ subroutine prep_river_topography()
 
     leng_tmp = 0.d0
     ch%upa = -1d20
-    do iGrid = 1, ch%isct%nGrid
-      leng_tmp = leng_tmp + ch%isct%leng(iGrid)
+    do jSlo = 1, ch%isct%nSlo
+      leng_tmp = leng_tmp + ch%isct%leng(jSlo)
       if( leng_tmp >= ch%isct%leng_domain*0.5d0 )then
-        ch%upa = lst_upa(iGrid)
+        ch%upa = lst_upa(jSlo)
         exit
       endif
     enddo
@@ -962,7 +1009,7 @@ subroutine prep_river_topography()
     ch => channel(k)
 
   enddo  ! k/
-
+  !-------------------------------------------------------------
   ! get width and depth
   !-------------------------------------------------------------
   selectcase( switch_riv_crssct )
@@ -1006,24 +1053,35 @@ subroutine prep_river_topography()
     call errend(msg_invalid_value('switch_riv_crssct', switch_riv_crssct))
   endselect
 
-  call logmsg('width min: '//str(minval(channel(:)%width))//&
-                   ' max: '//str(maxval(channel(:)%width)))
-  call logmsg('depth min: '//str(minval(channel(:)%depth))//&
-                   ' max: '//str(maxval(channel(:)%depth)))
-  call logmsg('levee min: '//str(minval(channel(:)%height))//&
-                   ' max: '//str(maxval(channel(:)%height)))
+  call logmsg('channel width min: '//str(minval(channel(:)%width))//&
+                           ' max: '//str(maxval(channel(:)%width)))
+  call logmsg('channel depth min: '//str(minval(channel(:)%depth))//&
+                           ' max: '//str(maxval(channel(:)%depth)))
+  call logmsg('channel levee min: '//str(minval(channel(:)%height))//&
+                           ' max: '//str(maxval(channel(:)%height)))
   !-------------------------------------------------------------
-  ! Calc. elevation
+  ! calc. area
+  !-------------------------------------------------------------
+  do k = 1, riv_count
+    ch => channel(k)
+
+    ch%area = ch%width * ch%leng
+  enddo
+
+  call logmsg('channel area  min: '//str(minval(channel(:)%area))//&
+                           ' max: '//str(maxval(channel(:)%area)))
+  !-------------------------------------------------------------
+  ! calc. elevation
   !-------------------------------------------------------------
   do k = 1, riv_count
     ch => channel(k)
 
     ! mean surface elevation
     ch%zs = 0.d0
-    do iGrid = 1, ch%isct%nGrid
-      if( ch%isct%domain(iGrid) == DOMAIN__OUTSIDE ) cycle
-      ch%zs = ch%zs + zs(ch%isct%x(iGrid),ch%isct%y(iGrid)) &
-                * ch%isct%leng(iGrid) / ch%isct%leng_domain
+    do jSlo = 1, ch%isct%nSlo
+      if( ch%isct%domain(jSlo) == DOMAIN__OUTSIDE ) cycle
+      ch%zs = ch%zs + zs(ch%isct%x(jSlo),ch%isct%y(jSlo)) &
+                * ch%isct%leng(jSlo) / ch%isct%leng_domain
     enddo
 
     ! mean bed rock elevation
