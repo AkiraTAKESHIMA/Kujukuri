@@ -62,9 +62,9 @@ subroutine funcrs( hr_idx, hs_idx, qrs )
 
   type(channel_), pointer :: ch
   real(8) :: hr_top, hs_top, h1, h2
-  real(8) :: b
-  real(8) :: dhs
+  real(8) :: vsr_this
   real(8) :: leng
+  real(8) :: area_riv
   integer :: iCh, jCh
   integer :: iSlo, jSlo
   real(8) :: shrink
@@ -76,7 +76,7 @@ subroutine funcrs( hr_idx, hs_idx, qrs )
   real(8), parameter :: mu2 = 0.35d0
   real(8), parameter :: mu3 = 0.91d0
 
-  integer :: iCh_debug = 2664
+  integer :: iCh_debug = 2410
   logical :: debug_this
 
   call logbgn(PRCNAM, MODNAM, '-p -x2')
@@ -87,7 +87,7 @@ subroutine funcrs( hr_idx, hs_idx, qrs )
   !-------------------------------------------------------------
   ! Calc. discharge
   !-------------------------------------------------------------
-  call logent('calc. discharge', '-p -x2')
+  call logent('calc. discharge', opt='-p -x2')
 
   do iCh = 1, riv_count
     vrs(iCh)%val(:) = 0.d0
@@ -112,21 +112,23 @@ subroutine funcrs( hr_idx, hs_idx, qrs )
       iSlo = ch%isct%iSlo(jSlo)
       jCh = ch%isct%jCh(jSlo)
       leng = ch%isct%leng(jSlo)
+      area_riv = ch%isct%area(jSlo)
 
       hs_top = hs_idx(iSlo)
       if( debug_this )then
-        call logmsg('slo#'//str(iSlo))
+        call logmsg('slo#'//str(iSlo)//' leng: '//str(leng))
         call logmsg('hs: '//str(hs_idx(iSlo))//' hs_top: '//str(hs_top))
       endif
 
-      call calc_dhs(dhs)
+      call calc_discharge(vsr_this)
 
       if( debug_this )then
-        call logmsg('dhs: '//str(dhs)//' dvr: '//str(-dhs*area)//' dhr: '//str(-dhs*area/ch%area))
+        call logmsg('vsr: '//str(vsr_this)//&
+            ' dhs: '//str(-vsr_this/area)//' dhr: '//str(vsr_this/ch%area))
       endif
 
-      vrs(iCh)%val(jSlo) = dhs * area
-      vsr(iSlo)%val(jCh) = -vrs(iCh)%val(jSlo)
+      vrs(iCh)%val(jSlo) = -vsr_this
+      vsr(iSlo)%val(jCh) = vsr_this
     enddo  ! jSlo/
 
     if( debug_this )then
@@ -146,23 +148,32 @@ subroutine funcrs( hr_idx, hs_idx, qrs )
   !-------------------------------------------------------------
   ! Modify discharge from river to slope
   !-------------------------------------------------------------
-  call logent('modify disc. from river to slope', '-p -x2')
+  call logent('modify disc. from river to slope', opt='-p -x2')
 
   do iCh = 1, riv_count
+    debug_this = iCh == iCh_debug
+
     ch => channel(iCh)
 
     call hr2vr(hr_idx(iCh), iCh, vr_idx(iCh))
 
     if( vr_idx(iCh) >= vrs(iCh)%total ) cycle
 
+    if( vrs(iCh)%total > vr_idx(iCh) )then
+      call errend('ch#'//str(iCh)//' vr: '//str(vr_idx(iCh))//&
+          ' vrs: '//str(vrs(iCh)%total))
+    endif
+
     vrs_posi = sum(vrs(iCh)%val, mask=vrs(iCh)%val>0.d0)
 
     shrink = 1.d0 - (vrs(iCh)%total - vr_idx(iCh)) / vrs_posi
     if( shrink < 0.d0 ) shrink = 0.d0
 
-    !call logmsg('ch#'//str(iCh)//' vr: '//str(vr_idx(iCh))//&
-    !  ' vrs tot: '//str(vrs(iCh)%total)//' posi: '//str(vrs_posi)//&
-    !  ' shrink: '//str(shrink))
+    if( debug_this )then
+      call logmsg('ch#'//str(iCh)//' vr: '//str(vr_idx(iCh))//&
+        ' vrs tot: '//str(vrs(iCh)%total)//' posi: '//str(vrs_posi)//&
+        ' shrink: '//str(shrink)//' -> tot: '//str(vrs(iCh)%total*shrink))
+    endif
 
     do jSlo = 1, ch%isct%nSlo
       if( vrs(iCh)%val(jSlo) <= 0.d0 ) cycle
@@ -186,7 +197,7 @@ subroutine funcrs( hr_idx, hs_idx, qrs )
   !-------------------------------------------------------------
   ! Modify discharge from slope to river
   !-------------------------------------------------------------
-  call logent('modify disc. from slope to river', '-p -x2')
+  call logent('modify disc. from slope to river', opt='-p -x2')
 
   do iSlo = 1, slo_count
     vs_idx(iSlo) = hs_idx(iSlo) * area
@@ -224,7 +235,7 @@ subroutine funcrs( hr_idx, hs_idx, qrs )
   !-------------------------------------------------------------
   ! assert consistency
   !-------------------------------------------------------------
-  call logent('assert consistency', '-p -x2')
+  call logent('assert consistency', opt='-p -x2')
 
   do iCh = 1, riv_count
     ch => channel(iCh)
@@ -245,7 +256,7 @@ subroutine funcrs( hr_idx, hs_idx, qrs )
   !-------------------------------------------------------------
   ! update water level
   !-------------------------------------------------------------
-  call logent('update water level', '-p -x2')
+  call logent('update water level', opt='-p -x2')
 
   do iCh = 1, riv_count
     if( vrs(iCh)%total == 0.d0 )cycle
@@ -277,21 +288,36 @@ contains
 !---------------------------------------------------------------
 !
 !---------------------------------------------------------------
-subroutine calc_dhs(dhs)
+subroutine calc_discharge(vsr)
   implicit none
-  real(8), intent(out) :: dhs
+  real(8), intent(out) :: vsr
+
+  real(8) :: hr_tmp, hs_tmp
+
+  hr_top = hr_idx(iCh) - ch%depth
+  hs_top = hs_idx(iSlo)
 
   !-------------------------------------------------------------
   ! (Case a) : (height = 0 and hr_top < 0) or (height > 0 and hr_top < 0 and hs_top <= height)
-  ! -> From slope to river : step fall (dhs : negative)
+  ! -> From slope to river : step fall (hsr : positive)
   if( ( ch%height == 0.d0 .and. hr_top < 0.d0 ) .or. &
       ( ch%height > 0.d0 .and. hr_top < 0.d0 .and. hs_top <= ch%height ) )then
 
-    dhs = -mu1 * hs_top * sqrt(GRAVITY * hs_top) * dt_model * leng * 2.d0 / area
-    if( dhs < -hs_idx(iSlo) ) dhs = -hs_idx(iSlo)
-
     if( debug_this )then
       call logmsg('case a')
+    endif
+
+    vsr = mu1 * hs_top * sqrt(GRAVITY * hs_top) * dt_model * leng * 2.d0
+    if( vsr > vs_idx(iSlo) ) vsr = vs_idx(iSlo)
+
+    call vr2hr(vr_idx(iCh)+vsr, iCh, hr_tmp)
+    hs_tmp = (vs_idx(iSlo) - vsr) / area
+
+    ! avoid the situation of hr_top > hs_top
+    hr_top = hr_tmp - ch%depth
+    hs_top = hs_tmp
+    if( hr_top > hs_top )then
+      call calc_discharge_for_same_level(vsr)
     endif
 
   !-------------------------------------------------------------
@@ -300,48 +326,69 @@ subroutine calc_dhs(dhs)
   elseif( 0.d0 <= hr_top .and. hr_top <= ch%height .and. &
           hs_top <= ch%height )then
 
-    dhs = 0.d0
+    if( debug_this )then
+      call logmsg('case b')
+    endif
+
+    vsr = 0.d0
 
   !-------------------------------------------------------------
   ! (Case c) : hs <= hr and hr >= height
-  ! -> From river to slope : overtopping (dhs : positive)
+  ! -> From river to slope : overtopping (vsr : negative)
   ! (incl. hs = 0 and hr > 0)
   elseif( hs_top <= hr_top .and. hr_top >= ch%height )then
-
-    h1 = hr_top - ch%height
-    h2 = hs_top - ch%height
-    if( h2 / h1 <= 2.d0 / 3.d0 )then
-      dhs = mu2 * h1 * sqrt(2.d0*GRAVITY*h1) * dt_model * leng * 2.d0 / area
-    else
-      dhs = mu3 * h2 * sqrt(2.d0*GRAVITY*(h1-h2)) * dt_model * leng * 2.d0 / area
-    endif
-
-    call sec_h2b(hr_idx(iCh), iCh, b)
-    dhs = min(dhs, (hr_top - ch%height) * (leng * b) / area)
-    if( dhs < -hs_idx(iSlo) ) dhs = -hs_idx(iSlo)
 
     if( debug_this )then
       call logmsg('case c')
     endif
 
+    h1 = hr_top - ch%height
+    h2 = hs_top - ch%height
+    if( h2 / h1 <= 2.d0 / 3.d0 )then
+      vsr = -mu2 * h1 * sqrt(2.d0*GRAVITY*h1) * dt_model * leng * 2.d0
+    else
+      vsr = -mu3 * h2 * sqrt(2.d0*GRAVITY*(h1-h2)) * dt_model * leng * 2.d0
+    endif
+
+    vsr = max(vsr, -(hr_top - ch%height) * area_riv)
+
+    call vr2hr(vr_idx(iCh)+vsr, iCh, hr_tmp)
+    hs_tmp = (vs_idx(iSlo) - vsr) / area
+
+    ! avoid situation of hs_top > hr_top
+    hr_top = hr_tmp - ch%depth
+    hs_top = hs_tmp
+    if( hs_top > hr_top )then
+      call calc_discharge_for_same_level(vsr)
+    endif
   !-------------------------------------------------------------
   ! (Case d) : hs > hr & hs >= height
-  ! -> From slope to river : overtopping (dhs : negative)
+  ! -> From slope to river : overtopping (vsr : positive)
   ! (incl. hs = 0 and hr > 0)
   elseif( hs_top >= hr_top .and. hs_top >= ch%height )then
+
+    if( debug_this )then
+      call logmsg('case d')
+    endif
 
     h1 = hs_top - ch%height
     h2 = hr_top - ch%height
     if( h2 / h1 <= 2.d0 / 3.d0 )then
-      dhs = -mu2 * h1 * sqrt(2.d0 * GRAVITY * h1) * dt_model * leng * 2.d0 / area
+      vsr = mu2 * h1 * sqrt(2.d0 * GRAVITY * h1) * dt_model * leng * 2.d0
     else
-      dhs = -mu3 * h2 * sqrt(2.d0 * GRAVITY * (h1-h2)) * dt_model * leng * 2.d0 / area
+      vsr = mu3 * h2 * sqrt(2.d0 * GRAVITY * (h1-h2)) * dt_model * leng * 2.d0
     endif
 
-    dhs = max(dhs, -(hs_top - ch%height))
+    vsr = min(vsr, (hs_top - ch%height) * area_riv)
 
-    if( debug_this )then
-      call logmsg('case d')
+    call vr2hr(vr_idx(iCh)+vsr, iCh, hr_tmp)
+    hs_tmp = (vs_idx(iSlo) - vsr) / area
+
+    ! avoid the situation of hr_top > hs_top
+    hr_top = hr_tmp - ch%depth
+    hs_top = hs_tmp
+    if( hr_top > hs_top )then
+      call calc_discharge_for_same_level(vsr)
     endif
   !-------------------------------------------------------------
   ! Case: ERROR
@@ -349,7 +396,20 @@ subroutine calc_dhs(dhs)
     ! Condition not considered above
     stop "Error : RivSlo"
   endif
-end subroutine calc_dhs
+end subroutine calc_discharge
+!---------------------------------------------------------------
+!
+!---------------------------------------------------------------
+subroutine calc_discharge_for_same_level(vsr)
+  implicit none
+  real(8), intent(out) :: vsr
+
+  hr_top = hr_idx(iCh) - ch%depth
+  hs_top = hs_idx(iCh)
+
+  ! TMP
+  vsr = (hs_top - hr_top) * (area * area_riv) / (area + area_riv)
+end subroutine calc_discharge_for_same_level
 !---------------------------------------------------------------
 !
 !---------------------------------------------------------------
@@ -373,9 +433,6 @@ subroutine trap_vs_exceedance()
         ' error: '//str((vsr(iSlo)%total - vs_idx(iSlo)) / max(vs_idx(iSlo),1d-6)))
   endif
 end subroutine trap_vs_exceedance
-!---------------------------------------------------------------
-!
-!---------------------------------------------------------------
 !---------------------------------------------------------------
 end subroutine funcrs
 !===============================================================

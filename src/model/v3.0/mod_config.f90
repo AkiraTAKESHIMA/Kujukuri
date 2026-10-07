@@ -737,6 +737,7 @@ subroutine prep_river_grid_isct()
     allocate(ch%isct%iSlo(nSlo_tmp))
     allocate(ch%isct%jCh(nSlo_tmp))
     allocate(ch%isct%leng(nSlo_tmp))
+    allocate(ch%isct%area(nSlo_tmp))
     allocate(ch%isct%domain(nSlo_tmp))
 
     do jPoint = 1, ch%nPoint-1
@@ -808,7 +809,11 @@ subroutine prep_river_grid_isct()
     call realloc(ch%isct%leng, ch%isct%nSlo, clear=.false.)
     call realloc(ch%isct%domain, ch%isct%nSlo, clear=.false.)
 
+    ! calculated later
     call realloc(ch%isct%jCh, ch%isct%nSlo, clear=.true.)
+
+    call realloc(ch%isct%area, ch%isct%nSlo, clear=.false.)
+    ch%isct%area(:) = ch%isct%leng(:) * ch%width
 
 !    if( debug_this )then
 !      call logmsg('nSlo: '//str(ch%isct%nSlo)//&

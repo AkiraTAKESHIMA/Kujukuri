@@ -158,6 +158,7 @@ module def_static
     integer, pointer :: iSlo(:)  !(nSlo)
     integer, pointer :: jCh(:)  !(nSlo) index in slo_riv_isct
     real(8), pointer :: leng(:)  !(nSlo)
+    real(8), pointer :: area(:)  !(nSlo)
     integer, pointer :: domain(:)  !(nSlo)
     real(8) :: leng_domain
   end type

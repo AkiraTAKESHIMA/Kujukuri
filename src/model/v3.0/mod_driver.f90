@@ -21,6 +21,7 @@ module mod_driver
   real(8), allocatable :: gampt_ff(:,:), gampt_ff_idx(:)
   real(8), allocatable :: gampt_f(:,:), gampt_f_idx(:)
   real(8), allocatable :: qrs(:,:)
+  real(8), allocatable :: sfc_riv(:), sfc_slo(:,:)
   !-------------------------------------------------------------
 contains
 !===============================================================
@@ -62,6 +63,9 @@ subroutine prep_driver()
 
   allocate(qrs(nx,ny))
 
+  allocate(sfc_riv(riv_count))
+  allocate(sfc_slo(nx,ny))
+
   call load_initial_conditions()
 end subroutine prep_driver
 !===============================================================
@@ -69,10 +73,12 @@ end subroutine prep_driver
 !===============================================================
 subroutine load_initial_conditions()
   use mod_base
+  use mod_slope, only: &
+    h2sfc
   implicit none
 
   real(8), allocatable :: inith(:,:), inith_idx(:)
-  integer :: i, j
+  integer :: ix, iy
   integer :: k
   integer :: un
 
@@ -108,11 +114,11 @@ subroutine load_initial_conditions()
   endwhere
 
   if(init_slo_switch .eq. 1) then
-    allocate( inith(ny, nx) )
+    allocate( inith(nx,ny) )
     inith = 0.d0
     open(13, file = initfile_slo, status = "old")
-    do i = 1, ny
-      read(13,*) (inith(i,j), j = 1, nx)
+    do iy = 1, ny
+      read(13,*) inith(:,iy)
     enddo
     where(inith .le. 0.d0) inith = 0.d0
     where(domain.eq.1 .and. inith .ge. 0.d0) hs = inith
@@ -124,11 +130,11 @@ subroutine load_initial_conditions()
   ! if init_gw_switch = 1 => read from file
   !-------------------------------------------------------------
   if(init_gw_switch .eq. 1) then
-    allocate( inith(ny, nx) )
+    allocate( inith(nx,ny) )
     inith = 0.d0
     open(13, file = initfile_gw, status = "old")
-    do i = 1, ny
-      read(13,*) (inith(i,j), j = 1, nx)
+    do iy = 1, ny
+      read(13,*) inith(:,iy)
     enddo
     where(inith .le. 0.d0) inith = 0.d0
     where(domain.eq.1 .and. inith .ge. 0.d0) hg = inith
@@ -143,17 +149,33 @@ subroutine load_initial_conditions()
   ! if init_gampt_ff_switch = 1 => read from file
   !-------------------------------------------------------------
   if(init_gampt_ff_switch .eq. 1) then
-    allocate( inith(ny, nx) )
+    allocate( inith(nx,ny) )
     inith = 0.d0
     open(13, file = initfile_gampt_ff, status = "old")
-    do i = 1, ny
-      read(13,*) (inith(i,j), j = 1, nx)
+    do iy = 1, ny
+      read(13,*) inith(:,iy)
     enddo
     where(inith .le. 0.d0) inith = 0.d0
     where(domain.eq.1) gampt_ff = inith
     deallocate( inith )
     close(13)
   endif
+  !-------------------------------------------------------------
+  ! sfc
+  !-------------------------------------------------------------
+  do k = 1, riv_count
+    sfc_riv(k) = hr_idx(k) - channel(k)%depth
+  enddo
+
+  sfc_slo(:,:) = 0.d0
+  do iy = 1, ny
+  do ix = 1, nx
+    if( domain(ix,iy) == DOMAIN__OUTSIDE ) cycle
+
+    call h2sfc(hs(ix,iy), slo_ij2idx(ix,iy), sfc_slo(ix,iy))
+  enddo
+  enddo
+  !-------------------------------------------------------------
 end subroutine load_initial_conditions
 !===============================================================
 !
@@ -170,7 +192,8 @@ subroutine exec_simulation()
   use mod_slope, only: &
     advance_slope, &
     infilt       , &
-    outflow_slope
+    outflow_slope, &
+    h2sfc
   use mod_gwat, only: &
     advance_gwat
   use mod_rivslo, only: &
@@ -180,8 +203,14 @@ subroutine exec_simulation()
   integer :: it_model
   integer :: it_out
 
+  integer :: ix, iy
+  integer :: k
+
   integer :: un_hr, un_hs
 
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
   open(newunit=un_hr, file=trim(dir_out)//'/hr.bin', &
        form='unformatted', access='direct', recl=8_8*nx*ny, status='replace')
   open(newunit=un_hs, file=trim(dir_out)//'/hs.bin', &
@@ -202,9 +231,9 @@ subroutine exec_simulation()
     !-----------------------------------------------------------
     ! 2D -> 1D
     !-----------------------------------------------------------
-    call reshape_slo_ij2idx( hs, hs_idx )
-    call reshape_slo_ij2idx( hg, hg_idx )
-    call reshape_slo_ij2idx( gampt_ff, gampt_ff_idx )
+    !call reshape_slo_ij2idx( hs, hs_idx )
+    !call reshape_slo_ij2idx( hg, hg_idx )
+    !call reshape_slo_ij2idx( gampt_ff, gampt_ff_idx )
     !-----------------------------------------------------------
     ! River
     !-----------------------------------------------------------
@@ -228,6 +257,15 @@ subroutine exec_simulation()
     !-----------------------------------------------------------
     call infilt( hs_idx, gampt_ff_idx, gampt_f_idx )
     !-----------------------------------------------------------
+    ! Set water depth 0 at outlets
+    !-----------------------------------------------------------
+    call outflow_river(hr_idx)
+    call outflow_slope(hs_idx)
+    !-----------------------------------------------------------
+    ! Update the time
+    !-----------------------------------------------------------
+    time = time_next
+    !-----------------------------------------------------------
     ! 1D -> 2D
     !-----------------------------------------------------------
     call reshape_slo_idx2ij( hs_idx, hs )
@@ -236,14 +274,18 @@ subroutine exec_simulation()
 
     call reshape_slo_idx2ij( hg_idx, hg )
     !-----------------------------------------------------------
-    ! Set water depth 0 at outlets
+    ! Make additional data
     !-----------------------------------------------------------
-    call outflow_river(hr_idx)
-    call outflow_slope(hs)
-    !-----------------------------------------------------------
-    ! Update the time
-    !-----------------------------------------------------------
-    time = time_next
+    do iy = 1, ny
+    do ix = 1, nx
+      if( domain(ix,iy) == DOMAIN__OUTSIDE ) cycle
+      call h2sfc(hs(ix,iy), slo_ij2idx(ix,iy), sfc_slo(ix,iy))
+    enddo
+    enddo
+
+    do k = 1, riv_count
+      sfc_riv(k) = hr_idx(k) - channel(k)%depth
+    enddo
     !-----------------------------------------------------------
     ! Summary
     !-----------------------------------------------------------
@@ -260,9 +302,12 @@ subroutine exec_simulation()
 
     call calc_water_budget(time, hr_idx, hs, gampt_ff, hg)
   enddo  ! it_model = 1, nt_model
-
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
   close(un_hr)
   close(un_hs)
+  !-------------------------------------------------------------
 end subroutine exec_simulation
 !===============================================================
 !
