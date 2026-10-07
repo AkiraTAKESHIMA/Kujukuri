@@ -8,11 +8,12 @@ program main
   use mod_remap, only: &
         makeRemappingTables     , &
         remap                   
-  use mod_mesh, only: &
+  use mod_mask, only: &
         rasterizeNetworks       , &
         make1secNetworkMask     , &
         make1secNetworkUpperArea, &
-        scaleUpNetworkMask      , &
+        scaleUpNetworkMask      
+  use mod_basin, only: &
         trimBasin               
   implicit none
   character(CLEN_KEY) :: task
