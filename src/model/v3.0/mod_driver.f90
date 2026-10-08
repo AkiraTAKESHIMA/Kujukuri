@@ -20,8 +20,9 @@ module mod_driver
   real(8), allocatable :: hg(:,:), hg_idx(:)
   real(8), allocatable :: gampt_ff(:,:), gampt_ff_idx(:)
   real(8), allocatable :: gampt_f(:,:), gampt_f_idx(:)
+  real(8), allocatable :: sfc(:,:)
+  real(8), allocatable :: qr_idx(:,:)
   real(8), allocatable :: qrs(:,:)
-  real(8), allocatable :: sfc_riv(:), sfc_slo(:,:)
   !-------------------------------------------------------------
 contains
 !===============================================================
@@ -61,12 +62,15 @@ subroutine prep_driver()
   allocate(gampt_f(nx,ny))
   allocate(gampt_f_idx(slo_count))
 
+  allocate(sfc(nx,ny))
+
+  allocate(qr_idx(nCh_down_max,riv_count))
   allocate(qrs(nx,ny))
 
-  allocate(sfc_riv(riv_count))
-  allocate(sfc_slo(nx,ny))
-
   call load_initial_conditions()
+
+  qr_idx(:,:) = 0.d0
+  qrs(:,:) = 0.d0
 end subroutine prep_driver
 !===============================================================
 !
@@ -163,16 +167,12 @@ subroutine load_initial_conditions()
   !-------------------------------------------------------------
   ! sfc
   !-------------------------------------------------------------
-  do k = 1, riv_count
-    sfc_riv(k) = hr_idx(k) - channel(k)%depth
-  enddo
-
-  sfc_slo(:,:) = 0.d0
+  sfc(:,:) = 0.d0
   do iy = 1, ny
   do ix = 1, nx
     if( domain(ix,iy) == DOMAIN__OUTSIDE ) cycle
 
-    call h2sfc(hs(ix,iy), slo_ij2idx(ix,iy), sfc_slo(ix,iy))
+    call h2sfc(hs(ix,iy), slo_ij2idx(ix,iy), sfc(ix,iy))
   enddo
   enddo
   !-------------------------------------------------------------
@@ -206,21 +206,38 @@ subroutine exec_simulation()
   integer :: ix, iy
   integer :: k
 
-  integer :: un_hr, un_hs
+  integer :: un_hr_idx, un_hs, un_sfc, un_qr
+  integer :: un_hr1_idx, un_hs1
 
+  !-------------------------------------------------------------
+  ! prep. output files
+  !-------------------------------------------------------------
+  it_out = 1
+
+  open(newunit=un_hr_idx, file=trim(dir_out)//'/hr_idx.bin', &
+       form='unformatted', access='direct', recl=8_8*size(hr_idx), status='replace')
+  open(newunit=un_hs, file=trim(dir_out)//'/hs.bin', &
+       form='unformatted', access='direct', recl=8_8*size(hs), status='replace')
+  open(newunit=un_sfc, file=trim(dir_out)//'/sfc.bin', &
+       form='unformatted', access='direct', recl=8_8*size(sfc), status='replace')
+  open(newunit=un_qr, file=trim(dir_out)//'/qr.bin', &
+       form='unformatted', access='direct', recl=8_8*size(qr_idx), status='replace')
+
+  open(newunit=un_hr1_idx, file=trim(dir_out)//'/hr_idx.bin', &
+       form='unformatted', access='direct', recl=8_8*size(hr_idx), status='replace')
+  open(newunit=un_hs1, file=trim(dir_out)//'/hs.bin', &
+       form='unformatted', access='direct', recl=8_8*size(hs), status='replace')
+
+  write(un_hr_idx, rec=it_out) hr_idx
+  write(un_hs, rec=it_out) hs
+  write(un_sfc, rec=it_out) sfc
+  write(un_qr, rec=it_out) qr_idx
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
-  open(newunit=un_hr, file=trim(dir_out)//'/hr.bin', &
-       form='unformatted', access='direct', recl=8_8*nx*ny, status='replace')
-  open(newunit=un_hs, file=trim(dir_out)//'/hs.bin', &
-       form='unformatted', access='direct', recl=8_8*nx*ny, status='replace')
-
   time = 0.d0
 
   call calc_water_budget(time, hr_idx, hs, gampt_ff, hg)
-
-  it_out = 1
 
   do it_model = 1, nt_model
     time_next = it_model * dt_model
@@ -237,11 +254,24 @@ subroutine exec_simulation()
     !-----------------------------------------------------------
     ! River
     !-----------------------------------------------------------
-    call advance_river( time, hr_idx )
+print*, 'river'
+    call advance_river( time, hr_idx, qr_idx )
+
+    if( it_out * dt_out <= time )then
+      call logmsg('save hr1('//str(it_out)//')')
+      write(un_hr1_idx, rec=it_out) hr_idx
+    endif
     !-----------------------------------------------------------
     ! Slope
     !-----------------------------------------------------------
+print*, 'slope'
     call advance_slope( time, hs_idx )
+
+    if( it_out * dt_out <= time )then
+      call reshape_slo_idx2ij(hs_idx, hs)
+      call logmsg('save hs1('//str(it_out)//')')
+      write(un_hs1, rec=it_out) hs
+    endif
     !-----------------------------------------------------------
     ! Ground water
     !-----------------------------------------------------------
@@ -249,12 +279,14 @@ subroutine exec_simulation()
       call advance_gwat( time, hs_idx, gampt_ff_idx, hg_idx )
     endif
     !-----------------------------------------------------------
-    ! River-slope interactions
+    ! River-slope interaction
     !-----------------------------------------------------------
+print*, 'river-slope interaction'
     call funcrs( hr_idx, hs_idx, qrs )
     !-----------------------------------------------------------
     ! Infiltration (Green-Ampt)
     !-----------------------------------------------------------
+print*, 'infiltration'
     call infilt( hs_idx, gampt_ff_idx, gampt_f_idx )
     !-----------------------------------------------------------
     ! Set water depth 0 at outlets
@@ -279,34 +311,40 @@ subroutine exec_simulation()
     do iy = 1, ny
     do ix = 1, nx
       if( domain(ix,iy) == DOMAIN__OUTSIDE ) cycle
-      call h2sfc(hs(ix,iy), slo_ij2idx(ix,iy), sfc_slo(ix,iy))
+      call h2sfc(hs(ix,iy), slo_ij2idx(ix,iy), sfc(ix,iy))
     enddo
-    enddo
-
-    do k = 1, riv_count
-      sfc_riv(k) = hr_idx(k) - channel(k)%depth
     enddo
     !-----------------------------------------------------------
     ! Summary
     !-----------------------------------------------------------
-    print*, 'max hr: ',maxval(hr_idx),' loc: ',maxloc(hr_idx)
-    print*, 'max hs: ',maxval(hs),' loc: ',maxloc(hs)
+    call logmsg('hr  max: '//str(maxval(hr_idx))//' @ '//str(maxloc(hr_idx)))
+    call logmsg('hs  max: '//str(maxval(hs))//' @ ('//str(maxloc(hs),', ')//')')
+    call logmsg('sfc max: '//str(maxval(sfc))//' @ ('//str(maxloc(sfc),', ')//')')
     if( gw_switch == 1 ) print*, 'max hg: ', maxval(hg),' loc: ',maxloc(hg)
 
-    do while( it_out * dt_out <= time )
-      print*, 'output ', it_out
-      write(un_hr, rec=it_out) hr_idx
-      write(un_hs, rec=it_out) hs
+    if( it_out * dt_out <= time )then
       it_out = it_out + 1
-    enddo
+      call logmsg('output #'//str(it_out))
+      write(un_hr_idx, rec=it_out) hr_idx
+      write(un_hs, rec=it_out) hs
+      write(un_sfc, rec=it_out) sfc
+      write(un_qr, rec=it_out) qr_idx
+    endif
 
     call calc_water_budget(time, hr_idx, hs, gampt_ff, hg)
+
+!if( it_model == 100 ) exit
   enddo  ! it_model = 1, nt_model
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
-  close(un_hr)
+  close(un_hr_idx)
   close(un_hs)
+  close(un_sfc)
+  close(un_qr)
+
+  close(un_hr1_idx)
+  close(un_hs1)
   !-------------------------------------------------------------
 end subroutine exec_simulation
 !===============================================================

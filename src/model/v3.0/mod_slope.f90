@@ -23,6 +23,8 @@ module mod_slope
   real(8), allocatable :: qs_idx(:,:)  !(I4,slo_count)
   real(8), allocatable :: rain(:,:)  !(nx,ny)
   real(8), allocatable :: rain_idx(:)  !(slo_count)
+  real(8), allocatable :: hs_err(:), hs_tmp(:)
+  real(8), allocatable :: fs1(:), fs2(:), fs3(:), fs4(:), fs5(:), fs6(:)
   !-------------------------------------------------------------
 contains
 !===============================================================

@@ -5,6 +5,7 @@ module mod_config
   use lib_util
   use lib_array
   use lib_math
+  use lib_io
   use def_const
   use def_static
   implicit none
@@ -64,16 +65,16 @@ subroutine read_config()
   integer :: un
   integer :: access
   integer :: ios
-  character(6) :: c
+  integer :: cl
 
   call logbgn(PRCNAM, MODNAM, '-p -x2')
+  call logent('read config.')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
   call get_command_argument(1, f_conf)
   if( access(f_conf,' ') /= 0 )then
-    write(0,"(a)") 'Configuration file not found: '//trim(f_conf)
-    stop 1
+    call errend('Configuration file not found: '//trim(f_conf))
   endif
   open(newunit=un, file=f_conf, status='old')
 
@@ -84,10 +85,10 @@ subroutine read_config()
   read(un,*) demfile
   read(un,*) dirfile
   read(un,*) upafile
-  print"(1x,a)", 'rain: '//trim(rainfile)
-  print"(1x,a)", 'dem: '//trim(demfile)
-  print"(1x,a)", 'dir: '//trim(dirfile)
-  print"(1x,a)", 'upa: '//trim(upafile)
+  call logmsg('rain: '//trim(rainfile))
+  call logmsg('dem: '//trim(demfile))
+  call logmsg('dir: '//trim(dirfile))
+  call logmsg('upa: '//trim(upafile))
 
   ! TMP
   read(un,*)
@@ -107,9 +108,10 @@ subroutine read_config()
   read(un,*) dt_model
   read(un,*) dt_slo
   read(un,*) dt_riv
-  print"(1x,a,f10.3)", 'dt_model: ',dt_model
-  print"(1x,a,f10.3)", 'dt_slope: ',dt_slo
-  print"(1x,a,f10.3)", 'dt_river: ',dt_riv
+  call logmsg('')
+  call logmsg('dt_model: '//str(dt_model,'f10.3'))
+  call logmsg('dt_slope: '//str(dt_slo,'f10.3'))
+  call logmsg('dt_river: '//str(dt_riv,'f10.3'))
 
   ! TMP
   nt_model = time_end / dt_model
@@ -121,15 +123,18 @@ subroutine read_config()
   if( dir_out(len_trim(dir_out):) == '/' )then
     dir_out = dir_out(:len_trim(dir_out)-1)
   endif
-  print*
-  print"(1x,a,f10.2)", 'dt_out: ', dt_out
-  print"(1x,a)", 'dir_out: '//trim(dir_out)
+  call logmsg('')
+  call logmsg('dt_out: '//str(dt_out,'f10.2'))
+  call logmsg('dir_out: '//str(dir_out))
+
+  if( dt_out < dt_model )then
+    call errend('`dt_out` must be equal to or larger than `dt_model`.')
+  endif
 
   ! Check output directory
   open(11, file=trim(dir_out)//'/tmp', status='replace', iostat=ios)
   if( ios /= 0 )then
-    print"(a)", 'Failed to make a new file in the output directory.'
-    stop 1
+    call errend('Failed to make a new file in the output directory.')
   endif
   close(11, status='delete')
 
@@ -138,13 +143,13 @@ subroutine read_config()
 
   read(un,*)
   read(un,*) ns_river
-  print*
-  print"(1x,a,f12.3)", 'ns_river: ', ns_river
+  call logmsg('')
+  call logmsg('ns_river: '//str(ns_river))
 
   read(un,*)
   read(un,*) num_of_landuse
-  print*
-  print"(1x,a,i5)", 'num_of_landuse: ', num_of_landuse
+  call logmsg('')
+  call logmsg('num_of_landuse: '//str(num_of_landuse))
 
   allocate(flow(num_of_landuse))
   allocate(ns_slope(num_of_landuse))
@@ -166,28 +171,28 @@ subroutine read_config()
   read(un,*) soildepth(:)
   read(un,*) gammaa(:)
 
-  c = str(num_of_landuse)
-  print"(1x,a,"//trim(c)//"(1x,i12))", 'flow:', flow(:)
-  print"(1x,a,"//trim(c)//"(1x,f12.3))", 'ns_slope :', ns_slope(:)
-  print"(1x,a,"//trim(c)//"(1x,f12.3))", 'soildepth:', soildepth(:)
-  print"(1x,a,"//trim(c)//"(1x,f12.3))", 'gammaa   :', gammaa(:)
+  cl = 9
+  call logmsg(str('flow',cl)//': '//str(flow,10))
+  call logmsg(str('ns_slope',cl)//': '//str(ns_slope,'es10.3'))
+  call logmsg(str('soildepth',cl)//': '//str(soildepth,'es10.3'))
+  call logmsg(str('gammaa',cl)//': '//str(gammaa,'es10.3'))
 
   read(un,*) 
   read(un,*) ksv(:)
   read(un,*) faif(:)
 
-  print*
-  print"(1x,a,"//trim(c)//"(1x,f12.3))", 'ksv      :', ksv(:)
-  print"(1x,a,"//trim(c)//"(1x,f12.3))", 'faif     :', faif(:)
+  call logmsg('')
+  call logmsg(str('ksv',cl)//': '//str(ksv,'es10.3'))
+  call logmsg(str('faif',cl)//': '//str(faif,'es10.3'))
 
   read(un,*) 
   read(un,*) ka(:)
   read(un,*) gammam(:)
   read(un,*) beta(:)
   print*
-  print"(1x,a,"//trim(c)//"(1x,f12.3))", 'ka       :', ka(:)
-  print"(1x,a,"//trim(c)//"(1x,f12.3))", 'gammam   :', gammam(:)
-  print"(1x,a,"//trim(c)//"(1x,f12.3))", 'beta     :', beta(:)
+  call logmsg(str('ka',cl)//': '//str(ka,'es10.3'))
+  call logmsg(str('gammam',cl)//': '//str(gammam,'es10.3'))
+  call logmsg(str('beta',cl)//': '//str(beta,'es10.3'))
 
   read(un,*) 
   read(un,*) ksg(:)
@@ -195,16 +200,16 @@ subroutine read_config()
   read(un,*) kg0(:)
   read(un,*) fpg(:)
   read(un,*) rgl(:)
-  print*
-  print"(1x,a,"//trim(c)//"(1x,f12.3))", 'ksg      :', ksg(:)
-  print"(1x,a,"//trim(c)//"(1x,f12.3))", 'gammag   :', gammag(:)
-  print"(1x,a,"//trim(c)//"(1x,f12.3))", 'kg0      :', kg0(:)
-  print"(1x,a,"//trim(c)//"(1x,f12.3))", 'fpg      :', fpg(:)
-  print"(1x,a,"//trim(c)//"(1x,f12.3))", 'rgl      :', rgl(:)
+  call logmsg('')
+  call logmsg(str('ksg',cl)//': '//str(ksg,'es10.3'))
+  call logmsg(str('gammag',cl)//': '//str(gammag,'es10.3'))
+  call logmsg(str('kg0',cl)//': '//str(kg0,'es10.3'))
+  call logmsg(str('fpg',cl)//': '//str(fpg,'es10.3'))
+  call logmsg(str('rgl',cl)//': '//str(rgl,'es10.3'))
 
   read(un,*)
   read(un,*) file_riv_network
-  print"(1x,a)", 'network: '//trim(file_riv_network)
+  call logmsg('file_network: '//trim(file_riv_network))
 
   read(un,*) 
   read(un,*) switch_riv_crssct
@@ -256,7 +261,7 @@ subroutine read_config()
   read(un,*)
   read(un,*) land_switch
   read(un,"(a)") landfile
-  if( land_switch == 1 ) print"(1x,a)", 'landfile: '//trim(landfile)
+  if( land_switch == 1 ) call logmsg('landfile: '//trim(landfile))
 
   read(un,*)
   read(un,*) dam_switch
@@ -268,6 +273,7 @@ subroutine read_config()
 
   close(un)
   !-------------------------------------------------------------
+  call logext()
   call logret(PRCNAM, MODNAM)
 end subroutine read_config
 !===============================================================
@@ -275,10 +281,17 @@ end subroutine read_config
 !===============================================================
 subroutine setup_domain()
   implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'setup_domain'
+
   real(8) :: d1, d2, d3, d4
   integer :: un
   character :: ctmp
 
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
+  call logent('setup domain')
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
   open(newunit=un, file=demfile, status='old')
   read(un,*) ctmp, nx
   read(un,*) ctmp, ny
@@ -287,7 +300,7 @@ subroutine setup_domain()
   read(un,*) ctmp, cellsize
   read(un,*) ! nodata
   close(un)
-  print*, 'nx: ',nx,' ny: ',ny
+  call logmsg('nx: '//str(nx)//' ny: '//str(ny))
 
   east = west + nx * cellsize
   north = south + ny * cellsize
@@ -299,18 +312,28 @@ subroutine setup_domain()
   call hubeny( east, south, east, north, d4 )  ! east
   dx = (d1 + d2) / 2.d0 / real(nx)
   dy = (d3 + d4) / 2.d0 / real(ny)
-  print*, 'dx [m]: ',dx,' dy [m]: ',dy
+  call logmsg('dx [m]: '//str(dx)//' dy [m]: '//str(dy))
 
   length = sqrt(dx * dy)
   area = dx * dy
+  !-------------------------------------------------------------
+  call logext()
+  call logret(PRCNAM, MODNAM)
 end subroutine setup_domain
 !===============================================================
 !
 !===============================================================
 subroutine prep_landcover()
   implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'prep_landcover'
+
   integer :: i
 
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
+  call logent('prep. land cover')
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
   allocate(land(nx, ny))
   land(:,:) = 1
   if( land_switch == 1 )then
@@ -351,6 +374,9 @@ subroutine prep_landcover()
       rgl(i) = 0.d0
     endif
   enddo
+  !-------------------------------------------------------------
+  call logext()
+  call logret(PRCNAM, MODNAM)
 end subroutine prep_landcover
 !===============================================================
 !
@@ -359,8 +385,15 @@ subroutine prep_topography()
   use mod_section, only: &
     set_section
   implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'prep_toporaphy'
+
   integer :: i, j
 
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
+  call logent('prep. topography data')
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
   allocate(zs(nx, ny))
   allocate(zb(nx, ny))
   allocate(domain(nx, ny))
@@ -371,6 +404,9 @@ subroutine prep_topography()
   call read_map(demfile, zs)
   call read_map(dirfile, dir)
   call read_map(upafile, upa)
+
+  ! TMP
+  upa = upa * area * 1d-6  ! m2 -> km2
 
   ! elevations of slope bed rock (zb)
   do j = 1, ny
@@ -396,17 +432,26 @@ subroutine prep_topography()
                  ' max: '//str(maxval(zb,mask=domain==DOMAIN__INSIDE)))
   call logmsg('upa min: '//str(minval(upa,mask=domain==DOMAIN__INSIDE))//&
                  ' max: '//str(maxval(upa,mask=domain==DOMAIN__INSIDE)))
+  !-------------------------------------------------------------
+  call logext()
+  call logret(PRCNAM, MODNAM)
 end subroutine prep_topography
 !===============================================================
 !
 !===============================================================
 subroutine prep_slo_idx()
   implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'prep_slo_idx'
 
   integer :: i, j, ii, jj, l
   real(8) :: distance, len, l1, l2, l3
   real(8) :: l1_kin, l2_kin, l3_kin
 
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
+  call logent('prep. 1D data of slope')
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
   slo_count = count(domain /= DOMAIN__OUTSIDE)
 
   allocate( slo_idx2i(slo_count), slo_idx2j(slo_count), slo_ij2idx(nx,ny) )
@@ -610,41 +655,67 @@ subroutine prep_slo_idx()
     len_slo_1d_idx(slo_count) = len
   enddo  ! i/
   enddo  ! j/
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  call traperr( wbin(slo_idx2i, joined(dir_out,'slo_idx2ij.bin'), rec=1, replace=.true.) )
+  call traperr( wbin(slo_idx2j, joined(dir_out,'slo_idx2ij.bin'), rec=2, replace=.false.) )
+  call traperr( wbin(slo_ij2idx, joined(dir_out,'slo_ij2idx.bin'), replace=.true.) )
+  !-------------------------------------------------------------
+  call logext()
+  call logret(PRCNAM, MODNAM)
 end subroutine prep_slo_idx
 !===============================================================
 !
 !===============================================================
 subroutine prep_river()
   implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'prep_river'
 
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
+  call logent('prep. river')
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
   call read_river_network()
+
+  call prep_river_connection()
 
   call prep_river_grid_isct()
 
   call prep_river_topography()
-
-  call prep_river_connection()
+  !-------------------------------------------------------------
+  call logext()
+  call logret(PRCNAM, MODNAM)
 end subroutine prep_river
 !===============================================================
 !
 !===============================================================
 subroutine read_river_network()
   implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'read_river_network'
 
   type(channel_), pointer :: ch
-  integer :: k
+  type(ch_node_), pointer :: chnode
+  integer :: iCh
+  integer :: jNode
   integer :: jPoint
 
   integer :: un
   character :: c_
 
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
+  call logent('read river network')
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
   open(newunit=un, file=file_riv_network, status='old')
   read(un,*) c_, riv_count
 
   allocate(channel(riv_count))
 
-  do k = 1, riv_count
-    ch => channel(k)
+  do iCh = 1, riv_count
+    ch => channel(iCh)
     allocate(ch%node(2))
 
     read(un,*) ! index
@@ -657,11 +728,20 @@ subroutine read_river_network()
     read(un,*) c_, ch%point(:)%lon
     read(un,*) c_, ch%point(:)%lat
 
+    ch%dist_to_mouth = sum(ch%node(:)%dist_to_mouth) / 2.d0
     ch%is_outlet = any(ch%node(:)%is_outlet)
     ch%node(1)%lon = ch%point(1)%lon
     ch%node(1)%lat = ch%point(1)%lat
     ch%node(2)%lon = ch%point(ch%nPoint)%lon
     ch%node(2)%lat = ch%point(ch%nPoint)%lat
+
+    do jNode = 1, 2
+      chnode => ch%node(jNode)
+      if( .not. chnode%is_outlet .and. chnode%dist_to_mouth == 0.d0 )then
+        call logmsg('modify outlet node: is_outlet '//str(chnode%is_outlet)//' -> '//str(.true.))
+        chnode%is_outlet = .true.
+      endif
+    enddo
 
     ch%leng = 0.d0
     do jPoint = 1, ch%nPoint-1
@@ -681,16 +761,406 @@ subroutine read_river_network()
       ch%node(1)%stat_updown = NODE_STAT_UPDOWN__DOWN
       ch%node(2)%stat_updown = NODE_STAT_UPDOWN__UP
     else
+      call logmsg('updown unknown: ch#'//str(iCh))
       ch%node(1)%stat_updown = NODE_STAT_UPDOWN__UNKNOWN
       ch%node(2)%stat_updown = NODE_STAT_UPDOWN__UNKNOWN
     endif
-  enddo  ! k/
+  enddo  ! iCh/
 
   close(un)
 
   call logmsg('channel length min: '//str(minval(channel(:)%leng))//&
               ' max: '//str(maxval(channel(:)%leng)))
+  !-------------------------------------------------------------
+  call logext()
+  call logret(PRCNAM, MODNAM)
 end subroutine read_river_network
+!===============================================================
+!
+!===============================================================
+subroutine prep_river_connection()
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'prep_river_connection'
+
+  type(channel_), pointer :: ch, ch2
+  type(ch_node_), pointer :: chnode, chnode2
+  type(nwk_node_), pointer :: node
+  real(8), allocatable :: lst_lon(:), lst_lat(:)
+  integer, allocatable :: lst_iCh(:), lst_jNode(:)
+  integer, allocatable :: arg(:)
+  integer :: is, ie, iis, iie, ii
+  integer :: iCh, iCh2, iCh_up, iCh_down
+  integer :: jCh, jCh2
+  integer :: nNode, iNode
+  integer :: jNode, jNode2
+  integer :: n_outlet
+
+  integer :: iCh_debug = 1675
+  logical :: debug_this
+
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
+  call logent('prep. river connection')
+  !-------------------------------------------------------------
+  ! make a list of endpoint nodes
+  !-------------------------------------------------------------
+  call logent('make a list of enpoint nodes')
+
+  nNode = riv_count * 2
+  allocate(lst_lon(nNode))
+  allocate(lst_lat(nNode))
+  allocate(lst_iCh(nNode))
+  allocate(lst_jNode(nNode))
+
+  iNode = 0
+  do iCh = 1, riv_count
+    ch => channel(iCh)
+
+    do jNode = 1, 2
+      call add(iNode)
+      lst_lon(iNode) = ch%node(jNode)%lon
+      lst_lat(iNode) = ch%node(jNode)%lat
+      lst_iCh(iNode) = iCh
+      lst_jNode(iNode) = jNode
+    enddo
+  enddo
+
+  do iCh = 1, riv_count
+    ch => channel(iCh)
+    ch%node(:)%nCh_adj = 0
+  enddo
+
+  allocate(arg(nNode))
+  call argsort(lst_lon, arg)
+  call sort(lst_lon  , arg)
+  call sort(lst_lat  , arg)
+  call sort(lst_iCh  , arg)
+  call sort(lst_jNode, arg)
+
+  nwk%nNode = 0
+  ie = 0
+  do while( ie < nNode )
+    is = ie + 1
+    ie = is
+    do while( ie < nNode )
+      if( lst_lon(ie+1) /= lst_lon(is) ) exit
+      ie = ie + 1
+    enddo
+    call argsort(lst_lat(is:ie), arg(is:ie))
+    call sort(lst_lat(is:ie), arg(is:ie))
+    call sort(lst_iCh(is:ie), arg(is:ie))
+    call sort(lst_jNode(is:ie), arg(is:ie))
+
+    iie = is - 1
+    do while( iie < ie )
+      iis = iie + 1
+      iie = iis
+      do while( iie < ie )
+        if( lst_lat(iie+1) /= lst_lat(iis) ) exit
+        iie = iie + 1
+      enddo
+      nwk%nNode = nwk%nNode + 1
+
+      do ii = iis, iie
+        chnode => channel(lst_iCh(ii))%node(lst_jNode(ii))
+        call add(chnode%nCh_adj, iie-iis)
+      enddo
+    enddo  ! iie/
+  enddo  ! ie/
+
+  call logmsg('nodes: '//str(nwk%nNode))
+
+  allocate(nwk%node(nwk%nNode))
+
+  do iCh = 1, riv_count
+    ch => channel(iCh)
+    ch%nCh_adj = sum(ch%node(:)%nCh_adj)
+    allocate(ch%iCh_up(ch%nCh_adj))
+    allocate(ch%jNode_up(ch%nCh_adj))
+    allocate(ch%iCh_down(ch%nCh_adj))
+    allocate(ch%jNode_down(ch%nCh_adj))
+    ch%nCh_up = 0
+    ch%nCh_down = 0
+
+    do jNode = 1, 2
+      chnode => ch%node(jNode)
+      allocate(chnode%iCh_up(chnode%nCh_adj))
+      allocate(chnode%jNode_up(chnode%nCh_adj))
+      allocate(chnode%iCh_down(chnode%nCh_adj))
+      allocate(chnode%jNode_down(chnode%nCh_adj))
+      chnode%nCh_up = 0
+      chnode%nCh_down = 0
+    enddo  ! jNode/
+  enddo  ! iCh/
+
+  call logext()
+  !-------------------------------------------------------------
+  ! determine flow direction at each node
+  !-------------------------------------------------------------
+  call logent('determine flow direction at each node')
+
+  ie = 0
+  iNode = 0
+  do while( ie < nNode )
+    is = ie + 1
+    ie = is
+    do while( ie < nNode )
+      if( lst_lon(ie+1) /= lst_lon(is) .or. lst_lat(ie+1) /= lst_lat(is) ) exit
+      ie = ie + 1
+    enddo
+    !-----------------------------------------------------------
+    ! make lists of channels connected to the nwknode
+    !-----------------------------------------------------------
+    call add(iNode)
+    node => nwk%node(iNode)
+    node%nCh = ie - is + 1
+    allocate(node%iCh(node%nCh))
+    allocate(node%jNode(node%nCh))
+    node%iCh(:) = lst_iCh(is:ie)
+    node%jNode(:) = lst_jNode(is:ie)
+
+    allocate(node%iCh_up(node%nCh))
+    allocate(node%jNode_up(node%nCh))
+
+    allocate(node%iCh_down(node%nCh))
+    allocate(node%jNode_down(node%nCh))
+
+    allocate(node%iCh_unknown(node%nCh))
+    allocate(node%jNode_unknown(node%nCh))
+
+    node%nCh_up = 0
+    node%nCh_down = 0
+    node%nCh_unknown = 0
+    do jCh = 1, node%nCh
+      iCh = node%iCh(jCh)
+      jNode = node%jNode(jCh)
+      ch => channel(iCh)
+      chnode => ch%node(jNode)
+
+      chnode%iNode = iNode
+
+      selectcase( chnode%stat_updown )
+      case( NODE_STAT_UPDOWN__UP )
+        call add(node%nCh_up)
+        node%iCh_up(node%nCh_up) = iCh
+        node%jNode_up(node%nCh_up) = jNode
+      case( NODE_STAT_UPDOWN__DOWN )
+        call add(node%nCh_down)
+        node%iCh_down(node%nCh_down) = iCh
+        node%jNode_down(node%nCh_down) = jNode
+      case( NODE_STAT_UPDOWN__UNKNOWN )
+        call add(node%nCh_unknown)
+        node%iCh_unknown(node%nCh_unknown) = iCh
+        node%jNode_unknown(node%nCh_unknown) = jNode
+      case default
+        call errend(msg_invalid_value('chnode%stat_updown', chnode%stat_updown))
+      endselect
+    enddo  ! jCh/
+
+    call realloc(node%iCh_up, node%nCh_up, clear=.false.)
+    call realloc(node%jNode_up, node%nCh_up, clear=.false.)
+
+    call realloc(node%iCh_down, node%nCh_down, clear=.false.)
+    call realloc(node%jNode_down, node%nCh_down, clear=.false.)
+
+    call realloc(node%iCh_unknown, node%nCh_unknown, clear=.false.)
+    call realloc(node%jNode_unknown, node%nCh_unknown, clear=.false.)
+    !-----------------------------------------------------------
+    ! make lists of channels connected to chnode
+    !-----------------------------------------------------------
+    ! CASE: up > 0 and down > 0
+    ! water flows up to down
+    if( node%nCh_up > 0 .and. node%nCh_down > 0 )then
+
+      ! upstream node of ch == downstream node of ch2
+      ! -> ch2 is upstream of ch
+      do jCh = 1, node%nCh_up
+        iCh = node%iCh_up(jCh)
+        jNode = node%jNode_up(jCh)
+        ch => channel(iCh)
+        chnode => ch%node(jNode)
+
+        do jCh2 = 1, node%nCh_down
+          iCh2 = node%iCh_down(jCh2)
+          jNode2 = node%jNode_down(jCh2)
+          ch2 => channel(iCh2)
+          chnode2 => ch2%node(jNode2)
+
+          if( ch%nCh_up > 0 )then
+            if( any(iCh2 == ch%iCh_up(:ch%nCh_up)) )then
+              call errend('iCh2 already exists in ch%iCh_up(:)'//&
+                '\nch#'//str(iCh)//' iCh_up: '//str(ch%iCh_up(:ch%nCh_up))//&
+                '\nch2#'//str(iCh2))
+            endif
+          endif
+
+          call add(ch%nCh_up)
+          ch%iCh_up(ch%nCh_up) = iCh2
+          ch%jNode_up(ch%nCh_up) = jNode2
+
+          call add(chnode%nCh_up)
+          chnode%iCh_up(chnode%nCh_up) = iCh2
+          chnode%jNode_up(chnode%nCh_up) = jNode2
+
+          call add(ch2%nCh_down)
+          ch2%iCh_down(ch2%nCh_down) = iCh
+          ch2%jNode_down(ch2%nCh_down) = jNode
+
+          call add(chnode2%nCh_down)
+          chnode2%iCh_down(chnode2%nCh_down) = iCh
+          chnode2%jNode_down(chnode2%nCh_down) = jNode
+        enddo  ! jCh2/
+      enddo  ! jCh/
+    !-----------------------------------------------------------
+    ! CASE: up > 0 and down == 0
+    ! node is source
+    elseif( node%nCh_up > 0 .and. node%nCh_down == 0 )then
+      continue
+    !-----------------------------------------------------------
+    ! CASE: up == 0 and down > 0
+    ! IF unknown == 0: node is mouth (can be inland)
+    ! IF unknown > 0: water flows to unknown
+    elseif( node%nCh_up == 0 .and. node%nCh_down > 0 )then
+      n_outlet = 0
+      do jCh = 1, node%nCh_down
+        iCh = node%iCh_down(jCh)
+        jNode = node%jNode_down(jCh)
+        chnode => channel(iCh)%node(jNode)
+        if( chnode%is_outlet ) call add(n_outlet)
+      enddo
+      !---------------------------------------------------------
+      ! CASE: outlet
+      if( n_outlet == node%nCh_down )then
+        continue
+      !---------------------------------------------------------
+      ! CASE: ERROR: inconsistency
+      elseif( n_outlet > 0 )then
+        do jCh = 1, node%nCh_down
+          iCh = node%iCh_down(jCh)
+          jNode = node%jNode_down(jCh)
+          chnode => channel(iCh)%node(jNode)
+          if( chnode%is_outlet ) cycle
+          call errend('node is outlet but status `is_outlet` is False.'//&
+            '\nch#'//str(iCh)//' node#'//str(jNode)//' dist_to_mouth: '//str(chnode%dist_to_mouth))
+        enddo  ! jCh/
+      !---------------------------------------------------------
+      ! CASE: not outlet
+      else
+        call logerr(msg_not_implemented())
+        if( node%nCh_unknown == 0 )then
+          !call logwrn('inland outlet')
+        else
+          continue
+        endif
+      endif
+    !-----------------------------------------------------------
+    ! CASE: up == 0 and down == 0
+    elseif( node%nCh_up == 0 .and. node%nCh_down == 0 )then
+      call logerr(msg_not_implemented()//'\nup == 0 and down == 0')
+      continue
+    endif
+  enddo  ! ie/
+
+  if( iNode /= nwk%nNode )then
+    call errend('iNode: '//str(iNode))
+  endif
+
+  nCh_down_max = maxval(channel(:)%nCh_down)
+  call logmsg('nCh_down max: '//str(nCh_down_max))
+
+  ! realloc.
+  do iCh = 1, riv_count
+    ch => channel(iCh)
+
+    ch%nCh_adj = ch%nCh_up + ch%nCh_down
+    call realloc(ch%iCh_up, ch%nCh_up, clear=.false.)
+    call realloc(ch%iCh_down, ch%nCh_down, clear=.false.)
+
+    do jNode = 1, 2
+      chnode => ch%node(jNode)
+      chnode%nCh_adj = chnode%nCh_up + chnode%nCh_down
+      call realloc(chnode%iCh_up, chnode%nCh_up, clear=.false.)
+      call realloc(chnode%iCh_down, chnode%nCh_down, clear=.false.)
+    enddo
+  enddo
+
+  ! check consistency
+  do iCh = 1, riv_count
+    ch => channel(iCh)
+
+    ! consistency of %iCh_up and %iCh_down
+    do jCh = 1, ch%nCh_up
+      iCh_up = ch%iCh_up(jCh)
+      do jCh2 = 1, ch%nCh_down
+        iCh_down = ch%iCh_down(jCh2)
+        if( iCh_up == iCh_down )then
+          call errend('iCh_up == iCh_down')
+        endif
+      enddo  ! jCh2/
+    enddo  ! jCh/
+
+    ! consistency with connected channels
+    do jCh = 1, ch%nCh_up
+      iCh2 = ch%iCh_up(jCh)
+      ch2 => channel(iCh2)
+      if( ch2%nCh_down == 0 )then
+        call errend('ch2%nCh_down == 0')
+      else
+        if( all(ch2%iCh_down /= iCh) )then
+          call errend('all(ch2%iCh_down /= iCh)')
+        endif
+      endif
+    enddo  ! jCh/
+
+    do jCh = 1, ch%nCh_down
+      iCh2 = ch%iCh_down(jCh)
+      ch2 => channel(iCh2)
+      if( ch2%nCh_up == 0 )then
+        call errend('ch2%nCh_up == 0')
+      else
+        if( all(ch2%iCh_up /= iCh) )then
+          call errend('all(ch2%iCh_up /= iCh)')
+        endif
+      endif
+    enddo  ! jCh/
+
+    if( iCh == iCh_debug )then
+      call logmsg('ch#'//str(iCh))
+      if( ch%nCh_up == 0 )then
+        call logmsg('  ch_up  : (none)')
+      else
+        call logmsg('  ch_up  : '//str(ch%iCh_up))
+      endif
+      if( ch%nCh_down == 0 )then
+        call logmsg('  ch_down: (none)')
+      else
+        call logmsg('  ch_down: '//str(ch%iCh_down))
+      endif
+    endif
+  enddo  ! iCh/
+
+  call logext()
+  !-------------------------------------------------------------
+  ! calc. dist. to downstream channel
+  !-------------------------------------------------------------
+  call logent('calc. distance to downstream channels')
+
+  do iCh = 1, riv_count
+    ch => channel(iCh)
+
+    if( ch%nCh_down == 0 ) cycle
+
+    allocate(ch%dist_down(ch%nCh_down))
+    do jCh = 1, ch%nCh_down
+      ch2 => channel(ch%iCh_down(jCh))
+      ch%dist_down(jCh) = (ch%leng + ch2%leng) * 0.5d0
+    enddo  ! jCh/
+  enddo  ! iCh/
+
+  call logext()
+  !-------------------------------------------------------------
+  call logext()
+  call logret(PRCNAM, MODNAM)
+end subroutine prep_river_connection
 !===============================================================
 !
 !===============================================================
@@ -700,6 +1170,7 @@ subroutine prep_river_grid_isct()
   use mod_base, only: &
     slonlat
   implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'prep_river_grid_isct'
 
   type(channel_), pointer :: ch
   type(slo_riv_isct_), pointer :: sloriv
@@ -713,17 +1184,24 @@ subroutine prep_river_grid_isct()
   integer :: k
   integer :: ix, iy
   integer :: jPoint
-  integer :: iSlo, iiSlo
+  integer :: iSlo
+  integer :: jSlo
+  integer :: nSlo_isct_max
+  integer, allocatable :: ch_isct_x(:,:), ch_isct_y(:,:)
+  real(8), allocatable :: ch_isct_leng(:,:)
 
-!  integer :: k_debug = 490
-!  logical :: debug_this
+  integer :: k_debug = 1675
+  logical :: debug_this
+
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
+  call logent('calc. intersection of river and grid')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
   do k = 1, riv_count
     ch => channel(k)
 
-!    debug_this = k == k_debug
+    debug_this = k == k_debug
 
     ch%isct%nSlo = 0
 
@@ -735,9 +1213,7 @@ subroutine prep_river_grid_isct()
     allocate(ch%isct%x(nSlo_tmp))
     allocate(ch%isct%y(nSlo_tmp))
     allocate(ch%isct%iSlo(nSlo_tmp))
-    allocate(ch%isct%jCh(nSlo_tmp))
     allocate(ch%isct%leng(nSlo_tmp))
-    allocate(ch%isct%area(nSlo_tmp))
     allocate(ch%isct%domain(nSlo_tmp))
 
     do jPoint = 1, ch%nPoint-1
@@ -755,7 +1231,9 @@ subroutine prep_river_grid_isct()
 
       ys = ys_of_lat(max(wlat, elat))
       ye = ye_of_lat(min(wlat, elat))
-      !call logmsg('y: '//str((/ys,ye/),' - '))
+      if( debug_this )then
+        call logmsg('y: '//str((/ys,ye/),' - '))
+      endif
       !---------------------------------------------------------
       ! Case: north to south
       if( wlat > elat )then
@@ -810,10 +1288,7 @@ subroutine prep_river_grid_isct()
     call realloc(ch%isct%domain, ch%isct%nSlo, clear=.false.)
 
     ! calculated later
-    call realloc(ch%isct%jCh, ch%isct%nSlo, clear=.true.)
-
-    call realloc(ch%isct%area, ch%isct%nSlo, clear=.false.)
-    ch%isct%area(:) = ch%isct%leng(:) * ch%width
+    allocate(ch%isct%jCh(ch%isct%nSlo))
 
 !    if( debug_this )then
 !      call logmsg('nSlo: '//str(ch%isct%nSlo)//&
@@ -845,9 +1320,9 @@ subroutine prep_river_grid_isct()
 
   do k = 1, riv_count
     ch => channel(k)
-    do iiSlo = 1, ch%isct%nSlo
-      if( ch%isct%domain(iiSlo) == DOMAIN__OUTSIDE ) cycle
-      iSlo = ch%isct%iSlo(iiSlo)
+    do jSlo = 1, ch%isct%nSlo
+      if( ch%isct%domain(jSlo) == DOMAIN__OUTSIDE ) cycle
+      iSlo = ch%isct%iSlo(jSlo)
       sloriv => slo_riv_isct(iSlo)
       sloriv%nCh = sloriv%nCh + 1
     enddo
@@ -864,18 +1339,50 @@ subroutine prep_river_grid_isct()
 
   do k = 1, riv_count
     ch => channel(k)
-    do iiSlo = 1, ch%isct%nSlo
-      if( ch%isct%domain(iiSlo) == DOMAIN__OUTSIDE ) cycle
-      iSlo = ch%isct%iSlo(iiSlo)
+    do jSlo = 1, ch%isct%nSlo
+      if( ch%isct%domain(jSlo) == DOMAIN__OUTSIDE ) cycle
+      iSlo = ch%isct%iSlo(jSlo)
       sloriv => slo_riv_isct(iSlo)
 
       sloriv%nCh = sloriv%nCh + 1
       sloriv%iCh(sloriv%nCh) = k
-      sloriv%jSlo(sloriv%nCh) = iiSlo
+      sloriv%jSlo(sloriv%nCh) = jSlo
 
-      ch%isct%jCh(iiSlo) = sloriv%nCh
+      ch%isct%jCh(jSlo) = sloriv%nCh
     enddo
   enddo  ! k/
+  !-------------------------------------------------------------
+  ! Save data
+  !-------------------------------------------------------------
+  call logent('save')
+
+  nSlo_isct_max = maxval(channel(:)%isct%nSlo)
+  allocate(ch_isct_x(nSlo_isct_max,riv_count))
+  allocate(ch_isct_y(nSlo_isct_max,riv_count))
+  allocate(ch_isct_leng(nSlo_isct_max,riv_count))
+
+  ch_isct_x(:,:) = 0
+  ch_isct_y(:,:) = 0
+  ch_isct_leng(:,:) = 0.d0
+  do k = 1, riv_count
+    ch => channel(k)
+    ch_isct_x(:ch%isct%nSlo,k) = ch%isct%x(:)
+    ch_isct_y(:ch%isct%nSlo,k) = ch%isct%y(:)
+    ch_isct_leng(:ch%isct%nSlo,k) = ch%isct%leng(:)
+  enddo  ! k/
+
+  call traperr( wbin(ch_isct_x, joined(dir_out,'ch_isct_xy.bin'), rec=1, replace=.true.) )
+  call traperr( wbin(ch_isct_y, joined(dir_out,'ch_isct_xy.bin'), rec=2, replace=.false.) )
+  call traperr( wbin(ch_isct_leng, joined(dir_out,'ch_isct_leng.bin'), replace=.true.) )
+
+  deallocate(ch_isct_x)
+  deallocate(ch_isct_y)
+  deallocate(ch_isct_leng)
+
+  call logext()
+  !-------------------------------------------------------------
+  call logext()
+  call logret(PRCNAM, MODNAM)
 !---------------------------------------------------------------
 contains
 !---------------------------------------------------------------
@@ -887,7 +1394,9 @@ subroutine loop_for_x()
   xs = xs_of_lon(clon_west)
   xe = xe_of_lon(clon_east)
 
-  !call logmsg('x: '//str((/xs,xe/),' - '))
+  if( debug_this )then
+    call logmsg('x: '//str((/xs,xe/),' - '))
+  endif
 
   nSlo_tmp = ch%isct%nSlo + (xe - xs + 1)
   if( size(ch%isct%x) < nSlo_tmp )then
@@ -927,13 +1436,25 @@ subroutine loop_for_x()
         slonlat(dlon_east,dlat_east)//') leng: '//str(leng))
     endif
 
-    call add(ch%isct%nSlo)
-    ch%isct%x(ch%isct%nSlo) = ix
-    ch%isct%y(ch%isct%nSlo) = iy
-    ch%isct%iSlo(ch%isct%nSlo) = slo_ij2idx(ix,iy)
-    ch%isct%leng(ch%isct%nSlo) = leng
-    ch%isct%domain(ch%isct%nSlo) = domain(ix,iy)
+    do jSlo = 1, ch%isct%nSlo
+      if( ch%isct%x(jSlo) == ix .and. ch%isct%y(jSlo) == iy )then
+        call add(ch%isct%leng(jSlo), leng)
+        exit
+      endif
+    enddo
+    if( jSlo == ch%isct%nSlo+1 )then
+      call add(ch%isct%nSlo)
+      ch%isct%x(jSlo) = ix
+      ch%isct%y(jSlo) = iy
+      ch%isct%iSlo(jSlo) = slo_ij2idx(ix,iy)
+      ch%isct%leng(jSlo) = leng
+      ch%isct%domain(jSlo) = domain(ix,iy)
+    endif
 
+    if( debug_this )then
+      call logmsg('jSlo '//str(ch%isct%nSlo)//' x '//str(ix)//' y '//str(iy)//&
+          ' iSlo '//str(slo_ij2idx(ix,iy)))
+    endif
 !    if( debug_this )then
 !      call logmsg('ch#'//str(k)//' p#'//str(jPoint)//' ('//&
 !        slonlat(wlon,wlat)//')'//' - p#'//str(jPoint+1)//' ('//&
@@ -957,18 +1478,22 @@ subroutine prep_river_topography()
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'prep_river_topography'
 
-  type(channel_), pointer :: ch
+  type(channel_), pointer :: ch, ch2
   real(8), allocatable :: lst_leng(:)
   real(8), allocatable :: lst_upa(:)
   integer, allocatable :: arg(:)
   real(8) :: leng_tmp
   integer :: k
+  integer :: iCh, jCh
   integer :: jSlo
+  logical :: is_ok
 
   call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
   ! get median of upper area
   !-------------------------------------------------------------
+  call logent('get upper area')
+
   do k = 1, riv_count
     ch => channel(k)
 
@@ -1008,15 +1533,37 @@ subroutine prep_river_topography()
     deallocate(lst_upa)
   enddo  ! k = 1, riv_count
 
+  call logext()
+  !-------------------------------------------------------------
   ! TMP
-  ! modify upper area
-  do k = 1, riv_count
-    ch => channel(k)
+  ! modify upa
+  !-------------------------------------------------------------
+  call logent('modify upa')
 
-  enddo  ! k/
+  is_ok = .false.
+  do while( .not. is_ok )
+    is_ok = .true.
+
+    do iCh = 1, riv_count
+      ch => channel(iCh)
+      do jCh = 1, ch%nCh_down
+        ch2 => channel(ch%iCh_down(jCh))
+        if( ch2%upa >= ch%upa ) cycle
+!        call logmsg('ch#'//str(ch%iCh_down(jCh))//' '//str(ch2%upa)//' -> '//str(ch%upa))
+        ch2%upa = ch%upa
+        is_ok = .false.
+      enddo
+    enddo  ! iCh/
+  enddo  ! is_ok/
+
+  call traperr( wbin(channel(:)%upa, joined(dir_out, 'riv_upa.bin'), replace=.true.) )
+
+  call logext()
   !-------------------------------------------------------------
   ! get width and depth
   !-------------------------------------------------------------
+  call logent('get width and depth')
+
   selectcase( switch_riv_crssct )
   !-------------------------------------------------------------
   ! Case: regime theory
@@ -1064,20 +1611,37 @@ subroutine prep_river_topography()
                            ' max: '//str(maxval(channel(:)%depth)))
   call logmsg('channel levee min: '//str(minval(channel(:)%height))//&
                            ' max: '//str(maxval(channel(:)%height)))
+
+  call traperr( wbin(channel(:)%width, joined(dir_out, 'riv_width.bin'), replace=.true.) )
+  call traperr( wbin(channel(:)%depth, joined(dir_out, 'riv_depth.bin'), replace=.true.) )
+  call traperr( wbin(channel(:)%height, joined(dir_out, 'riv_levee.bin'), replace=.true.) )
+
+  call logext()
   !-------------------------------------------------------------
   ! calc. area
   !-------------------------------------------------------------
+  call logent('calc area')
+
   do k = 1, riv_count
     ch => channel(k)
 
-    ch%area = ch%width * ch%leng
+    ch%area = ch%leng * ch%width
+
+    allocate(ch%isct%area(ch%isct%nSlo))
+    ch%isct%area(:) = ch%isct%leng(:) * ch%width
   enddo
 
   call logmsg('channel area  min: '//str(minval(channel(:)%area))//&
                            ' max: '//str(maxval(channel(:)%area)))
+
+  call traperr( wbin(channel(:)%area, joined(dir_out, 'riv_area.bin'), replace=.true.) )
+
+  call logext()
   !-------------------------------------------------------------
   ! calc. elevation
   !-------------------------------------------------------------
+  call logent('calc elevation')
+
   do k = 1, riv_count
     ch => channel(k)
 
@@ -1092,230 +1656,19 @@ subroutine prep_river_topography()
     ! mean bed rock elevation
     ch%zb = ch%zs - ch%depth
   enddo  ! k/
+
+  call logmsg('channel elevation min: '//str(minval(channel(:)%zs))//&
+                               ' max: '//str(maxval(channel(:)%zs)))
+  call logmsg('channel bed elvtn min: '//str(minval(channel(:)%zb))//&
+                               ' max: '//str(maxval(channel(:)%zb)))
+
+  call traperr( wbin(channel(:)%zs, joined(dir_out, 'riv_zs.bin'), replace=.true.) )
+  call traperr( wbin(channel(:)%zb, joined(dir_out, 'riv_zb.bin'), replace=.true.) )
+
+  call logext()
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
 end subroutine prep_river_topography
-!===============================================================
-!
-!===============================================================
-subroutine prep_river_connection()
-  implicit none
-  character(CLEN_PROC), parameter :: PRCNAM = 'prep_river_connection'
-
-  type(channel_), pointer :: ch, ch2
-  type(ch_node_), pointer :: chnode
-  type(nwk_node_), pointer :: node
-  real(8), allocatable :: lst_lon(:), lst_lat(:)
-  integer, allocatable :: lst_iCh(:), lst_jNode(:)
-  integer, allocatable :: arg(:)
-  integer :: nNode, kNode, is, ie, iis, iie
-  integer :: iNode
-  integer :: jNode
-  integer :: iiCh, iiCh_down, iiCh2
-  integer :: iCh, iCh2
-  logical :: is_found
-
-  call logbgn(PRCNAM, MODNAM, '-p -x2')
-  !-------------------------------------------------------------
-  ! Construct network
-  !-------------------------------------------------------------
-  call logent('constructing network')
-
-  nNode = riv_count * 2
-  allocate(lst_lon(nNode))
-  allocate(lst_lat(nNode))
-  allocate(lst_iCh(nNode))
-  allocate(lst_jNode(nNode))
-
-  ! make a list of endpoint nodes
-  kNode = 0
-  do iCh = 1, riv_count
-    ch => channel(iCh)
-
-    do jNode = 1, 2
-      kNode = kNode + 1
-      lst_lon(kNode) = ch%node(jNode)%lon
-      lst_lat(kNode) = ch%node(jNode)%lat
-      lst_iCh(kNode) = iCh
-      lst_jNode(kNode) = jNode
-    enddo
-  enddo
-
-  allocate(arg(nNode))
-  call argsort(lst_lon, arg)
-  call sort(lst_lon  , arg)
-  call sort(lst_lat  , arg)
-  call sort(lst_iCh  , arg)
-  call sort(lst_jNode, arg)
-
-  nwk%nNode = 0
-  ie = 0
-  do while( ie < nNode )
-    is = ie + 1
-    ie = is
-    do while( ie < nNode )
-      if( lst_lon(ie+1) /= lst_lon(is) ) exit
-      ie = ie + 1
-    enddo
-    call argsort(lst_lat(is:ie), arg(is:ie))
-    call sort(lst_lat(is:ie), arg(is:ie))
-    call sort(lst_iCh(is:ie), arg(is:ie))
-    call sort(lst_jNode(is:ie), arg(is:ie))
-
-    iie = is - 1
-    do while( iie < ie )
-      iis = iie + 1
-      iie = iis
-      do while( iie < ie )
-        if( lst_lat(iie+1) /= lst_lat(iis) ) exit
-        iie = iie + 1
-      enddo
-      nwk%nNode = nwk%nNode + 1
-    enddo  ! iie/
-  enddo  ! ie/
-
-  allocate(nwk%node(nwk%nNode))
-
-  call logext()
-  !-------------------------------------------------------------
-  ! Make lists of adjacent channels
-  !-------------------------------------------------------------
-  call logent('making lists of adjacent channels')
-
-  iNode = 0
-  ie = 0
-  do while( ie < size(lst_lon) )
-    is = ie + 1
-    ie = is
-    do while( ie < size(lst_lon) )
-      if( lst_lon(ie+1) /= lst_lon(is) ) exit
-      ie = ie + 1
-    enddo
-  
-    iie = is - 1
-    do while( iie < ie )
-      iis = iie + 1
-      iie = iis
-      do while( iie < ie )
-        if( lst_lat(iie+1) /= lst_lat(iis) ) exit
-        iie = iie + 1
-      enddo
-
-      iNode = iNode + 1
-      node => nwk%node(iNode)
-      node%nCh = iie - iis + 1
-
-      allocate(node%iCh(node%nCh))
-
-      do kNode = iis, iie
-        iiCh = kNode - iis + 1
-        node%iCh(iiCh) = lst_iCh(kNode)
-        ch => channel(lst_iCh(kNode))
-        ch%node(lst_jNode(kNode))%iNode = iNode
-      enddo  ! iiCh/
-    enddo  ! iie/
-  enddo  ! ie/
-
-  do iCh = 1, riv_count
-    ch => channel(iCh)
-
-    ch%nCh_up = 0
-    do jNode = 1, 2
-      chnode => ch%node(jNode)
-      node => nwk%node(chnode%iNode)
-      call add(ch%nCh_up, node%nCh-1)
-    enddo  ! jNode/
-
-    allocate(ch%iCh_up(ch%nCh_up))
-    allocate(ch%iCh_down(ch%nCh_up))
-    ch%nCh_up = 0
-    ch%nCh_down = 0
-    do jNode = 1, 2
-      chnode => ch%node(jNode)
-      node => nwk%node(chnode%iNode)
-      do iiCh = 1, node%nCh
-        iCh2 = node%iCh(iiCh)
-        if( iCh2 == iCh ) cycle
-        ch2 => channel(iCh2)
-
-        if( ch%dist_to_mouth < ch2%dist_to_mouth )then
-          if( ch%nCh_down > 0 )then
-            if( any(ch%iCh_down(:ch%nCh_down) == iCh2) ) cycle
-          endif
-          call add(ch%nCh_down)
-          ch%iCh_down(ch%nCh_down) = iCh2
-        else
-          if( ch%nCh_up > 0 )then
-            if( any(ch%iCh_up(:ch%nCh_up) == iCh2) ) cycle
-          endif
-          call add(ch%nCh_up)
-          ch%iCh_up(ch%nCh_up) = iCh2
-        endif
-      enddo  ! iiCh/
-    enddo  ! jNode/
-
-    call realloc(ch%iCh_up, ch%nCh_up, clear=.false.)
-    call realloc(ch%iCh_down, ch%nCh_down, clear=.false.)
-  enddo  ! iCh/
-
-  call logext()
-  !-------------------------------------------------------------
-  ! check consistency
-  !-------------------------------------------------------------
-  call logent('checking consistency')
-
-  do iCh = 1, riv_count
-    ch => channel(iCh)
-
-    do iiCh = 1, ch%nCh_down
-      ch2 => channel(ch%iCh_down(iiCh))
-
-      is_found = .false.
-      do iiCh2 = 1, ch2%nCh_up
-        if( ch2%iCh_up(iiCh2) == iCh )then
-          is_found = .true.
-          exit
-        endif
-      enddo  ! iiCh2/
-      if( .not. is_found )then
-        call errend('ch#'//str(iCh)//' inconsistency was detected.')
-      endif
-
-      is_found = .false.
-      do iiCh2 = 1, ch2%nCh_down
-        if( ch2%iCh_down(iiCh2) == iCh )then
-          is_found = .true.
-          exit
-        endif
-      enddo  ! iiCh2/
-      if( is_found )then
-        call errend('ch#'//str(iCh)//' inconsistency was detected.')
-      endif
-    enddo  ! iiCh/
-  enddo  ! iCh/
-
-  call logext()
-  !-------------------------------------------------------------
-  ! calc. dist. to downstream channel
-  !-------------------------------------------------------------
-  call logent('calculating distance to downstream channels')
-
-  do iCh = 1, riv_count
-    ch => channel(iCh)
-
-    if( ch%nCh_down == 0 ) cycle
-
-    allocate(ch%dist_down(ch%nCh_down))
-    do iiCh_down = 1, ch%nCh_down
-      ch2 => channel(ch%iCh_down(iiCh_down))
-      ch%dist_down(iiCh_down) = (ch%leng + ch2%leng) * 0.5d0
-    enddo  ! iiCh_down/
-  enddo  ! iCh/
-
-  call logext()
-  !-------------------------------------------------------------
-  call logret(PRCNAM, MODNAM)
-end subroutine prep_river_connection
 !===============================================================
 !
 !===============================================================

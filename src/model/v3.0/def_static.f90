@@ -80,8 +80,6 @@ module def_static
 
   ! Forcing data
   integer :: nt_rain
-  !real(8), allocatable :: time_rain(:)
-  !real(8), allocatable :: rain_all(:,:,:)
 
   ! Slope
   real(8), allocatable, save :: zs(:,:)
@@ -148,6 +146,9 @@ module def_static
     real(8) :: dist_to_mouth
     integer :: stat_updown
     integer :: iNode  ! index in nwk%node
+    integer :: nCh_adj, nCh_up, nCh_down
+    integer, pointer :: iCh_up(:), iCh_down(:)
+    integer, pointer :: jNode_up(:), jNode_down(:)
   end type
 
   ! intersection with slope grids
@@ -161,13 +162,6 @@ module def_static
     real(8), pointer :: area(:)  !(nSlo)
     integer, pointer :: domain(:)  !(nSlo)
     real(8) :: leng_domain
-  end type
-
-  ! node
-  type nwk_node_
-    real(8) :: lon, lat
-    integer :: nCh
-    integer, pointer :: iCh(:)  !(nCh)
   end type
 
   type channel_
@@ -186,10 +180,21 @@ module def_static
     integer :: nPoint
     type(ch_point_), pointer :: point(:)  !(nPoint)
     type(ch_isct_) :: isct
-    integer :: nCh_up, nCh_down
-    integer, pointer :: iCh_up(:)  !(nCh_up)
-    integer, pointer :: iCh_down(:)  !(nCh_down)
-    real(8), pointer :: dist_down(:)
+    integer :: nCh_adj, nCh_up, nCh_down
+    integer, pointer :: iCh_adj(:) , jNode_adj(:)   !(nCh_adj)
+    integer, pointer :: iCh_up(:)  , jNode_up(:)    !(nCh_up)
+    integer, pointer :: iCh_down(:), jNode_down(:)  !(nCh_down)
+    real(8), pointer :: dist_down(:)  !(nCh_down)
+  end type
+
+  ! node
+  type nwk_node_
+    real(8) :: lon, lat
+    integer :: nCh, nCh_up, nCh_down, nCh_unknown
+    integer, pointer :: iCh(:), jNode(:)  !(nCh)
+    integer, pointer :: iCh_up(:), jNode_up(:)  !(nCh_up)
+    integer, pointer :: iCh_down(:), jNode_down(:)  !(nCh_down)
+    integer, pointer :: iCh_unknown(:), jNode_unknown(:)  !(nCh_unknown)
   end type
 
   type network_
@@ -199,6 +204,7 @@ module def_static
 
   type(channel_), pointer :: channel(:)  !(riv_count)
   type(network_) :: nwk
+  integer :: nCh_down_max
 
   ! -- River section
   real(8) :: width_param_c

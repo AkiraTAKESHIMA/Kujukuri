@@ -2,6 +2,7 @@ module mod_rivslo
   use lib_const
   use lib_base
   use lib_log
+  use lib_math
   use def_const
   use def_static
   implicit none
@@ -50,7 +51,7 @@ end subroutine prep_rivslo
 !===============================================================
 !
 !===============================================================
-subroutine funcrs( hr_idx, hs_idx, qrs )
+subroutine funcrs( hr_idx, hs_idx, qrs_idx )
   use mod_section, only: &
     sec_h2b, &
     hr2vr, &
@@ -58,7 +59,7 @@ subroutine funcrs( hr_idx, hs_idx, qrs )
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'funcrs'
   real(8), intent(inout) :: hr_idx(:), hs_idx(:)
-  real(8), intent(out) :: qrs(:,:)
+  real(8), intent(out) :: qrs_idx(:,:)  !(nSlo_isct_max,riv_count)
 
   type(channel_), pointer :: ch
   real(8) :: hr_top, hs_top, h1, h2
@@ -76,14 +77,10 @@ subroutine funcrs( hr_idx, hs_idx, qrs )
   real(8), parameter :: mu2 = 0.35d0
   real(8), parameter :: mu3 = 0.91d0
 
-  integer :: iCh_debug = 2410
+  integer :: iCh_debug = 0
   logical :: debug_this
 
   call logbgn(PRCNAM, MODNAM, '-p -x2')
-  !-------------------------------------------------------------
-  !
-  !-------------------------------------------------------------
-  qrs = 0.d0
   !-------------------------------------------------------------
   ! Calc. discharge
   !-------------------------------------------------------------
@@ -124,7 +121,10 @@ subroutine funcrs( hr_idx, hs_idx, qrs )
 
       if( debug_this )then
         call logmsg('vsr: '//str(vsr_this)//&
-            ' dhs: '//str(-vsr_this/area)//' dhr: '//str(vsr_this/ch%area))
+            '\nhs_top: '//str(hs_top)//' + '//str(-vsr_this/area)//&
+             ' -> '//str(hs_top-vsr_this/area)//&
+            '\nhr_top: '//str(hr_top)//' + '//str(vsr_this/area_riv)//&
+            ' -> '//str(hr_top+vsr_this/area_riv))
       endif
 
       vrs(iCh)%val(jSlo) = -vsr_this
@@ -280,6 +280,16 @@ subroutine funcrs( hr_idx, hs_idx, qrs )
 
   call logext()
   !-------------------------------------------------------------
+  ! calc. $qrs_idx
+  !-------------------------------------------------------------
+  qrs_idx(:,:) = 0.d0
+  do iCh = 1, riv_count
+    ch => channel(iCh)
+    do jSlo = 1, ch%isct%nSlo
+      call add(qrs_idx(jSlo,iCh), vrs(iCh)%val(jSlo))
+    enddo
+  enddo
+  !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
 !---------------------------------------------------------------
 !
@@ -350,6 +360,13 @@ subroutine calc_discharge(vsr)
       vsr = -mu3 * h2 * sqrt(2.d0*GRAVITY*(h1-h2)) * dt_model * leng * 2.d0
     endif
 
+    if( debug_this )then
+      call logmsg('1 vsr: '//str(vsr)//' hr_top: '//str(hr_top)//' area: '//str(area_riv))
+      if( vsr < -h1 * area_riv )then
+        call logmsg('2 vsr: '//str(-h1*area_riv))
+      endif
+    endif
+
     vsr = max(vsr, -(hr_top - ch%height) * area_riv)
 
     call vr2hr(vr_idx(iCh)+vsr, iCh, hr_tmp)
@@ -358,6 +375,9 @@ subroutine calc_discharge(vsr)
     ! avoid situation of hs_top > hr_top
     hr_top = hr_tmp - ch%depth
     hs_top = hs_tmp
+    if( debug_this )then
+      call logmsg('hr_top: '//str(hr_top)//' hs_top: '//str(hs_top))
+    endif
     if( hs_top > hr_top )then
       call calc_discharge_for_same_level(vsr)
     endif
@@ -405,7 +425,7 @@ subroutine calc_discharge_for_same_level(vsr)
   real(8), intent(out) :: vsr
 
   hr_top = hr_idx(iCh) - ch%depth
-  hs_top = hs_idx(iCh)
+  hs_top = hs_idx(iSlo)
 
   ! TMP
   vsr = (hs_top - hr_top) * (area * area_riv) / (area + area_riv)
