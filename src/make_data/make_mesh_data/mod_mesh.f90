@@ -1436,7 +1436,9 @@ end subroutine modifyTopo
 subroutine modify_topo_network(uid)
   use c2_jflw_const
   use c2_jflw_grid, only: &
-    center_of_gy
+    center_of_gy, &
+    north_of_gy, &
+    south_of_gy
   use c2_strnk_io, only: &
     read_network, &
     get_f_network_channel       , &
@@ -1451,11 +1453,14 @@ subroutine modify_topo_network(uid)
   type(network_) :: nwk
   type(channel_), pointer :: ch
   type(node_), pointer :: node, node2
+  type(isct_), pointer :: ci
   type(nwknode_), pointer :: nwknode
   type(cmn_network_) :: cmnnwk
   integer :: nNode_src
   integer, allocatable :: lst_iNode_src(:)
+  real(8), allocatable :: lst_dist_src(:)
   real(8), allocatable :: mesh_size(:)
+  integer :: nCh_isolated
   integer :: jCh, jjCh
   integer :: is, ie, iis, iie
   integer :: jNode
@@ -1466,7 +1471,7 @@ subroutine modify_topo_network(uid)
   integer :: nMesh, iMesh, jMesh, kMesh
   logical :: is_updated
   integer :: igx, igy
-  real(8) :: leng
+  real(8) :: leng_mesh
   integer, pointer :: lst_gx(:), lst_gy(:)
   real(8), pointer :: lst_leng(:)
   logical, pointer :: lst_counted(:)
@@ -1474,7 +1479,7 @@ subroutine modify_topo_network(uid)
   integer, allocatable :: lst_jCh(:), lst_jNode(:)
   integer, allocatable :: arg(:)
   integer :: iter
-  integer, allocatable :: nwkmap(:,:)
+  integer(1), allocatable :: nwkmap(:,:)
 
   character(CLEN_PATH) :: f
   integer :: un
@@ -1662,6 +1667,7 @@ subroutine modify_topo_network(uid)
 
   nNode_src = 0
   allocate(lst_iNode_src(nwk%nNode))
+  allocate(lst_dist_src(nwk%nNode))
 
   do iNode = 1, nwk%nNode
     nwknode => nwk%node(iNode)
@@ -1685,6 +1691,7 @@ subroutine modify_topo_network(uid)
     if( mNode_up > 0 .and. mNode_down == 0 )then
       call add(nNode_src)
       lst_iNode_src(nNode_src) = iNode
+      lst_dist_src(nNode_src) = nwknode%downleng
 
     ! outlet
     elseif( mNode_up == 0 .and. mNode_down > 0 )then
@@ -1698,6 +1705,15 @@ subroutine modify_topo_network(uid)
   enddo  ! iNode/
 
   call logmsg('Sources: '//str(nNode_src))
+
+  allocate(arg(nNode_src))
+  call argsort(lst_dist_src(:nNode_src), arg)
+  call sort(lst_iNode_src(:nNode_src), arg)
+  call sort(lst_dist_src(:nNode_src), arg)
+  if( .not. all(lst_dist_src(2:nNode_src) >= lst_dist_src(:nNode_src-1)) )then
+    call errend('Sorting failed')
+  endif
+  deallocate(arg)
 
   call logext()
   !-------------------------------------------------------------
@@ -1728,22 +1744,32 @@ subroutine modify_topo_network(uid)
 
   call logext()
   !-------------------------------------------------------------
-  !
+  ! Calc. mesh size
   !-------------------------------------------------------------
+  call logent('Calculating mesh size')
+
   allocate(mesh_size(nwk%gys:nwk%gye))
 
   do igy = nwk%gys, nwk%gye
-    ! length in longit: cellsize * R*cos(lat) * 2
-    !           latit : cellsize * R * 2
+    ! length in longit: dlon * R*cos(lat)
+    !           latit : dlat * R
     mesh_size(igy) = sqrt(&
-      (GRIDSIZE_LON*d2r * cos(center_of_gy(igy)*d2r)*2.d0) &
-      * (GRIDSIZE_LAT*d2r * 2.d0) &
-    ) * EARTH_R
+      (GRIDSIZE_LON*d2r * cos(center_of_gy(igy)*d2r)) &
+      * (GRIDSIZE_LAT*d2r) &
+    ) * EARTH_R * 2.d0
+    !mesh_size(igy) = area_sphere_rect(north_of_gy(igy)*d2r, south_of_gy(igy)*d2r)&
+    !  * GRIDSIZE_LON*d2r * EARTH_R**2
   enddo  ! igy/
+  ! Diameter of the circle with the same area to the mesh
+  !mesh_size(:) = sqrt(mesh_size(:) / pi) * 2.d0
   call logmsg('Mesh size: '//str(sum(mesh_size)/(nwk%gye-nwk%gys+1))//' [m]')
+
+  call logext()
   !-------------------------------------------------------------
-  !
+  ! Make mesh line from source to outlet
   !-------------------------------------------------------------
+  call logent('Making mesh line from source to outlet')
+
   nMesh = (nwk%gxe-nwk%gxs+1) + (nwk%gye-nwk%gys+1)
   allocate(lst_gx(nMesh))
   allocate(lst_gy(nMesh))
@@ -1751,7 +1777,7 @@ subroutine modify_topo_network(uid)
   allocate(lst_counted(nMesh))
 
   allocate(nwkmap(nwk%gxs:nwk%gxe,nwk%gys:nwk%gye))
-  nwkmap(:,:) = 0
+  nwkmap(:,:) = 0_1
 
   do iiNode = 1, nNode_src
     !-----------------------------------------------------------
@@ -1774,74 +1800,79 @@ subroutine modify_topo_network(uid)
       jNode = nwknode%jNode(jjCh)
 
       ch => nwk%channel(jCh)
+      ci => ch%isct
 
       if( jNode == 1 )then
         chdir = 1
         is = 1
-        ie = ch%isct%n
+        ie = ci%n
       else
         chdir = -1
-        is = ch%isct%n
+        is = ci%n
         ie = 1
       endif
 
       !call logmsg('ch#'//str(jCh,dgt(nwk%nCh))//' dir '//str(chdir,2)//&
       !' '//slonlat(ch%node(1)%lon,ch%node(1)%lat)//&
       !' - '//str(slonlat(ch%node(2)%lon,ch%node(2)%lat))//&
-      !'\n['//str((/ch%isct%gx(1),ch%isct%gy(1)/),DGT_GXY,',')//'] - ['//&
-      ! str((/ch%isct%gx(ch%isct%n),ch%isct%gy(ch%isct%n)/),DGT_GXY,',')//']'//&
-      ! ' n: '//str(ch%isct%n))
+      !'\n['//str((/ci%gx(1),ci%gy(1)/),DGT_GXY,',')//'] - ['//&
+      ! str((/ci%gx(ci%n),ci%gy(ci%n)/),DGT_GXY,',')//']'//&
+      ! ' n: '//str(ci%n))
 
-      do iMesh = is, ie, chdir
-        if( size(lst_gx) == nMesh )then
-          call realloc(lst_gx, nMesh*2, clear=.false.)
-          call realloc(lst_gy, nMesh*2, clear=.false.)
-          call realloc(lst_leng, nMesh*2, clear=.false.)
-        endif
-        call add(nMesh)
-        lst_gx(nMesh) = ch%isct%gx(iMesh)
-        lst_gy(nMesh) = ch%isct%gy(iMesh)
-        lst_leng(nMesh) = ch%isct%leng(iMesh)
-        if( nMesh > 1 )then
-          if( abs(lst_gx(nMesh) - lst_gx(nMesh-1)) > 1 .or. &
-              abs(lst_gy(nMesh) - lst_gy(nMesh-1)) > 1 )then
-            call errend('Discontinuition was found in the intersection.'//&
-              '\ncurrent: #'//str(nMesh-1)//&
-                '('//str((/lst_gx(nMesh-1),lst_gy(nMesh-1)/),DGT_GXY,',')//')'//&
-              '\nnext : #'//str(iMesh)//&
-                '('//str((/ch%isct%gx(iMesh),ch%isct%gy(iMesh)/),DGT_GXY,',')//')'//&
-              '\nchdir: '//str(chdir)//&
-              '\nisct gx: '//str(ch%isct%gx,DGT_GXY)//&
-              '\n     gy: '//str(ch%isct%gy,DGT_GXY))
-          endif
-        endif
-      enddo  ! iMesh
+      call update_list_isct()
+
+      call make_continuous_mesh_line()
 
       iNode = nwknode%iNode_to_outlet
       nwknode => nwk%node(nwknode%iNode_to_outlet)
       call logmsg('  - node#'//str(iNode,dgt(nwk%nNode))//' dist '//str(nwknode%downleng))
     enddo  ! while nwknode%downleng > 0
-    !-----------------------------------------------------------
-    ! Integrate intersections with same mesh
-    !-----------------------------------------------------------
-    call logmsg('Meshes: '//str(nMesh)//' leng: '//str(sum(lst_leng(:nMesh))))
 
-    is_updated = .true.
-    do while( is_updated )
-      is_updated = .false.
-      iMesh = 1
-      do jMesh = 2, nMesh
-        if( lst_gx(jMesh) == lst_gx(iMesh) .and. &
-            lst_gy(jMesh) == lst_gy(iMesh) )then
-          call logmsg('integ mesh#'//str(jMesh,dgt(nMesh))//' to mesh#'//str(iMesh,dgt(nMesh)))
-          call add(lst_leng(iMesh), lst_leng(jMesh))
-          lst_gx(jMesh) = 0
-          is_updated = .true.
-        else
-          iMesh = jMesh
-        endif
-      enddo  ! jMesh
-    enddo  ! while is_updated
+    leng_mesh = 0.d0
+    do jMesh = 1, nMesh
+      call add(leng_mesh, mesh_size(lst_gy(iMesh)))
+    enddo  ! jMesh/
+
+    call logmsg('leng channel: '//str(nwk%node(lst_iNode_src(iiNode))%downleng)//&
+              '\n     isct   : '//str(sum(lst_leng(:nMesh)))//&
+              '\n     mesh   : '//str(leng_mesh))
+
+    call update_network_map(1_1)
+    !-----------------------------------------------------------
+  enddo  ! iiNode/
+
+  call logext()
+  !-------------------------------------------------------------
+  ! Isolated channels
+  !-------------------------------------------------------------
+  call logent('Merging intersections of isolated channels')
+
+  do jCh = 1, nwk%nCh
+    ch => nwk%channel(jCh)
+    if( .not. ch%is_isolated ) cycle
+    call logmsg('ch#'//str(jCh)//' leng '//str(ch%leng))
+    ci => ch%isct
+
+    if( ch%node(1)%downleng > ch%node(2)%downleng )then
+      is = 1
+      ie = ci%n
+      chdir = 1
+    else
+      is = ci%n
+      ie = 1
+      chdir = -1
+    endif
+
+    nMesh = 0
+    call update_list_isct()
+
+    call make_continuous_mesh_line()
+
+    do iMesh = 1, nMesh
+      if( nwkmap(lst_gx(iMesh),lst_gy(iMesh)) /= 0_1 )then
+        lst_gx(iMesh) = 0
+      endif
+    enddo  ! iMesh/
 
     iMesh = 0
     do jMesh = 1, nMesh
@@ -1850,86 +1881,156 @@ subroutine modify_topo_network(uid)
       lst_gx(iMesh) = lst_gx(jMesh)
       lst_gy(iMesh) = lst_gy(jMesh)
       lst_leng(iMesh) = lst_leng(jMesh)
-    enddo
-    nMesh = iMesh
-    call logmsg('Meshes: '//str(nMesh)//' leng: '//str(sum(lst_leng(:nMesh))))
-    !-----------------------------------------------------------
-    !
-    !-----------------------------------------------------------
-    call realloc(lst_counted, max(size(lst_counted), nMesh), clear=.true.)
-
-    do iMesh = 1, nMesh
-      lst_counted(iMesh) = lst_leng(iMesh) > mesh_size(lst_gy(iMesh))
-    enddo  ! iMesh
-
-    call logmsg('Meshes where isct > thresh: '//str(count(lst_counted(:nMesh))))
-
-    ! Temporary set the end points as counted
-    lst_counted(1) = .true.
-    lst_counted(nMesh) = .true.
-
-    ! Make the line of intersecting meshes continuous
-    is_updated = .true.
-    do while( is_updated )
-      is_updated = .false.
-      iMesh = 1
-      jMesh = min(1, nMesh-1)
-      do while( jMesh < nMesh )
-        call add(jMesh)
-        do while( .not. lst_counted(jMesh) )
-          call add(jMesh)
-        enddo
-
-        if( abs(lst_gx(jMesh) - lst_gx(iMesh)) > 1 .or. &
-            abs(lst_gy(jMesh) - lst_gy(iMesh)) > 1 )then
-          kMesh = iMesh + maxloc(lst_leng(iMesh+1:jMesh-1),1)
-          !call logmsg(&
-          !  str(iMesh,dgt(nMesh))//' ('//str((/lst_gx(iMesh),lst_gy(iMesh)/),DGT_GXY,',')//') - '//&
-          !  str(kMesh,dgt(nMesh))//' ('//str((/lst_gx(kMesh),lst_gy(kMesh)/),DGT_GXY,',')//') - '//&
-          !  str(jMesh,dgt(nMesh))//' ('//str((/lst_gx(jMesh),lst_gy(jMesh)/),DGT_GXY,',')//')')
-          if( lst_counted(kMesh) )then
-            call errend('Mesh#'//str(kMesh)//' is already counted.')
-          endif
-          lst_counted(kMesh) = .true.
-          is_updated = .true.
-        endif
-
-        iMesh = jMesh
-      enddo  ! jMesh
-    enddo  ! while is_updated
-
-    ! Restore the end points
-    !lst_counted(1) = lst_leng(1) > mesh_size(lst_gy(1))
-
-    ! Remove elements not counted
-    iMesh = 0
-    leng = 0.d0
-    do jMesh = 1, nMesh
-      if( .not. lst_counted(jMesh) ) cycle
-      call add(iMesh)
-      lst_gx(iMesh) = lst_gx(jMesh)
-      lst_gy(iMesh) = lst_gy(jMesh)
-      lst_leng(iMesh) = lst_leng(jMesh)
-
-      call add(leng, mesh_size(lst_gy(iMesh)))
     enddo  ! jMesh/
     nMesh = iMesh
-    call logmsg('Meshes: '//str(nMesh)//' leng isct: '//str(sum(lst_leng(:nMesh)))//&
-      ' mesh size-based: '//str(leng))
-    
-    do iMesh = 1, nMesh
-      nwkmap(lst_gx(iMesh),lst_gy(iMesh)) = 1
-    enddo
-    !-----------------------------------------------------------
 
-!exit
+    call update_network_map(2_1)
+  enddo  ! jCh/
 
-  enddo  ! iiNode/
-
+  call logext()
+  !-------------------------------------------------------------
   call traperr( wbin(nwkmap, 'tmp/nwkmap.bin', replace=.true.) )
 
-  !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
+!---------------------------------------------------------------
+contains
+!---------------------------------------------------------------
+!
+!---------------------------------------------------------------
+subroutine update_list_isct()
+  implicit none
+
+  do iMesh = is, ie, chdir
+    if( size(lst_gx) == nMesh )then
+      call realloc(lst_gx, nMesh*2, clear=.false.)
+      call realloc(lst_gy, nMesh*2, clear=.false.)
+      call realloc(lst_leng, nMesh*2, clear=.false.)
+    endif
+    call add(nMesh)
+    lst_gx(nMesh) = ci%gx(iMesh)
+    lst_gy(nMesh) = ci%gy(iMesh)
+    lst_leng(nMesh) = ci%leng(iMesh)
+    if( nMesh > 1 )then
+      if( abs(lst_gx(nMesh) - lst_gx(nMesh-1)) > 1 .or. &
+          abs(lst_gy(nMesh) - lst_gy(nMesh-1)) > 1 )then
+        call errend('Discontinuition was found in the intersection.'//&
+          '\ncurrent: #'//str(nMesh-1)//&
+            '('//str((/lst_gx(nMesh-1),lst_gy(nMesh-1)/),DGT_GXY,',')//')'//&
+          '\nnext : #'//str(iMesh)//&
+            '('//str((/ci%gx(iMesh),ci%gy(iMesh)/),DGT_GXY,',')//')'//&
+          '\nchdir: '//str(chdir)//&
+          '\nisct gx: '//str(ci%gx,DGT_GXY)//&
+          '\n     gy: '//str(ci%gy,DGT_GXY))
+      endif
+    endif
+  enddo  ! iMesh
+end subroutine update_list_isct
+!---------------------------------------------------------------
+!
+!---------------------------------------------------------------
+subroutine make_continuous_mesh_line()
+  implicit none
+  !-------------------------------------------------------------
+  ! Integrate intersections with same mesh
+  !-------------------------------------------------------------
+  !call logmsg('Meshes: '//str(nMesh)//' leng: '//str(sum(lst_leng(:nMesh))))
+
+  is_updated = .true.
+  do while( is_updated )
+    is_updated = .false.
+    iMesh = 1
+    do jMesh = 2, nMesh
+      if( lst_gx(jMesh) == lst_gx(iMesh) .and. &
+          lst_gy(jMesh) == lst_gy(iMesh) )then
+        !call logmsg('integ mesh#'//str(jMesh,dgt(nMesh))//' to mesh#'//str(iMesh,dgt(nMesh)))
+        call add(lst_leng(iMesh), lst_leng(jMesh))
+        lst_gx(jMesh) = 0
+        is_updated = .true.
+      else
+        iMesh = jMesh
+      endif
+    enddo  ! jMesh
+  enddo  ! while is_updated
+
+  iMesh = 0
+  do jMesh = 1, nMesh
+    if( lst_gx(jMesh) == 0 ) cycle
+    call add(iMesh)
+    lst_gx(iMesh) = lst_gx(jMesh)
+    lst_gy(iMesh) = lst_gy(jMesh)
+    lst_leng(iMesh) = lst_leng(jMesh)
+  enddo
+  nMesh = iMesh
+  !call logmsg('Meshes: '//str(nMesh)//' leng: '//str(sum(lst_leng(:nMesh))))
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  call realloc(lst_counted, max(size(lst_counted), nMesh), clear=.true.)
+
+  do iMesh = 1, nMesh
+    lst_counted(iMesh) = lst_leng(iMesh) > mesh_size(lst_gy(iMesh)) * 0.5d0
+  enddo  ! iMesh
+
+  !call logmsg('Meshes where isct > thresh: '//str(count(lst_counted(:nMesh))))
+
+  ! Temporary set the end points as counted
+  lst_counted(1) = .true.
+  lst_counted(nMesh) = .true.
+
+  ! Make the line of intersecting meshes continuous
+  is_updated = .true.
+  do while( is_updated )
+    is_updated = .false.
+    iMesh = 1
+    jMesh = min(1, nMesh-1)
+    do while( jMesh < nMesh )
+      call add(jMesh)
+      do while( .not. lst_counted(jMesh) )
+        call add(jMesh)
+      enddo
+
+      if( abs(lst_gx(jMesh) - lst_gx(iMesh)) > 1 .or. &
+          abs(lst_gy(jMesh) - lst_gy(iMesh)) > 1 )then
+        kMesh = iMesh + maxloc(lst_leng(iMesh+1:jMesh-1),1)
+        !call logmsg(&
+        !  str(iMesh,dgt(nMesh))//' ('//str((/lst_gx(iMesh),lst_gy(iMesh)/),DGT_GXY,',')//') - '//&
+        !  str(kMesh,dgt(nMesh))//' ('//str((/lst_gx(kMesh),lst_gy(kMesh)/),DGT_GXY,',')//') - '//&
+        !  str(jMesh,dgt(nMesh))//' ('//str((/lst_gx(jMesh),lst_gy(jMesh)/),DGT_GXY,',')//')')
+        if( lst_counted(kMesh) )then
+          call errend('Mesh#'//str(kMesh)//' is already counted.')
+        endif
+        lst_counted(kMesh) = .true.
+        is_updated = .true.
+      endif
+
+      iMesh = jMesh
+    enddo  ! jMesh
+  enddo  ! while is_updated
+
+  ! Restore the end points
+  !lst_counted(1) = lst_leng(1) > mesh_size(lst_gy(1))
+
+  ! Remove elements not counted
+  iMesh = 0
+  do jMesh = 1, nMesh
+    if( .not. lst_counted(jMesh) ) cycle
+    call add(iMesh)
+    lst_gx(iMesh) = lst_gx(jMesh)
+    lst_gy(iMesh) = lst_gy(jMesh)
+    lst_leng(iMesh) = lst_leng(jMesh)
+  enddo  ! jMesh
+  nMesh = iMesh
+end subroutine make_continuous_mesh_line
+!---------------------------------------------------------------
+subroutine update_network_map(i1)
+  implicit none
+  integer(1), intent(in) :: i1
+
+  do iMesh = 1, nMesh
+    nwkmap(lst_gx(iMesh),lst_gy(iMesh)) = i1
+  enddo
+end subroutine update_network_map
+!---------------------------------------------------------------
 end subroutine modify_topo_network
 !===============================================================
 !
