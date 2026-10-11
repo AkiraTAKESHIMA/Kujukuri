@@ -4,34 +4,31 @@ program main
   use lib_log
   use lib_io
   use mod_calc_watsys_corresp, only: &
-        calcWatsysAreas           , &
-        makeWsCodeRemappingTables , &
-        mergeWsCodeRemappingTables, &
-        calcWatsysCorresp
+    calcWatsysAreas           , &
+    makeWsCodeRemappingTables , &
+    mergeWsCodeRemappingTables, &
+    calcWatsysCorresp
   use mod_make_handy_data, only: &
-        makeWsCodeMasks       , &
-        divideStrrankIntoTiles
+    makeWsCodeMasks       , &
+    divideStrrankIntoTiles
   use mod_eval_wscode, only: &
-        evalWsCodeConsistency
+    evalWsCodeConsistency
   use mod_connect_channels, only: &
-        connectChannels    , &
-        postConnectChannels
+    connectChannels    , &
+    postConnectChannels
   use mod_separate_networks, only: &
-        separateNetworks
-  use mod_modify_channeldir, only: &
-        modifyChannelDir
-  use mod_modify_flwdir, only: &
-        modifyFlwdir
+    separateNetworks        , &
+    makeSeparatedNetworkData
+  use mod_calc_network_mesh_intersections, only: &
+    calcNetworkMeshIntersections
   use mod_eval_basin, only: &
-        calcNetworkBasinIntersections, &
-        evalNetworkBasinConsistencies
+    calcNetworkBasinIntersections, &
+    evalNetworkBasinConsistencies
   implicit none
   character(CLEN_KEY) :: task
 
   character(CLEN_KEY) :: region
   character(32) :: uid
-  character(CLEN_KEY) :: resolution
-  real(8) :: leng
 
   character(CLEN_PROC), parameter :: PRCNAM = 'program const_river'
 
@@ -64,26 +61,13 @@ program main
 
     call separateNetworks(uid)
 
-  ! ****** NOT USED ******
-  ! Main Step 2. Modify flow direction
-  !-------------------------------------------------------------
-  case( 'modifyChannelDir' )
+  case( 'makeSeparatedNetworkData' )
     call addarg('-uid', '', '', .false., 'Network id')
     call parsearg()
 
     uid = arg_char('-uid')
 
-    call modifyChannelDir(uid)
-
-  case( 'modifyFlwdir' )
-    call addarg('resolution', 's', 'Resolution')
-    call addarg('-uid', '', '', .false., 'Network id')
-    call parsearg()
-
-    resolution = arg_char('resolution')
-    uid = arg_char('-uid')
-
-    call modifyFlwdir(trim(resolution), trim(uid))
+    call makeSeparatedNetworkData(uid)
 
   ! Sub Step 1. Finding correspondent NLNI water systems for 
   !   each J-FlwDir basin
@@ -116,6 +100,16 @@ program main
     region = arg_char('region')
 
     call evalWsCodeConsistency(region)
+
+  !
+  !-------------------------------------------------------------
+  case( 'calcNetworkMeshIntersections' )
+    call addarg('-uid', '', '', .false., 'Network id')
+    call parsearg()
+
+    uid = arg_char('-uid')
+
+    call calcNetworkMeshIntersections(uid)
 
   ! Sub Step 3. Calc. relations of Strrank channels and 
   !   FlwDir basins

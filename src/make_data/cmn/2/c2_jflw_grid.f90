@@ -551,9 +551,9 @@ subroutine calc_lineleng_in_pixels(&
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'calc_lineleng_in_pixels'
   real(8), intent(in) :: lon1, lat1, lon2, lat2
+  integer, intent(out) :: n
   integer, pointer :: lst_gx(:), lst_gy(:) ! out
   real(8), pointer :: lst_leng(:)  ! out
-  integer, intent(out) :: n
 
   real(8) :: wlon, wlat, elon, elat
   integer :: gxs, gxe, gys, gye, igx, igy
@@ -593,10 +593,12 @@ subroutine calc_lineleng_in_pixels(&
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
+  nn = (abs(gye-gys)+1) * (gxe-gxs+1)
+  allocate(lst_gx(nn))
+  allocate(lst_gy(nn))
+  allocate(lst_leng(nn))
+
   n = 0
-  call realloc(lst_gx, abs(gye-gys)+1, clear=.true.)
-  call realloc(lst_gy, abs(gye-gys)+1, clear=.true.)
-  call realloc(lst_leng, abs(gye-gys)+1, clear=.true.)
 
   do igy = gys, gye, sgn_gy
     if( igy == gys )then

@@ -4,16 +4,15 @@ program main
   use lib_log
   use lib_io
   use c2_strnk_const, only: &
-        DGT_NWKUID
+    DGT_NWKUID
   use mod_remap, only: &
-        makeRemappingTables     , &
-        remap                   
+    makeRemappingTables     , &
+    remap                   
   use mod_mesh, only: &
-        rasterizeNetworks       , &
-        make1secNetworkMask     , &
-        make1secNetworkUpperArea, &
-        scaleUpNetworkMask      , &
-        trimBasin               
+    make1secNetworkMask     , &
+    scaleUpNetworkMask      , &
+    trimBasin               , &
+    modifyTopo
   implicit none
   character(CLEN_KEY) :: task
 
@@ -42,35 +41,15 @@ program main
 
   ! Main 1.a.1
   !-------------------------------------------------------------
-  case( 'rasterizeNetworks' )
-    call addarg('-uid', '', '', .false., 'Network ID')
-    call parsearg()
-
-    uid = arg_char('-uid')
-
-    call rasterizeNetworks(uid)
-
-  ! Main 1.a.2
-  !-------------------------------------------------------------
   case( 'make1secNetworkMask' )
-    call addarg('-uid', '', 'all', .false., 'Network ID')
+    call addarg('-uid', '', '', .false., 'Network id')
     call parsearg()
 
     uid = arg_char('-uid')
 
     call make1secNetworkMask(uid)
 
-  ! Main 1.a.3
-  !-------------------------------------------------------------
-  case( 'make1secNetworkUpperArea' )
-    call addarg('-uid', '', 'all', .false., 'Network ID')
-    call parsearg()
-
-    uid = arg_char('-uid')
-
-    call make1secNetworkUpperArea(uid)
-
-  ! Main 1.a.4
+  ! Main 1.a.2
   !-------------------------------------------------------------
   case( 'scaleUpNetworkMask' )
     call addarg('resl', '', 'Target resolution')
@@ -117,11 +96,11 @@ program main
   ! Main 2
   !-------------------------------------------------------------
   case( 'trimBasin' )
-    call addarg('basinType', 's', 'Type of J-FlwDir basin')
-    call addarg('resl', 's', 'Resolution of J-FlwDir mesh')
-    call addarg('uid', 's', 'Basin/Network/NetworkSet ID')
+    call addarg('basinType', 's', 'Type of basin {basin,network,networkset}')
+    call addarg('resl', 's', 'Mesh resolution')
+    call addarg('uid', 's', 'Basin id')
     call addarg('var', 's', 'Variable name')
-    call addarg('outfmt', 's', 'Output format {default|RRI}')
+    call addarg('outfmt', 's', 'Output format {default,RRI}')
     call addarg('-w', '--overwrite', .false., .false., 'Overwrite existing output files')
     call parsearg()
 
@@ -133,6 +112,18 @@ program main
     overwrite = arg_flag('--overwrite')
 
     call trimBasin(basinType, resl, uid, var, outfmt, overwrite)
+
+  ! Main 3
+  !-------------------------------------------------------------
+  case( 'modifyTopo' )
+    call addarg('basinType', 's', 'Type of basin {basin,network,networkset}')
+    call addarg('-uid', '', '', .false., 'Basin id')
+    call parsearg()
+
+    basinType = lower(arg_char('basinType'))
+    uid = arg_char('-uid')
+
+    call modifyTopo(basinType, uid)
 
   !
   !-------------------------------------------------------------

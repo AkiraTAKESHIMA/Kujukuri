@@ -6,7 +6,6 @@ module c1_util
   use lib_array
   use lib_io
   use c1_const
-  use c1_type
   implicit none
   private
   !-------------------------------------------------------------
@@ -14,15 +13,11 @@ module c1_util
   !-------------------------------------------------------------
   public :: slonlat
   public :: sBBox
-
-  public :: clear_cmn_network
   !-------------------------------------------------------------
   ! Private module variables
   !-------------------------------------------------------------
   character(CLEN_PROC), parameter :: MODNAM = 'c1_util'
   !-------------------------------------------------------------
-
-!---------------------------------------------------------------
 contains
 !===============================================================
 !
@@ -85,31 +80,6 @@ function sBBox(&
   sBBox = b_//str((/west,east/),wfmt_lon,d_)//d_//&
           str((/south,north/),wfmt_lat,d_)//b2
 end function sBBox
-!===============================================================
-!
-!===============================================================
-!
-!
-!
-!
-!
-!===============================================================
-!
-!===============================================================
-subroutine clear_cmn_network(nwk)
-  implicit none
-  type(cmn_network_), intent(inout) :: nwk
-
-  nwk%uid = ''
-  deallocate(nwk%uid)
-
-  nwk%nCh = 0
-  nwk%nWsys = 0
-  nwk%nNode = 0
-  deallocate(nwk%wsys_)
-  deallocate(nwk%channel_)
-  if( associated(nwk%node_) ) deallocate(nwk%node_)
-end subroutine clear_cmn_network
 !===============================================================
 !
 !===============================================================

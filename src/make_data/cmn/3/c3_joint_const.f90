@@ -9,6 +9,8 @@ module c3_joint_const
   real(8), parameter :: JACCARD_NO_BASIN = -9999.d0
   real(8), parameter :: JACCARD_NO_MATCH = -999.d0
 
+  character(CLEN_VAR), parameter :: MESHTYPE__JFLW = 'J-FlwDir'
+
   character(CLEN_VAR), parameter :: DATANAME__JFLW = 'j-flwdir'
   character(CLEN_VAR), parameter :: DATANAME__STRNK = 'strrank'
   character(CLEN_VAR), parameter :: DATANAME__RRI = 'rri'
