@@ -4,20 +4,23 @@ program main
   use lib_log
   use lib_io
   use c2_strnk_const, only: &
-    DGT_NWKUID
+    DGT_NWKID
   use mod_remap, only: &
-    makeRemappingTables     , &
+    makeRemappingTables, &
     remap                   
+  use mod_intersection, only: &
+    calcMeshIntersections
   use mod_mesh, only: &
-    make1secNetworkMask     , &
-    scaleUpNetworkMask      , &
-    trimBasin               , &
-    modifyTopo
+    makeHiresNetworkMask, &
+    scaleUpNetworkMask , &
+    trimBasin          
+  use mod_topo, only: &
+    modifyFlwDir
   implicit none
   character(CLEN_KEY) :: task
 
   character(CLEN_KEY) :: resl
-  character(DGT_NWKUID) :: uid
+  character(DGT_NWKID) :: id
   character(CLEN_KEY) :: basinType
   character(CLEN_KEY) :: name_src
   character(CLEN_KEY) :: resl_src
@@ -26,6 +29,16 @@ program main
   logical :: overwrite
 
   character(CLEN_PROC), parameter :: PRCNAM = 'program make_mesh_data'
+
+
+! 1-a-1 calcHiresMeshIntersections
+!    -2 makeHiresNetworkMask
+!    -3 scaleUpNetworkMask
+!  -b-1 makeRemappingTables
+!  -b-2 remap
+! 2     trimBasin
+! 3-1   modifyFlwDir
+!  -2   
   !-------------------------------------------------------------
   ! Read arguments
   !-------------------------------------------------------------
@@ -41,15 +54,27 @@ program main
 
   ! Main 1.a.1
   !-------------------------------------------------------------
-  case( 'make1secNetworkMask' )
-    call addarg('-uid', '', '', .false., 'Network id')
+  case( 'calcMeshIntersections' )
+    call addarg('resl', 's', 'Mesh resolution')
+    call addarg('-id', '', '', .false., 'Network id')
     call parsearg()
 
-    uid = arg_char('-uid')
+    resl = lower(arg_char('resl'))
+    id = arg_char('-id')
 
-    call make1secNetworkMask(uid)
+    call calcMeshIntersections(resl, id)
 
   ! Main 1.a.2
+  !-------------------------------------------------------------
+  case( 'makeHiresNetworkMask' )
+    call addarg('-id', '', '', .false., 'Network id')
+    call parsearg()
+
+    id = arg_char('-id')
+
+    call makeHiresNetworkMask(id)
+
+  ! Main 1.a.3
   !-------------------------------------------------------------
   case( 'scaleUpNetworkMask' )
     call addarg('resl', '', 'Target resolution')
@@ -98,7 +123,7 @@ program main
   case( 'trimBasin' )
     call addarg('basinType', 's', 'Type of basin {basin,network,networkset}')
     call addarg('resl', 's', 'Mesh resolution')
-    call addarg('uid', 's', 'Basin id')
+    call addarg('id', 's', 'Basin id')
     call addarg('var', 's', 'Variable name')
     call addarg('outfmt', 's', 'Output format {default,RRI}')
     call addarg('-w', '--overwrite', .false., .false., 'Overwrite existing output files')
@@ -106,24 +131,26 @@ program main
 
     basinType = lower(arg_char('basinType'))
     resl = lower(arg_char('resl'))
-    uid = arg_char('uid')
+    id = arg_char('id')
     var = lower(arg_char('var'))
     outfmt = lower(arg_char('outfmt'))
     overwrite = arg_flag('--overwrite')
 
-    call trimBasin(basinType, resl, uid, var, outfmt, overwrite)
+    call trimBasin(basinType, resl, id, var, outfmt, overwrite)
 
   ! Main 3
   !-------------------------------------------------------------
-  case( 'modifyTopo' )
-    call addarg('basinType', 's', 'Type of basin {basin,network,networkset}')
-    call addarg('-uid', '', '', .false., 'Basin id')
+  case( 'modifyFlwDir' )
+    call addarg('networkType', 's', 'Network type {network,networkset}')
+    call addarg('resl', 's', 'Mesh resolution')
+    call addarg('-id', '', '', .false., 'Network id')
     call parsearg()
 
-    basinType = lower(arg_char('basinType'))
-    uid = arg_char('-uid')
+    basinType = lower(arg_char('networkType'))
+    resl = lower(arg_char('resl'))
+    id = arg_char('-id')
 
-    call modifyTopo(basinType, uid)
+    call modifyFlwDir(basinType, resl, id)
 
   !
   !-------------------------------------------------------------

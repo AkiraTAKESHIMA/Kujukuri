@@ -26,8 +26,8 @@ subroutine clear_cmn_network(nwk)
   implicit none
   type(cmn_network_), intent(inout) :: nwk
 
-  nwk%uid = ''
-  deallocate(nwk%uid)
+  nwk%id = ''
+  deallocate(nwk%id)
 
   nwk%nCh = 0
   nwk%nWsys = 0

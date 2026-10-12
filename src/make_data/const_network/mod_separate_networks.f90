@@ -51,8 +51,8 @@ module mod_separate_networks
   end type
 
   type network_
-    character(:), allocatable :: uid
-    character(:), allocatable :: tmpuid
+    character(:), allocatable :: id
+    character(:), allocatable :: tmpid
     integer :: jNwk  ! index in tmpnwk
     real(8) :: west, east, south, north
     integer :: nCh, nCh_valid, nCh_removed
@@ -95,7 +95,7 @@ contains
 !===============================================================
 !
 !===============================================================
-subroutine separateNetworks(tmpuid_in)
+subroutine separateNetworks(tmpid_in)
   use c2_strnk_io, only: &
     get_f_tmp_networks_lst      , &
     get_f_tmp_network_separation, &
@@ -109,14 +109,14 @@ subroutine separateNetworks(tmpuid_in)
     comma_json
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'separateNetworks'
-  character(*), intent(in) :: tmpuid_in
+  character(*), intent(in) :: tmpid_in
 
   type(network_), pointer :: lst_nwk(:), nwk
   type(watsys_), pointer :: wsys
   integer :: nNwk, mNwk, jNwk, jjNwk, jNwk0
   integer :: nNwk_tmp, iNwk_tmp
   integer :: jWsys
-  character(32) :: tmpuid
+  character(32) :: tmpid
   integer(4), allocatable :: lst_jNwk(:)
 
   character(CLEN_PATH) :: f_lst, f
@@ -142,12 +142,12 @@ subroutine separateNetworks(tmpuid_in)
   read(un_lst,*)
   nNwk = 0
   do iNwk_tmp = 1, nNwk_tmp
-    read(un_lst,*) c_, tmpuid
+    read(un_lst,*) c_, tmpid
 
-    if( tmpuid_in /= '' .and. tmpuid /= tmpuid_in ) cycle
+    if( tmpid_in /= '' .and. tmpid /= tmpid_in ) cycle
 
-    call logmsg('tmpnwk '//str(tmpuid))
-    call separate_network(tmpuid)
+    call logmsg('tmpnwk '//str(tmpid))
+    call separate_network(tmpid)
   enddo
 
   call logext()
@@ -165,11 +165,11 @@ subroutine separateNetworks(tmpuid_in)
   read(un_lst,*)
   nNwk = 0
   do iNwk_tmp = 1, nNwk_tmp
-    read(un_lst,*) c_, tmpuid
+    read(un_lst,*) c_, tmpid
 
-    if( tmpuid_in /= '' .and. tmpuid /= tmpuid_in ) cycle
+    if( tmpid_in /= '' .and. tmpid /= tmpid_in ) cycle
 
-    f = get_f_tmp_network_separation(tmpuid)
+    f = get_f_tmp_network_separation(tmpid)
     open(newunit=un, file=f, status='old')
     read(un,*) ! nCh
     read(un,*) c_, mNwk
@@ -178,7 +178,7 @@ subroutine separateNetworks(tmpuid_in)
     call add(nNwk, mNwk)
   enddo
 
-  if( tmpuid_in /= '' )then
+  if( tmpid_in /= '' )then
     call logmsg('Networks tmp: '//str(nNwk_tmp)//' new: '//str(nNwk))
   endif
   allocate(lst_nwk(nNwk))
@@ -188,19 +188,19 @@ subroutine separateNetworks(tmpuid_in)
   read(un_lst,*)
   jNwk0 = 0
   do iNwk_tmp = 1, nNwk_tmp
-    read(un_lst,*) c_, tmpuid
+    read(un_lst,*) c_, tmpid
 
-    if( tmpuid_in /= '' .and. tmpuid /= tmpuid_in ) cycle
+    if( tmpid_in /= '' .and. tmpid /= tmpid_in ) cycle
 
-    f = get_f_tmp_network_separation(tmpuid)
+    f = get_f_tmp_network_separation(tmpid)
     open(newunit=un, file=f, status='old')
     read(un,*) ! nCh
     read(un,*) c_, mNwk
 
     do jNwk = 1, mNwk
       nwk => lst_nwk(jNwk0+jNwk)
-      allocate(character(1) :: nwk%tmpuid)
-      nwk%tmpuid = trim(tmpuid)
+      allocate(character(1) :: nwk%tmpid)
+      nwk%tmpid = trim(tmpid)
       nwk%jNwk = jNwk
     enddo
 
@@ -238,7 +238,7 @@ subroutine separateNetworks(tmpuid_in)
   !-------------------------------------------------------------
   ! Setting new ids
   !-------------------------------------------------------------
-  if( tmpuid_in == '' )then
+  if( tmpid_in == '' )then
     call logent('Setting new ids')
 
     allocate(lst_jNwk(nNwk))
@@ -249,28 +249,28 @@ subroutine separateNetworks(tmpuid_in)
   else
     do jNwk = 1, nNwk
       nwk => lst_nwk(jNwk)
-      if( .not. allocated(nwk%tmpuid) ) cycle
-      nwk%uid = '(uid_empty)'
+      if( .not. allocated(nwk%tmpid) ) cycle
+      nwk%id = '(id_empty)'
     enddo
   endif
   !-------------------------------------------------------------
   ! Output
   !-------------------------------------------------------------
-  if( tmpuid_in == '' )then
+  if( tmpid_in == '' )then
     call logent('Outputting')
 
     f = get_f_lst_networks_channel()
     call logmsg('Writing '//str(f))
     open(newunit=un, file=f, status='replace')
     write(un,"(1x,a)") 'networks '//str(nNwk)
-    write(un,"(1x,a)") 'i uid tmpuid jNwk nCh leng'
+    write(un,"(1x,a)") 'i id tmpid jNwk nCh leng'
     do jjNwk = 1, nNwk
       jNwk = lst_jNwk(jjNwk)
       nwk => lst_nwk(jNwk)
 
       write(un,"(1x,a)") &
           str(jjNwk,dgt(nNwk))//' '//&
-          str(nwk%uid)//' '//str(nwk%tmpuid)//' '//str(nwk%jNwk,dgt_jNwk)//' '//&
+          str(nwk%id)//' '//str(nwk%tmpid)//' '//str(nwk%jNwk,dgt_jNwk)//' '//&
           str(nwk%nCh,dgt_nCh)//' '//str(sum(nwk%wsys(:)%leng))
     enddo  ! jNwk/
     close(un)
@@ -281,7 +281,7 @@ end subroutine separateNetworks
 !===============================================================
 !
 !===============================================================
-subroutine separate_network(uid)
+subroutine separate_network(id)
   use c2_strnk_io, only: &
     get_f_tmp_network_channel   , &
     get_f_tmp_network_separation
@@ -297,7 +297,7 @@ subroutine separate_network(uid)
     jNode2jPt
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'separate_network'
-  character(*), intent(in) :: uid
+  character(*), intent(in) :: id
 
   type(network_) :: nwk
   type(channel_), pointer :: ch, ch2
@@ -343,10 +343,10 @@ subroutine separate_network(uid)
   !-------------------------------------------------------------
   call logent('Reading temporal network data')
 
-  allocate(character(1) :: nwk%uid)
-  nwk%uid = uid
+  allocate(character(1) :: nwk%id)
+  nwk%id = id
 
-  f = get_f_tmp_network_channel(nwk%uid, 'sbin')
+  f = get_f_tmp_network_channel(nwk%id, 'sbin')
   call logmsg('Reading '//str(f))
   open(newunit=un, file=f, form='unformatted', access='sequential', &
        action='read', status='old')
@@ -1144,7 +1144,7 @@ subroutine separate_network(uid)
   !-------------------------------------------------------------
   call logent('Outputting info. of separation')
 
-  f = get_f_tmp_network_separation(uid)
+  f = get_f_tmp_network_separation(id)
   call logmsg('Writing '//str(f))
   open(newunit=un, file=f, status='replace')
 
@@ -1214,7 +1214,7 @@ subroutine set_separated_network_ids(lst_nwk, lst_jNwk)
         DIV_WSCODE_RVUNKNOWN
   use c2_strnk_const, only: &
         DGT_NWK_SAME_WSCODE, &
-        DGT_NWKUID
+        DGT_NWKID
   implicit none
   character(CLEN_PROC) :: PRCNAM = 'set_separated_network_ids'
   type(network_), intent(inout), target :: lst_nwk(:)
@@ -1222,16 +1222,16 @@ subroutine set_separated_network_ids(lst_nwk, lst_jNwk)
 
   type(network_), pointer :: nwk
   integer :: nNwk, jNwk, jjNwk
-  character(1) :: uid_head
+  character(1) :: id_head
   integer(4), allocatable :: lst_wsCode_i(:)
   real(8)   , allocatable :: lst_wsLeng(:)
-  integer(8), allocatable :: lst_uid_i(:)
+  integer(8), allocatable :: lst_id_i(:)
   integer(4), allocatable :: arg(:)
   integer :: is, ie, i
 
   integer, parameter :: MUL_WSCODE = 10 ** DGT_NWK_SAME_WSCODE
   integer, parameter :: NLIM_SAME_WSCODE = 10 ** (DGT_NWK_SAME_WSCODE) - 1
-  integer, parameter :: DGT_NWKGID_BODY = DGT_NWKUID - 1
+  integer, parameter :: DGT_NWKGID_BODY = DGT_NWKID - 1
 
   call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
@@ -1248,7 +1248,7 @@ subroutine set_separated_network_ids(lst_nwk, lst_jNwk)
     lst_jNwk(jNwk) = jNwk
     lst_wsCode_i(jNwk) = nwk%wsys(1)%wsCode_i
     lst_wsLeng(jNwk) = nwk%wsys(1)%leng
-    allocate(character(1) :: nwk%uid)
+    allocate(character(1) :: nwk%id)
   enddo  ! jNwk/
 
   allocate(arg(nNwk))
@@ -1280,17 +1280,17 @@ subroutine set_separated_network_ids(lst_nwk, lst_jNwk)
                 ' n: '//str(ie-is+1))
 
     if( mod(lst_wsCode_i(is), DIV_WSCODE_RVUNKNOWN) == 0 )then
-      uid_head = '1'
+      id_head = '1'
     else
-      uid_head = '0'
+      id_head = '0'
     endif
 
     do i = is, ie
       jNwk = lst_jNwk(i)
       nwk => lst_nwk(jNwk)
-      nwk%uid = uid_head//str(lst_wsCode_i(i) * MUL_WSCODE + (i - is + 1), -DGT_NWKGID_BODY)
+      nwk%id = id_head//str(lst_wsCode_i(i) * MUL_WSCODE + (i - is + 1), -DGT_NWKGID_BODY)
       !if( i == is .or. i == ie )then
-      !  call logmsg(nwk%wsys(1)%wsCode//' -> '//nwk%uid, opt='+x2')
+      !  call logmsg(nwk%wsys(1)%wsCode//' -> '//nwk%id, opt='+x2')
       !elseif( i == is+1 )then
       !  call logmsg('...', opt='+x2')
       !endif
@@ -1305,19 +1305,19 @@ subroutine set_separated_network_ids(lst_nwk, lst_jNwk)
   !-------------------------------------------------------------
   ! Sort and check duplication
   !-------------------------------------------------------------
-  call logent('Sorting and checking duplication of uid')
+  call logent('Sorting and checking duplication of id')
 
-  allocate(lst_uid_i(nNwk))
+  allocate(lst_id_i(nNwk))
   do jNwk = 1, nNwk
-    lst_uid_i(jNwk) = int8_char(lst_nwk(jNwk)%uid)
+    lst_id_i(jNwk) = int8_char(lst_nwk(jNwk)%id)
   enddo  ! jNwk/
-  call argsort(lst_uid_i, lst_jNwk)
+  call argsort(lst_id_i, lst_jNwk)
   do jjNwk = 1, nNwk-1
-    if( lst_uid_i(lst_jNwk(jjNwk+1)) == lst_uid_i(lst_jNwk(jjNwk)) )then
-      call errend('Duplicated uid: '//str(lst_uid_i(lst_jNwk(jjNwk))))
+    if( lst_id_i(lst_jNwk(jjNwk+1)) == lst_id_i(lst_jNwk(jjNwk)) )then
+      call errend('Duplicated id: '//str(lst_id_i(lst_jNwk(jjNwk))))
     endif
   enddo  ! jNwk/
-  deallocate(lst_uid_i)
+  deallocate(lst_id_i)
 
   call logext()
   !-------------------------------------------------------------
@@ -1334,18 +1334,18 @@ end subroutine set_separated_network_ids
 !===============================================================
 !
 !===============================================================
-subroutine makeSeparatedNetworkData(uid)
+subroutine makeSeparatedNetworkData(id)
   use c2_strnk_const
   use c2_strnk_io, only: &
     get_f_lst_networks_channel
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'makeSeparatedNetworkData'
-  character(*), intent(in) :: uid
+  character(*), intent(in) :: id
 
   integer :: nNwk, iNwk
   integer :: jNwk
-  character(DGT_NWKUID) :: uid_
-  character(32) :: tmpuid
+  character(DGT_NWKID) :: id_
+  character(32) :: tmpid
 
   character(CLEN_PATH) :: f
   integer :: un
@@ -1361,12 +1361,12 @@ subroutine makeSeparatedNetworkData(uid)
   read(un,*) c_, nNwk
   read(un,*)
   do iNwk = 1, nNwk
-    read(un,*) c_, uid_, tmpuid, jNwk
-    if( uid /= '' .and. uid_ /= uid ) cycle
+    read(un,*) c_, id_, tmpid, jNwk
+    if( id /= '' .and. id_ /= id ) cycle
 
-    call logent('Network '//str(uid_))
+    call logent('Network '//str(id_))
 
-    call make_separated_network_data(uid_, tmpuid, jNwk)
+    call make_separated_network_data(id_, tmpid, jNwk)
 
     call logext()
   enddo
@@ -1377,7 +1377,7 @@ end subroutine makeSeparatedNetworkData
 !===============================================================
 !
 !===============================================================
-subroutine make_separated_network_data(uid, tmpuid, jNwk)
+subroutine make_separated_network_data(id, tmpid, jNwk)
   use c2_strnk_io, only: &
     write_network               , &
     get_f_tmp_networks_lst      , &
@@ -1391,8 +1391,8 @@ subroutine make_separated_network_data(uid, tmpuid, jNwk)
     comma_json
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'make_separated_network_data'
-  character(*), intent(in) :: uid
-  character(*), intent(in) :: tmpuid
+  character(*), intent(in) :: id
+  character(*), intent(in) :: tmpid
   integer, intent(in) :: jNwk
 
   type(network_), pointer :: nwk
@@ -1422,12 +1422,12 @@ subroutine make_separated_network_data(uid, tmpuid, jNwk)
   call logent('Reading channel index in the temporal network')
 
   nwk => nwk_old
-  allocate(character(1) :: nwk%uid)
-  allocate(character(1) :: nwk%tmpuid)
-  nwk%uid = trim(uid)
-  nwk%tmpuid = trim(tmpuid)
+  allocate(character(1) :: nwk%id)
+  allocate(character(1) :: nwk%tmpid)
+  nwk%id = trim(id)
+  nwk%tmpid = trim(tmpid)
 
-  f = get_f_tmp_network_separation(nwk%tmpuid)
+  f = get_f_tmp_network_separation(nwk%tmpid)
   call logmsg('Reading '//str(f))
   open(newunit=un, file=f, status='old')
   read(un,*) c_, nCh, c_, nCh_removed
@@ -1493,7 +1493,7 @@ subroutine make_separated_network_data(uid, tmpuid, jNwk)
   nwk%south = 1d20
   nwk%north = -1d20
 
-  f = get_f_tmp_network_channel(nwk%tmpuid, 'sbin')
+  f = get_f_tmp_network_channel(nwk%tmpid, 'sbin')
   open(newunit=un, file=f, form='unformatted', access='sequential', &
        action='read', status='old')
 
@@ -1671,10 +1671,10 @@ subroutine make_separated_network_data(uid, tmpuid, jNwk)
   call logmsg('Channels: '//str(nwk%nCh)//' -> '//str(count(nwk%channel(:)%n>0)))
 
   ! Make new network data
-  allocate(character(1) :: nwk_new%uid)
-  allocate(character(1) :: nwk_new%tmpuid)
-  nwk_new%uid = trim(uid)
-  nwk_new%tmpuid = nwk%tmpuid
+  allocate(character(1) :: nwk_new%id)
+  allocate(character(1) :: nwk_new%tmpid)
+  nwk_new%id = trim(id)
+  nwk_new%tmpid = nwk%tmpid
 
   nwk_new%nWsys = nwk%nWsys
   allocate(nwk_new%wsys(nwk%nWsys))
@@ -1707,8 +1707,8 @@ subroutine make_separated_network_data(uid, tmpuid, jNwk)
   deallocate(nwk%channel)
   deallocate(nwk%node)
   deallocate(nwk%jCh)
-  deallocate(nwk%uid)
-  deallocate(nwk%tmpuid)
+  deallocate(nwk%id)
+  deallocate(nwk%tmpid)
 
   ! Switch the pointer
   nwk => nwk_new
@@ -1744,14 +1744,14 @@ subroutine make_separated_network_data(uid, tmpuid, jNwk)
   call logent('Outputting')
 
   ! Sequential binary
-  f = get_f_network_channel(nwk%uid, 'sbin')
+  f = get_f_network_channel(nwk%id, 'sbin')
   call logmsg('Writing '//str(f))
   call copy_nwk2cmn(nwk, cmnnwk)
   call write_network(f, cmnnwk)
   call clear_cmn_network(cmnnwk)
 
   ! JSON
-  f = get_f_network_channel(nwk%uid, 'json')
+  f = get_f_network_channel(nwk%id, 'json')
   call logmsg('Writing '//str(f))
   open(newunit=un, file=f, status='replace')
   write(un,"(a)") '{'
@@ -1791,7 +1791,7 @@ subroutine make_separated_network_data(uid, tmpuid, jNwk)
     write(un,"(4x,a)")  '}'//comma_json(iiCh,nwk%nCh)
   enddo  ! jCh/
   write(un,"(2x,a)") '],'
-  write(un,"(2x,a)") '"tmpuid": "'//str(nwk%tmpuid)//'"'
+  write(un,"(2x,a)") '"tmpid": "'//str(nwk%tmpid)//'"'
   write(un,"(a)") '}'
   close(un)
 
@@ -1803,8 +1803,8 @@ subroutine make_separated_network_data(uid, tmpuid, jNwk)
   deallocate(nwk%channel)
   deallocate(nwk%node)
   deallocate(nwk%jCh)
-  deallocate(nwk%uid)
-  deallocate(nwk%tmpuid)
+  deallocate(nwk%id)
+  deallocate(nwk%tmpid)
   nullify(nwk)
   !-----------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -2226,8 +2226,8 @@ subroutine copy_nwk2cmn(nwk, cmn)
   integer :: jCh
   integer :: jNode
 
-  allocate(character(1) :: cmn%uid)
-  cmn%uid = nwk%uid
+  allocate(character(1) :: cmn%id)
+  cmn%id = nwk%id
 
   cmn%nWsys = nwk%nWsys
   allocate(cmn%wsys_(cmn%nWsys))

@@ -16,7 +16,6 @@ mod_make_handy_data.o\
 mod_eval_wscode.o\
 mod_connect_channels.o\
 mod_separate_networks.o\
-mod_calc_network_mesh_intersections.o\
 mod_eval_basin.o\
 main.o
 

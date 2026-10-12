@@ -45,16 +45,16 @@ contains
 !===============================================================
 !
 !===============================================================
-subroutine calcNetworkMeshIntersections(uid)
+subroutine calcNetworkMeshIntersections(id)
   use c2_jflw_const, &
     set_resolution => set_resolution
   use c2_strnk_io, only: &
     get_f_lst_networks_channel
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'calcNetworkMeshIntersections'
-  character(*), intent(in) :: uid
+  character(*), intent(in) :: id
 
-  character(DGT_NWKUID) :: uid_
+  character(DGT_NWKID) :: id_
   integer :: nNwk, iNwk
   character :: c_
   character(CLEN_PATH) :: f
@@ -68,19 +68,19 @@ subroutine calcNetworkMeshIntersections(uid)
   !-------------------------------------------------------------
   ! Run
   !-------------------------------------------------------------
-  if( uid == '' )then
+  if( id == '' )then
     f = get_f_lst_networks_channel()
     call logmsg('Reading '//str(f))
     open(newunit=un, file=f, status='old')
     read(un,*) c_, nNwk
     read(un,*)
     do iNwk = 1, nNwk
-      read(un,*) c_, uid_
-      call calc_network_mesh_intersections(uid_)
+      read(un,*) c_, id_
+      call calc_network_mesh_intersections(id_)
     enddo
     close(un)
   else
-    call calc_network_mesh_intersections(uid)
+    call calc_network_mesh_intersections(id)
   endif
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -88,7 +88,7 @@ end subroutine calcNetworkMeshIntersections
 !===============================================================
 !
 !===============================================================
-subroutine calc_network_mesh_intersections(uid)
+subroutine calc_network_mesh_intersections(id)
   use c1_grid, only: &
     apprx_isct_with_meridian, &
     apprx_isct_with_parallel
@@ -111,7 +111,7 @@ subroutine calc_network_mesh_intersections(uid)
   use c3_joint_const
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'calc_network_mesh_intersections'
-  character(*), intent(in) :: uid
+  character(*), intent(in) :: id
 
   type(cmn_network_) :: cmnnwk
   type(network_) :: nwk
@@ -138,12 +138,12 @@ subroutine calc_network_mesh_intersections(uid)
   !-------------------------------------------------------------
   ! Read StrRank network data
   !-------------------------------------------------------------
-  call logmsg('Network '//str(uid))
+  call logmsg('Network '//str(id))
 
-  allocate(character(len_trim(uid)) :: cmnnwk%uid)
-  cmnnwk%uid = uid
+  allocate(character(len_trim(id)) :: cmnnwk%id)
+  cmnnwk%id = id
 
-  f = get_f_network_channel(uid, 'sbin')
+  f = get_f_network_channel(id, 'sbin')
 
   call read_network(f, cmnnwk)
 
@@ -289,7 +289,7 @@ subroutine calc_network_mesh_intersections(uid)
   !-------------------------------------------------------------
   ! Output
   !-------------------------------------------------------------
-  f = get_f_network_isct_with_mesh(uid, MESHTYPE__JFLW)
+  f = get_f_network_isct_with_mesh(id, MESHTYPE__JFLW)
   call logmsg('Writing '//str(f))
 
   open(newunit=un, file=f, form='unformatted', access='sequential', status='replace')

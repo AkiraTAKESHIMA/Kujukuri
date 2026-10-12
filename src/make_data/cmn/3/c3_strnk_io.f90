@@ -6,18 +6,19 @@ module c3_strnk_io
     strnk_read_strrank_all => read_strrank_all, &
     strnk_show_strrank_all => show_strrank_all, &
 !
-    strnk_read_network => read_network, &
+    strnk_read_network      => read_network     , &
     strnk_read_network_size => read_network_size, &
-    strnk_write_network => write_network, &
+    strnk_write_network     => write_network    , &
 !
-    strnk_read_network_mesh_domain => read_network_mesh_domain, &
+    strnk_write_network_mesh_domain => write_network_mesh_domain, &
+    strnk_read_network_mesh_domain  => read_network_mesh_domain , &
 !
     strnk_get_f_stream_shp             => get_f_stream_shp            , &
     strnk_get_f_stream_dbf             => get_f_stream_dbf            , &
     strnk_get_f_rivernode_shp          => get_f_rivernode_shp         , &
     strnk_get_f_rivernode_dbf          => get_f_rivernode_dbf         , &
     strnk_get_f_lst_tiled_idx          => get_f_lst_tiled_idx         , &
-    strnk_get_f_lst_tiled_uid          => get_f_lst_tiled_uid         , &
+    strnk_get_f_lst_tiled_id           => get_f_lst_tiled_id          , &
     strnk_get_f_tmp_networks_fmt       => get_f_tmp_networks_fmt      , &
     strnk_get_f_tmp_networks_lst       => get_f_tmp_networks_lst      , &
     strnk_get_f_tmp_network_entity     => get_f_tmp_network_entity    , &
@@ -26,7 +27,7 @@ module c3_strnk_io
     strnk_get_f_lst_networks_channel   => get_f_lst_networks_channel  , &
     strnk_get_f_lst_networks_mesh      => get_f_lst_networks_mesh     , &
     strnk_get_f_network_channel        => get_f_network_channel       , &
-    strnk_get_f_network_isct_with_mesh => get_f_network_isct_with_mesh, &
+    strnk_get_f_network_meshisct       => get_f_network_meshisct      , &
     strnk_get_f_network_mesh           => get_f_network_mesh          , &
     strnk_get_f_entdown                => get_f_entdown               , &
     strnk_get_f_isct_basin             => get_f_isct_basin            , &

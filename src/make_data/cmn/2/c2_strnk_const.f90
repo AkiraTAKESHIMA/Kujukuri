@@ -15,7 +15,7 @@ module c2_strnk_const
   character(CLEN_PATH), parameter :: DIR_PRD     = trim(DIR_STRRANK)//'/dat'
   character(CLEN_PATH), parameter :: DIR_STR     = trim(DIR_PRD)//'/StrRank'
 
-  ! For original data
+  ! Original data
   integer, parameter :: NREGION = 5
   character(CLEN_VAR), parameter :: REGION_HOKKAIDO = 'Hokkaido'
   character(CLEN_VAR), parameter :: REGION_HONSHU   = 'Honshu'
@@ -53,7 +53,7 @@ module c2_strnk_const
   integer, parameter :: IDX_FIELD_STREAM__NDUPSTR   = 10
   integer, parameter :: IDX_FIELD_STREAM__NDDOWNSTR = 11
 
-  ! For modified data
+  ! Modified data
   integer, parameter :: NODETYPE_NEW__INTER     = 0
   integer, parameter :: NODETYPE_NEW__SRC       = 1
   integer, parameter :: NODETYPE_NEW__OUT       = 2
@@ -66,5 +66,14 @@ module c2_strnk_const
   integer, parameter :: NODETYPE_NEW__UNDEF     = -99
 
   integer, parameter :: DGT_NWK_SAME_WSCODE = 3
-  integer, parameter :: DGT_NWKUID = 1 + DGT_WSCODE + DGT_NWK_SAME_WSCODE
+  integer, parameter :: DGT_NWKID = 1 + DGT_WSCODE + DGT_NWK_SAME_WSCODE
+
+  ! Mesh data
+  integer(1), parameter :: STAT_NWKMESH__ISCT        = 2_1
+  integer(1), parameter :: STAT_NWKMESH__REACH       = 1_1
+  integer(1), parameter :: STAT_NWKMESH__ISCT_OTHER  = -1_1
+  integer(1), parameter :: STAT_NWKMESH__REACH_OTHER = -2_1
+  integer(1), parameter :: STAT_NWKMESH__OUT         = -3_1
+  integer(1), parameter :: STAT_NWKMESH__OCEAN       = -9_1
+  integer(1), parameter :: STAT_NWKMESH__UNKNOWN     = -99_1
 end module c2_strnk_const

@@ -10,8 +10,8 @@ module mod_util
   !-------------------------------------------------------------
   ! Public procedures
   !-------------------------------------------------------------
-  public :: make_uid_int
-  public :: get_dgt_uid
+  public :: make_id_int
+  public :: get_dgt_id
   public :: get_fmt_network
 
   public :: jNode2jPt
@@ -69,31 +69,31 @@ contains
 ! Digit of entity index is not determined.
 ! Global ids are finally modified.
 !===============================================================
-integer(8) function make_uid_int(tx, ty, itEnt) result(uid)
+integer(8) function make_id_int(tx, ty, itEnt) result(id)
   implicit none
   integer, intent(in) :: tx, ty, itEnt
 
-  uid = itEnt*10000 + ty*100 + tx
-end function make_uid_int
+  id = itEnt*10000 + ty*100 + tx
+end function make_id_int
 !===============================================================
 !
 !===============================================================
-integer function get_dgt_uid(ntEnt) result(dgt_uid)
+integer function get_dgt_id(ntEnt) result(dgt_id)
   implicit none
   integer, intent(in) :: ntEnt
 
-  dgt_uid = dgt(ntEnt) + 4
-end function get_dgt_uid
+  dgt_id = dgt(ntEnt) + 4
+end function get_dgt_id
 !===============================================================
 !
 !===============================================================
-subroutine get_fmt_network(dgt_irEnt, dgt_uid)
+subroutine get_fmt_network(dgt_irEnt, dgt_id)
   use c2_strnk_io, only: &
         get_f_tmp_networks_fmt
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'get_fmt_network'
   integer, intent(out) :: dgt_irEnt
-  integer, intent(out) :: dgt_uid
+  integer, intent(out) :: dgt_id
 
   character(CLEN_PATH) :: f
   integer :: un
@@ -105,7 +105,7 @@ subroutine get_fmt_network(dgt_irEnt, dgt_uid)
   call logmsg('Reading '//str(f))
   open(newunit=un, file=f, status='old')
   read(un,*) c_, dgt_irEnt
-  read(un,*) c_, dgt_uid
+  read(un,*) c_, dgt_id
   close(un)
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)

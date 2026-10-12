@@ -70,6 +70,7 @@ module c2_jflw_const
   integer, parameter :: DGT_XY  = 4
   integer, parameter :: DGT_TXY = 2
   integer, parameter :: DGT_GXY = 6
+  integer, parameter :: DGT_BSNID_MAX = 7
   !-------------------------------------------------------------
   ! Private module variables
   !-------------------------------------------------------------

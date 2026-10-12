@@ -7,12 +7,12 @@ module mod_connect_channels
   use lib_math
   use lib_io
   use c1_util, only: &
-        slonlat, &
-        sBBox
+    slonlat, &
+    sBBox
   use c2_strnk_const, only: &
-        CLEN_NODEID
+    CLEN_NODEID
   use mod_util, only: &
-        nwk_rgn_
+    nwk_rgn_
   implicit none
   !-------------------------------------------------------------
   ! Public procedures
@@ -30,7 +30,7 @@ module mod_connect_channels
     integer :: mEnt
     integer, pointer :: irEnt(:)  !(mEnt)
     integer, pointer :: itEnt(:)  !(mEnt)
-    integer, pointer :: uid(:)  !(mEnt)
+    integer, pointer :: id(:)  !(mEnt)
   end type
 
   type tbl_rgn_tile_
@@ -70,7 +70,7 @@ module mod_connect_channels
     type(point_conn_), pointer :: point(:)  !(part%nPoint)
     type(shp_entity_) :: ent
     type(dct_point_) :: dct_point
-    integer :: uid
+    integer :: id
     logical :: is_updated
     type(node_), pointer :: node(:)  !(2)
     integer :: nDiv
@@ -79,19 +79,19 @@ module mod_connect_channels
 
   type region_
     integer :: nrEnt
-    integer, pointer :: uid(:)  !(nrEnt)
+    integer, pointer :: id(:)  !(nrEnt)
   end type
 
   type dct_ent_
     integer :: ngEnt
-    integer, pointer :: uid(:)
+    integer, pointer :: id(:)
     integer, pointer :: iRegion(:)
     integer, pointer :: irEnt(:)
     real(8), pointer :: leng(:)
   end type
 
   type network_
-    integer :: uid
+    integer :: id
     integer :: mRegion
     type(nwk_rgn_), pointer :: region(:)  !(mRegion)
     integer :: nEnt
@@ -129,7 +129,7 @@ module mod_connect_channels
   ! Private module variables
   !-------------------------------------------------------------
   integer :: dgt_irEnt
-  integer :: dgt_uid
+  integer :: dgt_id
   integer :: dgt_jPt
 
   integer, parameter :: CLEN_STAT_UPA_NEXTCHANNEL = 12
@@ -140,7 +140,7 @@ module mod_connect_channels
   real(8), parameter :: ELV__FORMISS = 0.d0
 
   logical :: debug = .false.
-  integer :: uid_debug = 00014931
+  integer :: id_debug = 00014931
   !-------------------------------------------------------------
   ! Interfaces for intrisic functions
   !-------------------------------------------------------------
@@ -167,10 +167,10 @@ subroutine connectChannels()
         region_idx2str        , &
         get_f_stream_shp      , &
         get_f_lst_tiled_idx   , &
-        get_f_lst_tiled_uid   , &
+        get_f_lst_tiled_id    , &
         get_f_tmp_networks_fmt
   use mod_util, only: &
-        make_uid_int
+        make_id_int
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'connectChannels'
 
@@ -190,7 +190,7 @@ subroutine connectChannels()
   logical :: is_updated
   integer :: nIter
   integer :: iTile
-  integer :: irEnt_max, uid_max
+  integer :: irEnt_max, id_max
 
   character(CLEN_PATH) :: f
   integer :: un
@@ -220,10 +220,10 @@ subroutine connectChannels()
   enddo  ! itx/
   enddo  ! ity/
   !-------------------------------------------------------------
-  ! Set index and uid
+  ! Set index and id
   !-------------------------------------------------------------
   irEnt_max = 0
-  uid_max = 0
+  id_max = 0
 
   allocate(tbl_rgn_tile(NLNI_TXMIN:NLNI_TXMAX,NLNI_TYMIN:NLNI_TYMAX))
   do ity = NLNI_TYMIN, NLNI_TYMAX
@@ -246,28 +246,28 @@ subroutine connectChannels()
       rgn_tile%mEnt = mEnt
       allocate(rgn_tile%irEnt(rgn_tile%mEnt))
       allocate(rgn_tile%itEnt(rgn_tile%mEnt))
-      allocate(rgn_tile%uid(rgn_tile%mEnt))
+      allocate(rgn_tile%id(rgn_tile%mEnt))
       do iiEnt = 1, rgn_tile%mEnt
         read(un,*) rgn_tile%irEnt(iiEnt)
         call add(ntEnt)
         rgn_tile%itEnt(iiEnt) = ntEnt
-        rgn_tile%uid(iiEnt) = make_uid_int(itx, ity, ntEnt)
+        rgn_tile%id(iiEnt) = make_id_int(itx, ity, ntEnt)
       enddo  ! iiEnt/
       irEnt_max = max(irEnt_max, maxval(rgn_tile%irEnt))
-      uid_max = max(uid_max, maxval(rgn_tile%uid))
+      id_max = max(id_max, maxval(rgn_tile%id))
     enddo  ! iiRegion/
     close(un)
   enddo  ! itx/
   enddo  ! ity/
 
   dgt_irEnt = dgt(irEnt_max)
-  dgt_uid = dgt(uid_max)
+  dgt_id = dgt(id_max)
 
   f = get_f_tmp_networks_fmt()
   call logmsg('Writing '//str(f))
   open(newunit=un, file=f, status='replace')
   write(un,"(1x,a,1x,i0)") 'dgt_irEnt', dgt_irEnt
-  write(un,"(1x,a,1x,i0)") 'dgt_uid', dgt_uid
+  write(un,"(1x,a,1x,i0)") 'dgt_id', dgt_id
   close(un)
   !-------------------------------------------------------------
   ! Main
@@ -306,7 +306,7 @@ subroutine connectChannels()
   !-------------------------------------------------------------
   call logent('Outputting')
 
-  wfmt = "(5x,i"//str(dgt_irEnt)//",1x,i"//str(dgt_uid)//")"
+  wfmt = "(5x,i"//str(dgt_irEnt)//",1x,i"//str(dgt_id)//")"
   iTile = 0
 
   do ity = NLNI_TYMIN, NLNI_TYMAX
@@ -321,7 +321,7 @@ subroutine connectChannels()
     read(un,*) c_, mRegion
     close(un)
 
-    f = get_f_lst_tiled_uid(nlni_tilename(itx,ity))
+    f = get_f_lst_tiled_id(nlni_tilename(itx,ity))
     if( iTile <= 2 .or. iTile >= count(is_tile_exist)-1 )then
       call logmsg('Writing '//str(f))
     elseif( iTile == 3 )then
@@ -334,9 +334,9 @@ subroutine connectChannels()
       rgn_tile => tbl_rgn_tile_this%region(iRegion)
       if( rgn_tile%mEnt == 0 ) cycle
       write(un,"(3x,a,1x,i0)") region_idx2str(iRegion), rgn_tile%mEnt
-      write(un,"(5x,a)") 'irEnt uid'
+      write(un,"(5x,a)") 'irEnt id'
       do iiEnt = 1, rgn_tile%mEnt 
-        write(un,wfmt) rgn_tile%irEnt(iiEnt), rgn_tile%uid(iiEnt)
+        write(un,wfmt) rgn_tile%irEnt(iiEnt), rgn_tile%id(iiEnt)
       enddo  ! iiEnt/
     enddo  ! iRegion/
     close(un)
@@ -385,7 +385,7 @@ subroutine postConnectChannels()
         get_f_stream_shp        , &
         get_f_rivernode_shp     , &
         get_f_lst_tiled_idx     , &
-        get_f_lst_tiled_uid     , &
+        get_f_lst_tiled_id      , &
         get_f_tmp_networks_lst  , &
         get_f_tmp_network_entity, &
         get_f_tmp_network_channel
@@ -478,11 +478,11 @@ subroutine postConnectChannels()
   enddo  ! itx/
   enddo  ! ity/
   !-------------------------------------------------------------
-  ! Read tiled uid data
+  ! Read tiled id data
   !-------------------------------------------------------------
   call logent('Reading tiled global index data')
 
-  call get_fmt_network(dgt_irEnt, dgt_uid)
+  call get_fmt_network(dgt_irEnt, dgt_id)
 
   allocate(tbl_rgn_tile(NLNI_TXMIN:NLNI_TXMAX,NLNI_TYMIN:NLNI_TYMAX))
 
@@ -497,7 +497,7 @@ subroutine postConnectChannels()
     allocate(tbl_rgn_tile_this%region(NREGION))
     tbl_rgn_tile_this%region(:)%mEnt = 0
     
-    f = get_f_lst_tiled_uid(nlni_tilename(itx,ity))
+    f = get_f_lst_tiled_id(nlni_tilename(itx,ity))
     if( iTile <= 2 .or. iTile >= count(is_tile_exist)-1 )then
       call logmsg('Reading '//str(f))
     elseif( iTile == 3 )then
@@ -511,10 +511,10 @@ subroutine postConnectChannels()
       rgn_tile => tbl_rgn_tile_this%region(region_str2idx(regionName))
       rgn_tile%mEnt = mEnt
       allocate(rgn_tile%irEnt(rgn_tile%mEnt))
-      allocate(rgn_tile%uid(rgn_tile%mEnt))
+      allocate(rgn_tile%id(rgn_tile%mEnt))
       read(un,*)
       do iiEnt = 1, rgn_tile%mEnt 
-        read(un,*) rgn_tile%irEnt(iiEnt), rgn_tile%uid(iiEnt)
+        read(un,*) rgn_tile%irEnt(iiEnt), rgn_tile%id(iiEnt)
       enddo  ! iiEnt/
     enddo  ! iRegion/
     close(un)
@@ -536,7 +536,7 @@ subroutine postConnectChannels()
     call traperr( shp_get_info(nEntity=rgn%nrEnt) )
     call traperr( shp_close() )
 
-    allocate(rgn%uid(rgn%nrEnt))
+    allocate(rgn%id(rgn%nrEnt))
   enddo
 
   do ity = NLNI_TYMIN, NLNI_TYMAX
@@ -549,7 +549,7 @@ subroutine postConnectChannels()
       rgn_tile => tbl_rgn_tile_this%region(iRegion)
       if( rgn_tile%mEnt == 0 ) cycle
       do iiEnt = 1, rgn_tile%mEnt
-        rgn%uid(rgn_tile%irEnt(iiEnt)) = rgn_tile%uid(iiEnt)
+        rgn%id(rgn_tile%irEnt(iiEnt)) = rgn_tile%id(iiEnt)
       enddo  ! iiEnt/
     enddo
   enddo  ! itx/
@@ -558,7 +558,7 @@ subroutine postConnectChannels()
   ! Make entity dictionary
   !-------------------------------------------------------------
   dct_ent%ngEnt = sum(region(:)%nrEnt)
-  allocate(dct_ent%uid(dct_ent%ngEnt))
+  allocate(dct_ent%id(dct_ent%ngEnt))
   allocate(dct_ent%iRegion(dct_ent%ngEnt))
   allocate(dct_ent%irEnt(dct_ent%ngEnt))
   allocate(dct_ent%leng(dct_ent%ngEnt))
@@ -574,7 +574,7 @@ subroutine postConnectChannels()
       call add(iEnt)
       dct_ent%iRegion(iEnt) = iRegion
       dct_ent%irEnt(iEnt) = irEnt
-      dct_ent%uid(iEnt) = rgn%uid(irEnt)
+      dct_ent%id(iEnt) = rgn%id(irEnt)
 
       call traperr( shp_get_entity(irEnt, ent) )
       dct_ent%leng(iEnt) = get_entity_length(ent)
@@ -585,11 +585,11 @@ subroutine postConnectChannels()
 
   call shp_clear_entity(ent)
 
-  ! Sort by (1) uid (2) iRegion 
+  ! Sort by (1) id (2) iRegion 
   ! and later by (3) irEnt (keeping sorted by (1), (2))
   allocate(arg(dct_ent%ngEnt))
-  call argsort(dct_ent%uid, arg)
-  call sort(dct_ent%uid, arg)
+  call argsort(dct_ent%id, arg)
+  call sort(dct_ent%id, arg)
   call sort(dct_ent%iRegion, arg)
   call sort(dct_ent%irEnt, arg)
   call sort(dct_ent%leng, arg)
@@ -602,7 +602,7 @@ subroutine postConnectChannels()
     is = ie + 1
     ie = is
     do while( ie < dct_ent%ngEnt )
-      if( dct_ent%uid(ie+1) /= dct_ent%uid(is) ) exit
+      if( dct_ent%id(ie+1) /= dct_ent%id(is) ) exit
       ie = ie + 1
     enddo  ! ie/
 
@@ -627,12 +627,12 @@ subroutine postConnectChannels()
   do while( ie < dct_ent%ngEnt )
     call add(iNwk)
     nwk => network(iNwk)
-    nwk%uid = dct_ent%uid(ie+1)
+    nwk%id = dct_ent%id(ie+1)
 
     is = ie + 1
     ie = is
     do while( ie < dct_ent%ngEnt )
-      if( dct_ent%uid(ie+1) /= dct_ent%uid(is) ) exit
+      if( dct_ent%id(ie+1) /= dct_ent%id(is) ) exit
       ie = ie + 1
     enddo  ! ie/
 
@@ -677,7 +677,7 @@ subroutine postConnectChannels()
   enddo  ! ie/
 
   dct_ent%ngEnt = 0
-  deallocate(dct_ent%uid)
+  deallocate(dct_ent%id)
   deallocate(dct_ent%iRegion)
   deallocate(dct_ent%irEnt)
 
@@ -908,7 +908,7 @@ endif
 
   do iNwk = 1, nNwk
     nwk => network(iNwk)
-    if( debug .and. nwk%uid /= uid_debug ) cycle
+    if( debug .and. nwk%id /= id_debug ) cycle
 
     !call logmsg(str(iNwk,dgt(nNwk))//'/'//str(nNwk))
 
@@ -1152,7 +1152,7 @@ endif
   call logent('Outputting node types and connections')
 
   wfmt = "(3x,i"//str(dgt(nNwk))//&
-          ",1x,i"//str(dgt_uid)//"."//str(dgt_uid)//&
+          ",1x,i"//str(dgt_id)//"."//str(dgt_id)//&
           ",1x,i"//str(dgt(maxval(network(:)%nEnt)))//&
           ",1x,es10.3"//&
           ",2(1x,f12.7),2(1x,f11.7))"
@@ -1161,13 +1161,13 @@ endif
   call logmsg('Writing '//str(f))
   open(newunit=un, file=f, status='replace')
   write(un,"(1x,a,1x,i0)") 'networks', nNwk
-  write(un,"(3x,a)") 'i uid mEnt leng west east south north'
+  write(un,"(3x,a)") 'i id mEnt leng west east south north'
   do iNwk = 1, nNwk
     nwk => network(iNwk)
-    if( debug .and. nwk%uid /= uid_debug ) cycle
+    if( debug .and. nwk%id /= id_debug ) cycle
 
     write(un,wfmt) &
-        iNwk, nwk%uid, nwk%nEnt, nwk%leng, &
+        iNwk, nwk%id, nwk%nEnt, nwk%leng, &
         nwk%west, nwk%east, nwk%south, nwk%north
   enddo  ! iNwk/
   close(un)
@@ -1176,9 +1176,9 @@ endif
 
   do iNwk = 1, nNwk
     nwk => network(iNwk)
-    if( debug .and. nwk%uid /= uid_debug ) cycle
+    if( debug .and. nwk%id /= id_debug ) cycle
 
-    f = get_f_tmp_network_entity(str(nwk%uid,-dgt_uid))
+    f = get_f_tmp_network_entity(str(nwk%id,-dgt_id))
     if( iNwk <= 2 .or. iNwk >= nNwk-1 )then
       call logmsg('Writing '//str(f))
     elseif( iNwk == 3 )then
@@ -1484,7 +1484,7 @@ endif
     call logent('Outputting', opt='-p -x2')
 
     ! For Fortran (unformatted, sequential)
-    f = get_f_tmp_network_channel(str(nwk%uid,-dgt_uid), 'sbin')
+    f = get_f_tmp_network_channel(str(nwk%id,-dgt_id), 'sbin')
     open(newunit=un, file=f, form='unformatted', access='sequential', status='replace')
     write(un) nCh, nwk%west, nwk%east, nwk%south, nwk%north
     do jCh = 1, nCh
@@ -1507,7 +1507,7 @@ endif
     close(un)
 
     ! For Python (JSON)
-    f = get_f_tmp_network_channel(str(nwk%uid,-dgt_uid), 'json')
+    f = get_f_tmp_network_channel(str(nwk%id,-dgt_id), 'json')
     open(newunit=un, file=f, status='replace')
     write(un,"(a)") '{'
     write(un,"(2x,a)") '"bbox": ['//str((/nwk%west,nwk%east,nwk%south,nwk%north/),&
@@ -1562,7 +1562,7 @@ endif
   call logmsg('Output files (sequential unformatted):')
   do iNwk = 1, nNwk
     if( iNwk <= 2 .or. iNwk >= nNwk-1 )then
-      call logmsg('  '//get_f_tmp_network_channel(str(network(iNwk)%uid,-dgt_uid), 'sbin'))
+      call logmsg('  '//get_f_tmp_network_channel(str(network(iNwk)%id,-dgt_id), 'sbin'))
     elseif( iNwk == 3  )then
       call logmsg('  ...')
     endif
@@ -1571,7 +1571,7 @@ endif
   call logmsg('Output files (JSON):')
   do iNwk = 1, nNwk
     if( iNwk <= 2 .or. iNwk >= nNwk-1 )then
-      call logmsg('  '//get_f_tmp_network_channel(str(network(iNwk)%uid,-dgt_uid), 'json'))
+      call logmsg('  '//get_f_tmp_network_channel(str(network(iNwk)%id,-dgt_id), 'json'))
     elseif( iNwk == 3  )then
       call logmsg('  ...')
     endif
@@ -1976,7 +1976,7 @@ subroutine connectChannels_core(&
   integer :: iPt
   integer :: iiPt
   logical :: is_updated
-  integer :: uid_min
+  integer :: id_min
   integer :: jPt, jPts, jPte
   real(8) :: plon, plat
 
@@ -2195,7 +2195,7 @@ subroutine connectChannels_core(&
     tbe => tbl_ent(itEnt)
     rgn_tile_self => tbl_rgn_tile_self%region(tbe%iRegion)
     call search(tbe%irEnt, rgn_tile_self%irEnt, iiEnt)
-    tbe%uid = rgn_tile_self%uid(iiEnt)
+    tbe%id = rgn_tile_self%id(iiEnt)
   enddo
 
   txs = nlni_txs_of_lon(west)
@@ -2216,8 +2216,8 @@ subroutine connectChannels_core(&
         call search(rgn_tile_other%irEnt(jjEnt), rgn_tile_self%irEnt, iiEnt)
         if( iiEnt == 0 ) cycle
         tbe => tbl_ent(rgn_tile_self%itEnt(iiEnt))
-        if( tbe%uid > rgn_tile_other%uid(jjEnt) )then
-          tbe%uid = rgn_tile_other%uid(jjEnt)
+        if( tbe%id > rgn_tile_other%id(jjEnt) )then
+          tbe%id = rgn_tile_other%id(jjEnt)
           tbe%is_updated = .true.
         endif
       enddo  ! iRegion/
@@ -2247,7 +2247,7 @@ subroutine connectChannels_core(&
       tbe => tbl_ent(itEnt)
       part => tbe%ent%part(1)
 
-      uid_min = tbe%uid
+      id_min = tbe%id
       do iPt = 1, part%nPoint
         ptc => tbe%point(iPt)
         if( ptc%nPoint_conn == 0 ) cycle
@@ -2255,7 +2255,7 @@ subroutine connectChannels_core(&
         ! Find smallest global id among connected entities 
         do iiPt = 1, ptc%nPoint_conn
           jtEnt = ptc%itEnt_conn(iiPt)
-          uid_min = min(uid_min, tbl_ent(jtEnt)%uid)
+          id_min = min(id_min, tbl_ent(jtEnt)%id)
         enddo  ! iiPt/
       enddo  ! iPt/
 
@@ -2266,9 +2266,9 @@ subroutine connectChannels_core(&
         ! Update global ids of connected entities
         do iiPt = 1, ptc%nPoint_conn
           jtEnt = ptc%itEnt_conn(iiPt)
-          if( tbl_ent(jtEnt)%uid > uid_min )then
+          if( tbl_ent(jtEnt)%id > id_min )then
             is_updated = .true.
-            tbl_ent(jtEnt)%uid = uid_min
+            tbl_ent(jtEnt)%id = id_min
             tbl_ent(jtEnt)%is_updated = .true.
           endif
         enddo  ! iiPt/
@@ -2338,7 +2338,7 @@ subroutine connectChannels_core(&
       if( iiEnt == 0 )then
         call errend('tbe%irEnt not found.')
       endif
-      rgn_tile_other%uid(iiEnt) = tbe%uid
+      rgn_tile_other%id(iiEnt) = tbe%id
     enddo  ! itx/
     enddo  ! ity/
   enddo

@@ -41,7 +41,4 @@ module c1_const
   character(CLEN_VAR), parameter :: EARTH_RTYP = EARTH_RTYP__AUTHALIC
   real(8), parameter :: EARTH_R  = EARTH_CONST__WGS84_R_AUTHALIC
   real(8), parameter :: EARTH_E2 = 0.d0
-
-  ! Format
-  integer, parameter :: DGT_BSNID_MAX = 7
 end module c1_const

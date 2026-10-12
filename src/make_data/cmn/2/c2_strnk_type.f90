@@ -1,5 +1,6 @@
 module c2_strnk_type
   implicit none
+  public
 
   type cmn_node_
     real(8) :: lon, lat
@@ -36,7 +37,7 @@ module c2_strnk_type
   end type
 
   type cmn_network_
-    character(:), allocatable :: uid
+    character(:), allocatable :: id
     integer :: nWsys
     type(cmn_watsys_), pointer :: wsys_(:)
     integer :: nCh
