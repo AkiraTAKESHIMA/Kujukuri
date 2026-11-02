@@ -795,7 +795,7 @@ subroutine prep_river_connection()
   integer :: jNode, jNode2
   integer :: n_outlet
 
-  integer :: iCh_debug = 1675
+  integer :: iCh_debug = 1558
   logical :: debug_this
 
   call logbgn(PRCNAM, MODNAM, '-p -x2')
@@ -1532,6 +1532,8 @@ subroutine prep_river_topography()
     deallocate(lst_leng)
     deallocate(lst_upa)
   enddo  ! k = 1, riv_count
+
+  call traperr( wbin(channel(:)%upa, joined(dir_out, 'riv_upa_tmp.bin'), replace=.true.) )
 
   call logext()
   !-------------------------------------------------------------

@@ -223,9 +223,9 @@ subroutine exec_simulation()
   open(newunit=un_qr, file=trim(dir_out)//'/qr.bin', &
        form='unformatted', access='direct', recl=8_8*size(qr_idx), status='replace')
 
-  open(newunit=un_hr1_idx, file=trim(dir_out)//'/hr_idx.bin', &
+  open(newunit=un_hr1_idx, file=trim(dir_out)//'/hr1_idx.bin', &
        form='unformatted', access='direct', recl=8_8*size(hr_idx), status='replace')
-  open(newunit=un_hs1, file=trim(dir_out)//'/hs.bin', &
+  open(newunit=un_hs1, file=trim(dir_out)//'/hs1.bin', &
        form='unformatted', access='direct', recl=8_8*size(hs), status='replace')
 
   write(un_hr_idx, rec=it_out) hr_idx
@@ -257,8 +257,8 @@ subroutine exec_simulation()
 print*, 'river'
     call advance_river( time, hr_idx, qr_idx )
 
-    if( it_out * dt_out <= time )then
-      call logmsg('save hr1('//str(it_out)//')')
+    if( it_out * dt_out <= time_next )then
+      call logmsg('save hr1 #'//str(it_out))
       write(un_hr1_idx, rec=it_out) hr_idx
     endif
     !-----------------------------------------------------------
@@ -267,9 +267,9 @@ print*, 'river'
 print*, 'slope'
     call advance_slope( time, hs_idx )
 
-    if( it_out * dt_out <= time )then
+    if( it_out * dt_out <= time_next )then
       call reshape_slo_idx2ij(hs_idx, hs)
-      call logmsg('save hs1('//str(it_out)//')')
+      call logmsg('save hs1 #'//str(it_out))
       write(un_hs1, rec=it_out) hs
     endif
     !-----------------------------------------------------------

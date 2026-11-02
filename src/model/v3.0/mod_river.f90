@@ -91,6 +91,11 @@ subroutine advance_river(&
   integer :: k
   integer :: jCh
 
+  ! DEBUG
+  integer :: k_debug1 = 1558, k_debug2 = 1559, k_debug3 = 1560
+  real(8) :: vr_idx_prev(size(hr_idx))
+  real(8) :: hr_idx_prev(size(hr_idx))
+
   time = time_start
   time_end = time + dt_model
   ddt = dt_riv
@@ -141,6 +146,12 @@ subroutine advance_river(&
 
     time = time + ddt
 
+    ! DEBUG
+    vr_idx_prev = vr_idx
+    call vr2hr(vr_idx_prev(k_debug1), k_debug1, hr_idx_prev(k_debug1))
+    call vr2hr(vr_idx_prev(k_debug2), k_debug2, hr_idx_prev(k_debug2))
+    call vr2hr(vr_idx_prev(k_debug3), k_debug3, hr_idx_prev(k_debug3))
+
     vr_idx = vr_idx + ddt * (c1 * fr1 + c3 * fr3 + c4 * fr4 + c6 * fr6)
     cpssto = 0.d0  ! compensation
     do k = 1, riv_count
@@ -162,6 +173,52 @@ subroutine advance_river(&
         call add(qr_idx(jCh,k), qr6(jCh,k)*ddt)
       enddo
     enddo
+
+    qr_tmp(1) = 0.d0
+    ch => channel(k_debug1)
+    do jCh = 1, ch%nCh_down
+      if( ch%iCh_down(jCh) /= k_debug2 ) cycle
+      call add(qr_tmp(1), qr1(jCh,k_debug1)*ddt)
+      call add(qr_tmp(1), qr2(jCh,k_debug1)*ddt)
+      call add(qr_tmp(1), qr3(jCh,k_debug1)*ddt)
+      call add(qr_tmp(1), qr4(jCh,k_debug1)*ddt)
+      call add(qr_tmp(1), qr5(jCh,k_debug1)*ddt)
+      call add(qr_tmp(1), qr6(jCh,k_debug1)*ddt)
+    enddo
+
+    qr_tmp(2) = 0.d0
+    ch => channel(k_debug2)
+    do jCh = 1, ch%nCh_down
+      if( ch%iCh_down(jCh) /= k_debug3 ) cycle
+      call add(qr_tmp(2), qr1(jCh,k_debug2)*ddt)
+      call add(qr_tmp(2), qr2(jCh,k_debug2)*ddt)
+      call add(qr_tmp(2), qr3(jCh,k_debug2)*ddt)
+      call add(qr_tmp(2), qr4(jCh,k_debug2)*ddt)
+      call add(qr_tmp(2), qr5(jCh,k_debug2)*ddt)
+      call add(qr_tmp(2), qr6(jCh,k_debug2)*ddt)
+    enddo
+
+    ! DEBUG
+    call vr2hr(vr_idx(k_debug1), k_debug1, hr_idx(k_debug1))
+    call vr2hr(vr_idx(k_debug2), k_debug2, hr_idx(k_debug2))
+    call vr2hr(vr_idx(k_debug3), k_debug3, hr_idx(k_debug3))
+
+    k = k_debug1
+    call logmsg('ch#'//str(k)//&
+      ' hr '//str(hr_idx_prev(k))//' -> '//str(hr_idx(k))//&
+      ' vr '//str(vr_idx_prev(k))//' -> '//str(vr_idx(k)))
+    k = k_debug2
+    call logmsg('ch#'//str(k)//&
+      ' hr '//str(hr_idx_prev(k))//' -> '//str(hr_idx(k))//&
+      ' vr '//str(vr_idx_prev(k))//' -> '//str(vr_idx(k)))
+    k = k_debug3
+    call logmsg('ch#'//str(k)//&
+      ' hr '//str(hr_idx_prev(k))//' -> '//str(hr_idx(k))//&
+      ' vr '//str(vr_idx_prev(k))//' -> '//str(vr_idx(k)))
+    call logmsg('disc from ch#'//str(k_debug1)//' to ch#'//str(k_debug2)//&
+                ': '//str(qr_tmp(1)))
+    call logmsg('disc from ch#'//str(k_debug2)//' to ch#'//str(k_debug3)//&
+                ': '//str(qr_tmp(2)))
 
   enddo  ! while time < time_end/
 
