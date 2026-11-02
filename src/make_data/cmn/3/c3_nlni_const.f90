@@ -20,8 +20,8 @@ module c3_nlni_const
     NLNI_TYMAX => TYMAX, &
     NLNI_NTX => NTX, &
     NLNI_NTY => NTY, &
-    NLNI_NX => NX, &
-    NLNI_NY => NY, &
+    NLNI_MX => MX, &
+    NLNI_MY => MY, &
     NLNI_NGX => NGX, &
     NLNI_NGY => NGY, &
     NLNI_TILESIZE_LON => TILESIZE_LON, &

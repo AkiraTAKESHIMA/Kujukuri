@@ -109,7 +109,7 @@ subroutine makeWscodeMasks()
   !-------------------------------------------------------------
   call logent('Getting range of each wsCode')
 
-  allocate(wsCode(NX,NY))
+  allocate(wsCode(MX,MY))
 
   allocate(tbl_ws(nWsCode))
   do i = 1, nWsCode
@@ -128,8 +128,8 @@ subroutine makeWscodeMasks()
     call traperr( rbin(wsCode, f) )
 
     wsCode_prev = WSCODE_MISS_I
-    do iy = 1, NY
-    do ix = 1, NX
+    do iy = 1, MY
+    do ix = 1, MX
       if( wsCode(ix,iy) == WSCODE_MISS_I ) cycle
 
       if( mod(wsCode(ix,iy), 10000) == 0 )then

@@ -49,14 +49,8 @@ character(CLEN_PATH) function get_f_data(&
   character(*), intent(in) :: varName
   character(*), intent(in) :: bsnId
 
-  call logbgn(PRCNAM, MODNAM, '-p')
-  !-------------------------------------------------------------
   res = joined(DIR_RRI, str(basinType)//'/'//str(resl)//&
           '/'//str(bsnId)//'/'//str(varName)//'.txt')
-
-  call traperr( mkdir(dirname(res)) )
-  !-------------------------------------------------------------
-  call logret(PRCNAM, MODNAM)
 end function get_f_data
 !===============================================================
 !

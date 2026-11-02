@@ -386,7 +386,7 @@ subroutine postConnectChannels()
         get_f_rivernode_shp     , &
         get_f_lst_tiled_idx     , &
         get_f_lst_tiled_id      , &
-        get_f_tmp_networks_lst  , &
+        get_f_lst_tmp_networks  , &
         get_f_tmp_network_entity, &
         get_f_tmp_network_channel
   use mod_util, only: &
@@ -1157,7 +1157,7 @@ endif
           ",1x,es10.3"//&
           ",2(1x,f12.7),2(1x,f11.7))"
 
-  f = get_f_tmp_networks_lst()
+  f = get_f_lst_tmp_networks()
   call logmsg('Writing '//str(f))
   open(newunit=un, file=f, status='replace')
   write(un,"(1x,a,1x,i0)") 'networks', nNwk

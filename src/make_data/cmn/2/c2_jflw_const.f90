@@ -50,10 +50,10 @@ module c2_jflw_const
 
   integer(1), parameter :: LANDUSE_MISS = -9_1
 
-  integer, parameter :: NX_1SEC = 3600
-  integer, parameter :: NY_1SEC = 3600
-  integer            :: NX
-  integer            :: NY
+  integer, parameter :: MX_1SEC = 3600
+  integer, parameter :: MY_1SEC = 3600
+  integer            :: MX
+  integer            :: MY
   integer, parameter :: NTX = 27
   integer, parameter :: NTY = 22
   integer            :: NGX
@@ -96,19 +96,19 @@ subroutine set_resolution(resl)
   !
   !-------------------------------------------------------------
   scale = get_cellsize_ratio( RESOLUTION_1SEC, resl )
-  if( mod(NX_1SEC, scale) /= 0 )then
+  if( mod(MX_1SEC, scale) /= 0 )then
     call errend(msg_unexpected_condition()//&
-        '\n  scale is not a divisor of NX_1SEC.'//&
-        '\n  NX_1SEC: '//str(NX_1SEC)//&
+        '\n  scale is not a divisor of MX_1SEC.'//&
+        '\n  MX_1SEC: '//str(MX_1SEC)//&
         '\n  scale: '//str(scale))
   endif
 
-  NX = NX_1SEC / scale
-  NY = NY_1SEC / scale
-  NGX = NX * NTX
-  NGY = NY * NTY
-  GRIDSIZE_LON = TILESIZE_LON / NX
-  GRIDSIZE_LAT = TILESIZE_LAT / NY
+  MX = MX_1SEC / scale
+  MY = MY_1SEC / scale
+  NGX = MX * NTX
+  NGY = MY * NTY
+  GRIDSIZE_LON = TILESIZE_LON / MX
+  GRIDSIZE_LAT = TILESIZE_LAT / MY
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
 end subroutine set_resolution

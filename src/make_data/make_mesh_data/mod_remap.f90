@@ -112,8 +112,8 @@ subroutine make_rt_from_jflw(resl, resl_src, overwrite)
 !if( tilename(itx,ity) /= 'n36e140' ) cycle
     call set_resolution(resl_src)
 
-    nx1 = NX
-    ny1 = NY
+    nx1 = MX
+    ny1 = MY
     west1 = west_of_tx(itx)
     east1 = east_of_tx(itx)
     south1 = south_of_ty(ity)
@@ -121,8 +121,8 @@ subroutine make_rt_from_jflw(resl, resl_src, overwrite)
 
     call set_resolution(resl)
 
-    nx2 = NX
-    ny2 = NY
+    nx2 = MX
+    ny2 = MY
     west2 = west_of_tx(itx)
     east2 = east_of_tx(itx)
     south2 = south_of_ty(ity)
@@ -354,8 +354,8 @@ subroutine write_conf()
   call w('path_report: "'//str(joined(dir,'report.txt'))//'"')
   call w('')
   call w('[mesh_latlon]')
-  call w('  nx: '//str(NLNI_NX))
-  call w('  ny: '//str(NLNI_NY))
+  call w('  nx: '//str(NLNI_MX))
+  call w('  ny: '//str(NLNI_MY))
   call w('  west: '//str(nlni_west_of_tx(itx2),WFMT_LON))
   call w('  east: '//str(nlni_east_of_tx(itx2),WFMT_LON))
   call w('  south: '//str(nlni_south_of_ty(ity2),WFMT_LAT))
@@ -364,8 +364,8 @@ subroutine write_conf()
   call w('[end]')
   call w('')
   call w('[mesh_latlon]')
-  call w('  nx: '//str(NX))
-  call w('  ny: '//str(NY))
+  call w('  nx: '//str(MX))
+  call w('  ny: '//str(MY))
   call w('  west: '//str(west,WFMT_LON))
   call w('  east: '//str(east,WFMT_LON))
   call w('  south: '//str(south,WFMT_LAT))
@@ -512,16 +512,16 @@ subroutine remap_nlni(&
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
-  allocate(valwgtmap(NX*NY))
-  do k = 1, NX*NY
+  allocate(valwgtmap(MX*MY))
+  do k = 1, MX*MY
     vw => valwgtmap(k)
     vw%n = 0
     allocate(vw%vi1(2))
     allocate(vw%wgt(2))
   enddo
 
-  allocate(srcmapi1(NLNI_NX,NLNI_NY))
-  allocate(tgtmapi1(NX*NY))
+  allocate(srcmapi1(NLNI_MX,NLNI_MY))
+  allocate(tgtmapi1(MX*MY))
 
   do ity = 1, NTY
   do itx = 1, NTX
@@ -564,7 +564,7 @@ subroutine remap_nlni(&
     tye2 = nlni_ty_of_gy(gye2)
 
     !$omp parallel do
-    do k = 1, NX*NY
+    do k = 1, MX*MY
       valwgtmap(k)%n = 0
       valwgtmap(k)%i = 0
       valwgtmap(k)%wgt_sum = 0.d0
@@ -638,7 +638,7 @@ subroutine remap_nlni(&
     !-----------------------------------------------------------
     call logent('Calculating grid values')
 
-    do k = 1, NX*NY
+    do k = 1, MX*MY
       vw => valwgtmap(k)
       if( vw%n == 0 )then
         tgtmapi1(k) = tgtmissi1
@@ -725,12 +725,12 @@ subroutine remap_jflw(resl, resl_src, var, overwrite)
   !
   !-------------------------------------------------------------
   call set_resolution(resl_src)
-  nx1 = NX
-  ny1 = NY
+  nx1 = MX
+  ny1 = MY
 
   call set_resolution(resl)
-  nx2 = NX
-  ny2 = NY
+  nx2 = MX
+  ny2 = MY
 
   allocate(srcmap(nx1,ny1))
   allocate(src1d(nx1*ny1))

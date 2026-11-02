@@ -190,8 +190,8 @@ subroutine write_conf()
   call wl('path_report: "'//str(dir_out_this)//'/report.txt"')
   call wl('')
   call wl('[mesh_raster]')
-  call wl('  nx: '//str(NX))
-  call wl('  ny: '//str(NY))
+  call wl('  nx: '//str(MX))
+  call wl('  ny: '//str(MY))
   call wl('  west: '//str(west_of_tx(itx),'f12.7'))
   call wl('  east: '//str(east_of_tx(itx),'f12.7'))
   call wl('  south: '//str(south_of_ty(ity),'f11.7'))
@@ -369,8 +369,8 @@ subroutine write_conf_remap()
   call wl('path_report: "'//str(dir_rt)//'/report.txt"')
   call wl('')
   call wl('[mesh_raster]')
-  call wl('  nx: '//str(NLNI_NX))
-  call wl('  ny: '//str(NLNI_NY))
+  call wl('  nx: '//str(NLNI_MX))
+  call wl('  ny: '//str(NLNI_MY))
   call wl('  west: '//str(nlni_west_of_tx(jtx),'f12.7'))
   call wl('  east: '//str(nlni_east_of_tx(jtx),'f12.7'))
   call wl('  south: '//str(nlni_south_of_ty(jty),'f12.7'))
@@ -381,8 +381,8 @@ subroutine write_conf_remap()
   call wl('[end]')
   call wl('')
   call wl('[mesh_raster]')
-  call wl('  nx: '//str(NX))
-  call wl('  ny: '//str(NY))
+  call wl('  nx: '//str(MX))
+  call wl('  ny: '//str(MY))
   call wl('  west: '//str(west,'f12.7'))
   call wl('  east: '//str(east,'f12.7'))
   call wl('  south: '//str(south,'f12.7'))
@@ -873,8 +873,8 @@ subroutine calcWatsysCorresp()
 !if( .false. )then
   call logent('Making maps of Jaccard index')
 
-  allocate(bsnmap(NX,NY))
-  allocate(Jcdmap(NX,NY))
+  allocate(bsnmap(MX,MY))
+  allocate(Jcdmap(MX,MY))
 
   bsnid_prev = BSN_MISS
   do ity = 1, NTY
@@ -884,8 +884,8 @@ subroutine calcWatsysCorresp()
     call logmsg(tilename(itx,ity))
 
     call traperr( rbin(bsnmap, f_bsnmap_jflw) )
-    do iy = 1, NY
-    do ix = 1, NX
+    do iy = 1, MY
+    do ix = 1, MX
       if( bsnmap(ix,iy) == BSN_MISS )then
         Jcdmap(ix,iy) = JACCARD_MISS
         cycle
@@ -925,7 +925,7 @@ subroutine calcWatsysCorresp()
 !if( .false. )then
   call logent('Making a low-resolution map of Jaccard index')
 
-  allocate(Jcdmap(NX,NY))
+  allocate(Jcdmap(MX,MY))
   allocate(Jcdmap_lres(NGX/RES_RATIO,NGY/RES_RATIO))
   Jcdmap_lres(:,:) = JACCARD_MISS
 
@@ -938,11 +938,11 @@ subroutine calcWatsysCorresp()
     f_Jcdmap = get_f_map_tile(RESOLUTION_1SEC, 'Jaccard', itx, ity)
     call traperr( rbin(Jcdmap, f_Jcdmap) )
 
-    cx0 = NX/RES_RATIO * (itx-1)
-    cy0 = NY/RES_RATIO * (ity-1)
+    cx0 = MX/RES_RATIO * (itx-1)
+    cy0 = MY/RES_RATIO * (ity-1)
 
-    do icy = 1, NY/RES_RATIO
-    do icx = 1, NX/RES_RATIO
+    do icy = 1, MY/RES_RATIO
+    do icx = 1, MX/RES_RATIO
       Jcdmap_lres(cx0+icx,cy0+icy) = 0.d0
       n_valid = 0
       do iy = (icy-1)*RES_RATIO+1, icy*RES_RATIO

@@ -24,7 +24,9 @@ module mod_topo
   !-------------------------------------------------------------
   ! Public procedures
   !-------------------------------------------------------------
+  public :: modifyElv
   public :: modifyFlwDir
+  public :: calcUpperArea
   !-------------------------------------------------------------
   ! Private module variables
   !-------------------------------------------------------------
@@ -72,8 +74,9 @@ module mod_topo
     type(channel_), pointer :: channel(:)
     integer :: nNode
     type(nwknode_), pointer :: node(:)
-    real(8) :: west, east, south, north
+    integer :: nx, ny
     integer :: xs, xe, ys, ye
+    real(8) :: west, east, south, north
     integer, pointer :: jCh(:)
   end type
   !-------------------------------------------------------------
@@ -82,6 +85,169 @@ module mod_topo
   character(CLEN_PROC), parameter :: MODNAM = 'mod_topo'
   !-------------------------------------------------------------
 contains
+!===============================================================
+!
+!===============================================================
+subroutine modifyElv(networkType, resl, id)
+  use c3_strnk_io, only: &
+    strnk_get_f_lst_networks_channel
+  use c3_jflw_const
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'modifyElv'
+  character(*), intent(in) :: networkType
+  character(*), intent(in) :: resl
+  character(*), intent(in) :: id
+
+  character(DGT_NWKID) :: id_
+  integer :: nBasin, iBasin
+
+  character(CLEN_PATH) :: f
+  integer :: un
+  character :: c_
+
+  call logbgn(PRCNAM, MODNAM)
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  call jflw_set_resolution(resl)
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  selectcase( networkType )
+  !-------------------------------------------------------------
+  ! Case: network
+  case( NETWORKTYPE__NETWORK )
+
+    if( id == '' )then
+      f = strnk_get_f_lst_networks_channel()
+      call logmsg('Reading '//str(f))
+      open(newunit=un, file=f, status='old')
+      read(un,*) c_, nBasin
+      read(un,*)
+      do iBasin = 1, nBasin
+        read(un,*) c_, id_
+        call modify_elv_network(resl, id_)
+      enddo  ! iBasin/
+      close(un)
+    else
+      call modify_elv_network(resl, id)
+    endif
+  !-------------------------------------------------------------
+  ! Case: networkset
+  case( NETWORKTYPE__NETWORKSET )
+    call errend(msg_not_implemented()//&
+      '\nnetworkType: '//str(networkType))
+
+  !-------------------------------------------------------------
+  ! Case: ERROR
+  case default
+    call errend(msg_invalid_value('networkType', networkType))
+
+  endselect
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
+end subroutine modifyElv
+!===============================================================
+!
+!===============================================================
+subroutine modify_elv_network(resl, id)
+  use c2_strnk_io, only: &
+    read_network_mesh_domain, &
+    get_f_network_mesh
+  use c2_jflw_const, only: &
+    ELV_MISS
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'modify_elv_network'
+  character(*), intent(in) :: resl
+  character(*), intent(in) :: id
+
+  real(4), allocatable :: elv(:,:)
+  real(4), allocatable :: upa(:,:)
+  real(4), allocatable :: elv_mod(:,:)
+  real(4) :: elv_neighbor
+  integer :: n_neighbor
+  integer :: nx, ny, ix, iy, ibx, iby
+  integer :: gxs, gxe, gys, gye
+  real(8) :: west, east, south, north
+  character(CLEN_PATH) :: f
+
+  real(4), parameter :: UPA_RIV_THRESH = 1e6  ! [m2]
+
+  call logbgn(PRCNAM, MODNAM)
+  !-------------------------------------------------------------
+  ! Load topography
+  !-------------------------------------------------------------
+  call logent('Loading topography data')
+
+  call read_network_mesh_domain(&
+    resl, id, &
+    nx, ny, gxs, gxe, gys, gye, &
+    west, east, south, north, &
+    echo=.true. &
+  )
+
+  allocate(elv(nx,ny))
+  allocate(upa(nx,ny))
+
+  f = get_f_network_mesh(resl, 'elv', id)
+  call logmsg('Reading '//str(f))
+  call traperr( rbin(elv, f) )
+
+  f = get_f_network_mesh(resl, 'upa', id)
+  call logmsg('Reading '//str(f))
+  call traperr( rbin(upa, f) )
+
+  call logext()
+  !-------------------------------------------------------------
+  ! Modify elevation
+  !-------------------------------------------------------------
+  call logent('Modifying elevation')
+
+  allocate(elv_mod(nx,ny))
+  elv_mod(:,:) = elv(:,:)
+
+  do iy = 1, ny
+  do ix = 1, nx
+    if( upa(ix,iy) < UPA_RIV_THRESH ) cycle
+
+    n_neighbor = 0
+    elv_neighbor = 0.0
+    do iby = max(iy-1,1), min(iy+1,ny)
+    do ibx = max(ix-1,1), min(ix+1,nx)
+      if( upa(ibx,iby) >= UPA_RIV_THRESH ) cycle
+      if( elv(ibx,iby) == ELV_MISS ) cycle
+
+      call add(elv_neighbor, elv(ibx,iby))
+      call add(n_neighbor)
+    enddo  ! ibx/
+    enddo  ! iby/
+
+    if( n_neighbor == 0 )then
+      call logwrn('Elevation was not updated because non-river grid was not found around.')
+      cycle
+    endif
+
+    elv_mod(ix,iy) = elv_neighbor / n_neighbor
+  enddo  ! ix/
+  enddo  ! iy/
+
+  f = get_f_network_mesh(resl, 'elv_mod', id)
+  call logmsg('Writing '//str(f))
+  call traperr( mkdir(dirname(f)) )
+  call traperr( wbin(elv_mod, f) )
+
+  call logext()
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
+end subroutine modify_elv_network
+!===============================================================
+!
+!===============================================================
+!
+!
+!
+!
+!
 !===============================================================
 !
 !===============================================================
@@ -106,11 +272,14 @@ subroutine modifyFlwDir(networkType, resl, id)
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
+  call jflw_set_resolution(resl)
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
   selectcase( networkType )
   !-------------------------------------------------------------
   ! Case: network
   case( NETWORKTYPE__NETWORK )
-    call jflw_set_resolution(resl)
 
     if( id == '' )then
       f = strnk_get_f_lst_networks_channel()
@@ -120,11 +289,11 @@ subroutine modifyFlwDir(networkType, resl, id)
       read(un,*)
       do iBasin = 1, nBasin
         read(un,*) c_, id_
-        call modify_flwdir(resl, id_)
+        call modify_flwdir_network(resl, id_)
       enddo  ! iBasin/
       close(un)
     else
-      call modify_flwdir(resl, id)
+      call modify_flwdir_network(resl, id)
     endif
   !-------------------------------------------------------------
   ! Case: networkset
@@ -136,7 +305,6 @@ subroutine modifyFlwDir(networkType, resl, id)
   ! Case: ERROR
   case default
     call errend(msg_invalid_value('networkType', networkType))
-
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -144,7 +312,7 @@ end subroutine modifyFlwDir
 !===============================================================
 !
 !===============================================================
-subroutine modify_flwdir(resl, id)
+subroutine modify_flwdir_network(resl, id)
   use c2_jflw_const
   use c2_jflw_grid, only: &
     center_of_gy, &
@@ -159,7 +327,7 @@ subroutine modify_flwdir(resl, id)
   use c2_strnk_util, only: &
     clear_cmn_network
   implicit none
-  character(CLEN_PROC), parameter :: PRCNAM = 'modify_flwdir'
+  character(CLEN_PROC), parameter :: PRCNAM = 'modify_flwdir_network'
   character(*), intent(in) :: resl
   character(*), intent(in) :: id
 
@@ -224,11 +392,12 @@ subroutine modify_flwdir(resl, id)
   ! Mesh domain
   call read_network_mesh_domain(&
     resl, id, &
-    nwk%xs, nwk%xe, nwk%ys, nwk%ye, &
+    nwk%nx, nwk%ny, nwk%xs, nwk%xe, nwk%ys, nwk%ye, &
     nwk%west, nwk%east, nwk%south, nwk%north, &
     echo=.true.)
 
-  call logmsg('Mesh: ['//str((/nwk%xs,nwk%xe/),DGT_GXY,':')//&
+  call logmsg('Mesh: ('//str((/nwk%nx,nwk%ny/),',')//') '//&
+                    '['//str((/nwk%xs,nwk%xe/),DGT_GXY,':')//&
                     ','//str((/nwk%ys,nwk%ye/),DGT_GXY,':')//']')
 
   ! Intersections
@@ -572,7 +741,6 @@ subroutine modify_flwdir(resl, id)
     !-----------------------------------------------------------
   enddo  ! iiNode
 
-
   call logext()
   !-------------------------------------------------------------
   ! Isolated channels
@@ -627,7 +795,10 @@ subroutine modify_flwdir(resl, id)
   !-------------------------------------------------------------
   call logent('Outputting')
 
-  call traperr( wbin(fdrmap, 'tmp/dir.bin', replace=.true.) )
+  f = get_f_network_mesh(resl, 'dir_mod', id)
+  call logmsg('Writing '//str(f))
+  call traperr( mkdir(dirname(f)) )
+  call traperr( wbin(fdrmap, f, replace=.true.) )
 
   call logext()
   !-------------------------------------------------------------
@@ -925,7 +1096,243 @@ end subroutine update_network_map
 !---------------------------------------------------------------
 !
 !---------------------------------------------------------------
-end subroutine modify_flwdir
+end subroutine modify_flwdir_network
+!===============================================================
+!
+!===============================================================
+!
+!
+!
+!
+!
+!===============================================================
+!
+!===============================================================
+subroutine calcUpperArea(catmType, resl, id, modified)
+  use c2_strnk_io, only: &
+    get_f_lst_networks_channel
+  use c2_jflw_const, &
+    set_resolution => set_resolution
+  use c2_jflw_grid, only: &
+    south_of_gy
+  use c3_joint_const
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'calcUpperArea'
+  character(*), intent(in) :: catmType
+  character(*), intent(in) :: resl
+  character(*), intent(in) :: id
+  logical, intent(in) :: modified
+
+  character(32) :: id_
+  integer :: nCatm, jCatm
+  real(8), allocatable :: pixlat(:)
+  real(8), allocatable :: pixara(:)
+  integer :: igy
+
+  character(CLEN_PATH) :: f
+  integer :: un
+  character :: c_
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  call set_resolution(resl)
+
+  ! Calc. pixel area
+  allocate(pixara(1:NGY))
+  allocate(pixlat(0:NGY))
+
+  pixlat(0) = REGION_NORTH * d2r
+  do igy = 1, NGY
+    pixlat(igy) = south_of_gy(igy) * d2r
+  enddo
+  !call logmsg('pixlat: '//str(pixlat(:2)*r2d,'f11.7',', ')//&
+  !            ', ..., '//str(pixlat(NGY-2:)*r2d,'f11.7',', '))
+
+  pixara(:) = area_sphere_rect(pixlat(0:NGY-1), pixlat(1:NGY)) * (GRIDSIZE_LON*d2r) * EARTH_R**2
+
+  deallocate(pixlat)
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  selectcase( catmType )
+  !-------------------------------------------------------------
+  ! Case:
+  case( CATMTYPE__BASIN )
+  !-------------------------------------------------------------
+  ! Case: Network
+  case( CATMTYPE__NETWORK )
+    if( id == '' )then
+      f = get_f_lst_networks_channel()
+      open(newunit=un, file=f, status='old')
+      read(un,*) c_, nCatm
+      do jCatm = 1, nCatm
+        read(un,*) c_, id_
+        call calc_upper_area__network(resl, id_, modified, pixara)
+      enddo
+      close(un)
+    else
+      call calc_upper_area__network(resl, id, modified, pixara)
+    endif
+  !-------------------------------------------------------------
+  ! Case: ERROR
+  case default
+    call errend(msg_invalid_value('catmType', catmType))
+  endselect
+end subroutine calcUpperArea
+!===============================================================
+!
+!===============================================================
+subroutine calc_upper_area__network(resl, id, modified, pixara)
+  use c2_strnk_io, only: &
+    read_network_mesh_domain, &
+    get_f_network_mesh      
+  use c2_jflw_const
+  use c2_jflw_grid, only: &
+    get_nextxy
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'calc_upper_area__network'
+  character(*), intent(in) :: resl
+  character(*), intent(in) :: id
+  logical, intent(in) :: modified
+  real(8), intent(in) :: pixara(:)
+
+  integer :: nNwk, jNwk
+  integer(1), allocatable :: mskmap(:,:)
+  integer(1), allocatable :: fdrmap(:,:)
+  real(8)   , allocatable :: upamap(:,:)
+  real(8)   , allocatable :: addmap(:,:)
+  integer :: nx, ny, gxs, gxe, gys, gye
+  integer :: igx, igy, gxx, gyy
+  real(8) :: west, east, south, north
+  logical :: is_updated
+  real(8) :: bsnara, upa_sum
+  real(8) :: err_norm
+
+  character(CLEN_PATH) :: f
+  integer :: un
+  character :: c_
+
+  call logbgn(PRCNAM, MODNAM)
+  !-------------------------------------------------------------
+  ! Read domain info.
+  !-------------------------------------------------------------
+  call logmsg('Network '//str(id))
+
+  call read_network_mesh_domain(&
+    resl, id, &
+    nx, ny, gxs, gxe, gys, gye, &
+    west, east, south, north &
+  )
+
+  !allocate(mskmap(gxs-1:gxe+1,gys-1:gye+1))
+  !allocate(fdrmap(gxs-1:gxe+1,gys-1:gye+1))
+  !allocate(upamap(gxs-1:gxe+1,gys-1:gye+1))
+  !allocate(addmap(gxs-1:gxe+1,gys-1:gye+1))
+  allocate(mskmap(gxs:gxe,gys:gye))
+  allocate(fdrmap(gxs:gxe,gys:gye))
+  allocate(upamap(gxs:gxe,gys:gye))
+  allocate(addmap(gxs:gxe,gys:gye))
+  !-------------------------------------------------------------
+  ! Read maps
+  !-------------------------------------------------------------
+  call logent('Reading topography data')
+
+  f = get_f_network_mesh(resl, 'mask', id)
+  call logmsg('Reading '//str(f))
+  mskmap(:,:) = 0_1
+  call traperr( rbin(mskmap(gxs:gxe,gys:gye), f) )
+
+  if( modified )then
+    f = get_f_network_mesh(resl, 'dir_mod', id)
+  else
+    f = get_f_network_mesh(resl, 'dir', id)
+  endif
+  call logmsg('Reading '//str(f))
+  call traperr( rbin(fdrmap(gxs:gxe,gys:gye), f) )
+
+  call logext()
+  !-------------------------------------------------------------
+  ! Calc. upper area
+  !-------------------------------------------------------------
+  call logent('Calculating upper area')
+
+  addmap(:,:) = 0.d0
+  do igy = gys, gye
+  do igx = gxs, gxe
+    if( mskmap(igx,igy) <= 0_1 ) cycle
+    addmap(igx,igy) = pixara(igy)
+  enddo
+  enddo
+  bsnara = sum(addmap)
+
+  upamap(:,:) = 0.d0
+  is_updated = .true.
+  do while( is_updated )
+    is_updated = .false.
+    do igy = gys, gye
+    do igx = gxs, gxe
+      if( mskmap(igx,igy) < 0_1 ) cycle
+
+      if( addmap(igx,igy) == 0.d0 ) cycle
+
+      call get_nextxy(igx, igy, fdrmap(igx,igy), gxx, gyy)
+
+      call add(upamap(igx,igy), addmap(igx,igy))
+
+      if( gxx > 0 )then
+        call add(addmap(gxx,gyy), addmap(igx,igy))
+      endif
+
+      addmap(igx,igy) = 0.d0
+
+      is_updated = .true.
+    enddo  ! igx/
+    enddo  ! igy/
+  enddo  ! while is_updated/
+
+  ! Validate results
+  upa_sum = 0.d0
+  do igy = gys, gye
+  do igx = gxs, gxe
+    if( mskmap(igx,igy) < 0_1 ) cycle
+    call get_nextxy(igx, igy, fdrmap(igx,igy), gxx, gyy)
+    if( gxx < 0 ) cycle
+    if( mskmap(gxx,gyy) < 0_1 )then
+      call add(upa_sum, upamap(igx,igy))
+    endif
+  enddo  ! igx/
+  enddo  ! igy/
+
+  err_norm = (upa_sum - bsnara) / bsnara
+  if( err_norm > 1d-8 )then
+    call errend('basin area : '//str(bsnara)//&
+              '\nsum. of upa: '//str(upa_sum)//&
+              '\nnormalized error: '//str(err_norm))
+  endif
+  !-------------------------------------------------------------
+  deallocate(fdrmap)
+  deallocate(addmap)
+  deallocate(mskmap)
+
+  call logext()
+  !-------------------------------------------------------------
+  ! Output
+  !-------------------------------------------------------------
+  if( modified )then
+    f = get_f_network_mesh(resl, 'upa_mod', id)
+  else
+    f = get_f_network_mesh(resl, 'upa', id)
+  endif
+  call logmsg('Writing '//str(f))
+  call traperr( mkdir(dirname(f)) )
+  call traperr( wbin(upamap(gxs:gxe,gys:gye), f, dtype=DTYPE_REAL, replace=.true.) )
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  deallocate(upamap)
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
+end subroutine calc_upper_area__network
 !===============================================================
 !
 !===============================================================

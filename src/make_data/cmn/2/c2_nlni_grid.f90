@@ -130,7 +130,7 @@ real(8) function west_of_gx(gx) result(res)
   implicit none
   integer, intent(in) :: gx
 
-  res = REGION_WEST + (gx-1)/NX*TILESIZE_LON + mod(gx-1,NX)*CELLSIZE_LON
+  res = REGION_WEST + (gx-1)/MX*TILESIZE_LON + mod(gx-1,MX)*CELLSIZE_LON
 end function west_of_gx
 !===============================================================
 !
@@ -139,7 +139,7 @@ real(8) function east_of_gx(gx) result(res)
   implicit none
   integer, intent(in) :: gx
 
-  res = REGION_WEST + gx/NX*TILESIZE_LON + mod(gx,NX)*CELLSIZE_LON
+  res = REGION_WEST + gx/MX*TILESIZE_LON + mod(gx,MX)*CELLSIZE_LON
 end function east_of_gx
 !===============================================================
 !
@@ -148,7 +148,7 @@ real(8) function south_of_gy(gy) result(res)
   implicit none
   integer, intent(in) :: gy
 
-  res = REGION_SOUTH + (gy-1)/NY*TILESIZE_LAT + mod(gy-1,NY)*CELLSIZE_LAT
+  res = REGION_SOUTH + (gy-1)/MY*TILESIZE_LAT + mod(gy-1,MY)*CELLSIZE_LAT
 end function south_of_gy
 !===============================================================
 !
@@ -157,7 +157,7 @@ real(8) function north_of_gy(gy) result(res)
   implicit none
   integer, intent(in) :: gy
 
-  res = REGION_SOUTH + gy/NY*TILESIZE_LAT + mod(gy,NY)*CELLSIZE_LAT
+  res = REGION_SOUTH + gy/MY*TILESIZE_LAT + mod(gy,MY)*CELLSIZE_LAT
 end function north_of_gy
 !===============================================================
 !
@@ -210,7 +210,7 @@ integer function tx_of_gx(gx) result(tx)
   implicit none
   integer, intent(in) :: gx
 
-  tx = (gx-1) / NX + TXMIN
+  tx = (gx-1) / MX + TXMIN
 end function tx_of_gx
 !===============================================================
 !
@@ -219,7 +219,7 @@ integer function ty_of_gy(gy) result(ty)
   implicit none
   integer, intent(in) :: gy
 
-  ty = (gy-1) / NY + TYMIN
+  ty = (gy-1) / MY + TYMIN
 end function ty_of_gy
 !===============================================================
 !
@@ -228,7 +228,7 @@ integer function gxs_of_tx(tx) result(gxs)
   implicit none
   integer, intent(in) :: tx
 
-  gxs = NX*(tx-TXMIN) + 1
+  gxs = MX*(tx-TXMIN) + 1
 end function gxs_of_tx
 !===============================================================
 !
@@ -237,7 +237,7 @@ integer function gxe_of_tx(tx) result(gxe)
   implicit none
   integer, intent(in) :: tx
 
-  gxe = NX*(tx-TXMIN+1)
+  gxe = MX*(tx-TXMIN+1)
 end function gxe_of_tx
 !===============================================================
 !
@@ -246,7 +246,7 @@ integer function gys_of_ty(ty) result(gys)
   implicit none
   integer, intent(in) :: ty
 
-  gys = NY*(ty-TYMIN) + 1
+  gys = MY*(ty-TYMIN) + 1
 end function gys_of_ty
 !===============================================================
 !
@@ -255,7 +255,7 @@ integer function gye_of_ty(ty) result(gye)
   implicit none
   integer, intent(in) :: ty
 
-  gye = NY*(ty-TYMIN+1)
+  gye = MY*(ty-TYMIN+1)
 end function gye_of_ty
 !===============================================================
 !

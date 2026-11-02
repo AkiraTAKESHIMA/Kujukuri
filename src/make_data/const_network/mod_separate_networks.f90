@@ -97,11 +97,11 @@ contains
 !===============================================================
 subroutine separateNetworks(tmpid_in)
   use c2_strnk_io, only: &
-    get_f_tmp_networks_lst      , &
-    get_f_tmp_network_separation, &
-    get_f_tmp_network_channel   , &
-    get_f_lst_networks_channel  , &
-    get_f_network_channel       , &
+    get_f_lst_tmp_networks           , &
+    get_f_lst_tmp_networks_separation, &
+    get_f_tmp_network_separation     , &
+    get_f_tmp_network_channel        , &
+    get_f_network_channel            , &
     write_network
   use c3_jflw_const, only: &
     jflw_set_resolution
@@ -134,7 +134,7 @@ subroutine separateNetworks(tmpid_in)
   !-------------------------------------------------------------
   call logent('Separating temporal networks')
 
-  f_lst = get_f_tmp_networks_lst()
+  f_lst = get_f_lst_tmp_networks()
   call logmsg('Reading '//str(f_lst))
   open(newunit=un_lst, file=f_lst, status='old')
 
@@ -156,7 +156,7 @@ subroutine separateNetworks(tmpid_in)
   !-------------------------------------------------------------
   call logent('Reading separation info.')
 
-  f_lst = get_f_tmp_networks_lst()
+  f_lst = get_f_lst_tmp_networks()
   call logmsg('Reading '//str(f_lst))
   open(newunit=un_lst, file=f_lst, status='old')
 
@@ -259,8 +259,9 @@ subroutine separateNetworks(tmpid_in)
   if( tmpid_in == '' )then
     call logent('Outputting')
 
-    f = get_f_lst_networks_channel()
+    f = get_f_lst_tmp_networks_separation()
     call logmsg('Writing '//str(f))
+    call traperr( mkdir(dirname(f)) )
     open(newunit=un, file=f, status='replace')
     write(un,"(1x,a)") 'networks '//str(nNwk)
     write(un,"(1x,a)") 'i id tmpid jNwk nCh leng'
@@ -1337,6 +1338,7 @@ end subroutine set_separated_network_ids
 subroutine makeSeparatedNetworkData(id)
   use c2_strnk_const
   use c2_strnk_io, only: &
+    get_f_lst_tmp_networks_separation, &
     get_f_lst_networks_channel
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'makeSeparatedNetworkData'
@@ -1344,43 +1346,73 @@ subroutine makeSeparatedNetworkData(id)
 
   integer :: nNwk, iNwk
   integer :: jNwk
+  integer :: nCh
+  real(8) :: leng
   character(DGT_NWKID) :: id_
   character(32) :: tmpid
 
   character(CLEN_PATH) :: f
-  integer :: un
+  integer :: un, un_lst
+  integer :: dgt_nCh
   character :: c_
 
   call logbgn(PRCNAM, MODNAM)
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
-  f = get_f_lst_networks_channel()
+  if( id == '' )then
+    f = get_f_lst_networks_channel()
+    call logmsg('Writing '//str(f))
+    call traperr( mkdir(dirname(f)) )
+    open(newunit=un_lst, file=f, status='replace')
+    write(un_lst,"(a)") 'i id nCh leng'
+  endif
+
+  f = get_f_lst_tmp_networks_separation()
   call logmsg('Reading '//str(f))
   open(newunit=un, file=f, status='old')
   read(un,*) c_, nNwk
   read(un,*)
+
+  dgt_nCh = 0
+  do iNwk = 1, nNwk
+    read(un,*) c_, id_, tmpid, jNwk, nCh
+    dgt_nCh = max(dgt_nCh, dgt(nCh))
+  enddo
+  rewind(un)
+  read(un,*)
+  read(un,*)
+
   do iNwk = 1, nNwk
     read(un,*) c_, id_, tmpid, jNwk
     if( id /= '' .and. id_ /= id ) cycle
 
-    call logent('Network '//str(id_))
+    call make_separated_network_data(id_, tmpid, jNwk, nCh, leng)
 
-    call make_separated_network_data(id_, tmpid, jNwk)
+    if( id == '' )then
+      write(un_lst,"(a)") &
+        str(iNwk,dgt(nNwk))//' '//str(id_)//' '//str(nCh,dgt_nCh)//' '//&
+        str(leng)
+    endif
+  enddo  ! iNwk
 
-    call logext()
-  enddo
   close(un)
+
+  if( id == '' )then
+    close(un_lst)
+  endif
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
 end subroutine makeSeparatedNetworkData
 !===============================================================
 !
 !===============================================================
-subroutine make_separated_network_data(id, tmpid, jNwk)
+subroutine make_separated_network_data(&
+  id, tmpid, jNwk, nCh, leng &
+)
   use c2_strnk_io, only: &
     write_network               , &
-    get_f_tmp_networks_lst      , &
+    get_f_lst_tmp_networks      , &
     get_f_tmp_network_separation, &
     get_f_tmp_network_channel   , &
     get_f_network_channel       
@@ -1394,6 +1426,8 @@ subroutine make_separated_network_data(id, tmpid, jNwk)
   character(*), intent(in) :: id
   character(*), intent(in) :: tmpid
   integer, intent(in) :: jNwk
+  integer, intent(out) :: nCh
+  real(8), intent(out) :: leng
 
   type(network_), pointer :: nwk
   type(network_), target :: nwk_old, nwk_new
@@ -1404,7 +1438,7 @@ subroutine make_separated_network_data(id, tmpid, jNwk)
   type(cmn_network_) :: cmnnwk
   integer :: mNwk, jjNwk
   integer :: nWsys, jWsys
-  integer :: nCh, nCh_removed, jCh, jCh2, iiCh
+  integer :: nCh_removed, jCh, jCh2, iiCh
   integer :: jNode, jNode2, iNode
   integer :: jPt
   integer(4), allocatable :: jCh2jNwk(:)
@@ -1415,7 +1449,8 @@ subroutine make_separated_network_data(id, tmpid, jNwk)
   character :: c_
   integer :: dgt_nCh
 
-  call logbgn(PRCNAM, MODNAM, '-p -x2')
+  call logbgn(PRCNAM, MODNAM)
+  call logmsg('Network '//str(id))
   !-------------------------------------------------------------
   ! Read channel index in the tmp network
   !-------------------------------------------------------------
@@ -1797,14 +1832,19 @@ subroutine make_separated_network_data(id, tmpid, jNwk)
 
   call logext()
   !-----------------------------------------------------------
+  ! Put values into the return values
+  !-----------------------------------------------------------
+  nCh = nwk%nCh
+  leng = sum(nwk%wsys(:)%leng)
+  !-----------------------------------------------------------
   !
   !-----------------------------------------------------------
-  deallocate(nwk%wsys)
-  deallocate(nwk%channel)
-  deallocate(nwk%node)
-  deallocate(nwk%jCh)
   deallocate(nwk%id)
   deallocate(nwk%tmpid)
+  deallocate(nwk%jCh)
+  deallocate(nwk%channel)
+  deallocate(nwk%node)
+  deallocate(nwk%wsys)
   nullify(nwk)
   !-----------------------------------------------------------
   call logret(PRCNAM, MODNAM)

@@ -101,7 +101,7 @@ subroutine findRiverEnds(tx, ty)
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
-  allocate(fdr(NX,NY))
+  allocate(fdr(MX,MY))
   f_fdr = get_f_map_tile(RESOLUTION_1SEC, 'dir', tx, ty)
   if( access(f_fdr,' ') /= 0 )then
     call logmsg('File not found: '//str(f_fdr))
@@ -117,8 +117,8 @@ subroutine findRiverEnds(tx, ty)
   open(newunit=un, file=f_rivend, status='replace')
   write(un,"(1x,a)") 'x y next('//str(XY_RIVERMOUTH)//'=rivermouth'//&
                      ','//str(XY_INLAND)//'=inland)'
-  do iy = 1, NY
-  do ix = 1, NX
+  do iy = 1, MY
+  do ix = 1, MX
     if( fdr(ix,iy) == FDR_MISS ) cycle
     call get_nextxy(ix, iy, fdr(ix,iy), xx, yy)
     selectcase( xx )
@@ -294,8 +294,8 @@ subroutine getBasinInTile(tx, ty)
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
-  allocate(fdr(NX,NY))
-  allocate(upg(NX,NY))
+  allocate(fdr(MX,MY))
+  allocate(upg(MX,MY))
 
   f_fdr = get_f_map_tile(RESOLUTION_1SEC, 'dir', tx, ty)
   f_upg = get_f_map_tile(RESOLUTION_1SEC, 'upg', tx, ty)
@@ -317,7 +317,7 @@ subroutine getBasinInTile(tx, ty)
   !-------------------------------------------------------------
   call logent('Getting shape of basins')
 
-  allocate(bsn(NX,NY))
+  allocate(bsn(MX,MY))
   bsn(:,:) = BSN_MISS
 
   f_rivend_id = get_f_lst_tile(RESOLUTION_1SEC, 'rivend_id', tx, ty)
@@ -339,8 +339,8 @@ subroutine getBasinInTile(tx, ty)
 
   iBsn = 0
   iBsn_tmp = 0
-  do iy0 = 1, NY
-  do ix0 = 1, NX
+  do iy0 = 1, MY
+  do ix0 = 1, MX
     if( bsn(ix0,iy0) /= BSN_MISS ) cycle
     if( fdr(ix0,iy0) == FDR_MISS ) cycle
 
@@ -348,13 +348,13 @@ subroutine getBasinInTile(tx, ty)
     iy = iy0
     do
       call get_nextxy(ix, iy, fdr(ix,iy), xx, yy)
-      if( xx < 1 .or. xx > NX .or. yy < 1 .or. yy > NY )then
+      if( xx < 1 .or. xx > MX .or. yy < 1 .or. yy > MY )then
         if( xx == XY_RIVERMOUTH .or. &
             xx == XY_INLAND )then
           call errend(msg_unexpected_condition()//&
                       ' xx='//str(xx)//', yy='//str(yy))
-        elseif( xx == 0 .or. xx == NX+1 .or. &
-                yy == 0 .or. yy == NY+1 )then
+        elseif( xx == 0 .or. xx == MX+1 .or. &
+                yy == 0 .or. yy == MY+1 )then
           stat = STAT_OTHER_TILE
         else
           call errend(msg_unexpected_condition()//&
@@ -388,7 +388,7 @@ subroutine getBasinInTile(tx, ty)
       do
         bsn(ix,iy) = bsnId
         call get_nextxy(ix, iy, fdr(ix,iy), xx, yy)
-        if( xx < 1 .or. xx > NX .or. yy < 1 .or. yy > NY )then
+        if( xx < 1 .or. xx > MX .or. yy < 1 .or. yy > MY )then
           call errend(msg_unexpected_condition())
         endif
         ix = xx
@@ -409,7 +409,7 @@ subroutine getBasinInTile(tx, ty)
     do
       bsn(ix,iy) = bsnId
       call get_nextxy(ix, iy, fdr(ix,iy), xx, yy)
-      if( xx < 1 .or. xx > NX .or. yy < 1 .or. yy > NY ) exit
+      if( xx < 1 .or. xx > MX .or. yy < 1 .or. yy > MY ) exit
       ix = xx
       iy = yy
     enddo
@@ -432,8 +432,8 @@ subroutine getBasinInTile(tx, ty)
 
   write(un,"(a)") 'ID ix iy'
 
-  do iy = 1, NY
-  do ix = 1, NX
+  do iy = 1, MY
+  do ix = 1, MX
     if( upg(ix,iy) == 1 )then
       write(un,"(1x,i10,2(1x,i4))") bsn(ix,iy), ix, iy
     endif
@@ -451,7 +451,7 @@ subroutine getBasinInTile(tx, ty)
   endif
 
   ix = 1
-  iy = NY
+  iy = MY
   if( upg(ix,iy) > 1 )then
     if( .not. (fdr(ix+1,iy  ) == FDR_WEST      .or. &
                fdr(ix+1,iy-1) == FDR_SOUTHWEST .or. &
@@ -460,7 +460,7 @@ subroutine getBasinInTile(tx, ty)
     endif
   endif
 
-  ix = NX
+  ix = MX
   iy = 1
   if( upg(ix,iy) > 1 )then
     if( .not. (fdr(ix-1,iy  ) == FDR_EAST      .or. &
@@ -470,8 +470,8 @@ subroutine getBasinInTile(tx, ty)
     endif
   endif
 
-  ix = NX
-  iy = NY
+  ix = MX
+  iy = MY
   if( upg(ix,iy) > 1 )then
     if( .not. (fdr(ix-1,iy  ) == FDR_EAST      .or. &
                fdr(ix-1,iy-1) == FDR_SOUTHEAST .or. &
@@ -481,7 +481,7 @@ subroutine getBasinInTile(tx, ty)
   endif
 
   ix = 1
-  do iy = 2, NY-1
+  do iy = 2, MY-1
     if( upg(ix,iy) > 1 )then
       if( .not. (fdr(ix  ,iy-1) == FDR_SOUTH     .or. &
                  fdr(ix  ,iy+1) == FDR_NORTH     .or. &
@@ -493,8 +493,8 @@ subroutine getBasinInTile(tx, ty)
     endif
   enddo
 
-  ix = NX
-  do iy = 2, NY-1
+  ix = MX
+  do iy = 2, MY-1
     if( upg(ix,iy) > 1 )then
       if( .not. (fdr(ix  ,iy-1) == FDR_SOUTH     .or. &
                  fdr(ix  ,iy+1) == FDR_NORTH     .or. &
@@ -507,7 +507,7 @@ subroutine getBasinInTile(tx, ty)
   enddo
 
   iy = 1
-  do ix = 2, NX-1
+  do ix = 2, MX-1
     if( upg(ix,iy) > 1 )then
       if( .not. (fdr(ix-1,iy  ) == FDR_EAST      .or. &
                  fdr(ix+1,iy  ) == FDR_WEST      .or. &
@@ -519,8 +519,8 @@ subroutine getBasinInTile(tx, ty)
     endif
   enddo
 
-  iy = NY
-  do ix = 2, NX-1
+  iy = MY
+  do ix = 2, MX-1
     if( upg(ix,iy) > 1 )then
       if( .not. (fdr(ix-1,iy  ) == FDR_EAST      .or. &
                  fdr(ix+1,iy  ) == FDR_WEST      .or. &
@@ -582,8 +582,8 @@ subroutine getUpperBasin(tx, ty)
   !-------------------------------------------------------------
   ! Read data
   !-------------------------------------------------------------
-  allocate(fdr(0:NX+1,0:NY+1))
-  allocate(bsn(0:NX+1,0:NY+1))
+  allocate(fdr(0:MX+1,0:MY+1))
+  allocate(bsn(0:MX+1,0:MY+1))
 
   call read_map_tile_margin(fdr, FDR_MISS, 'dir', tx, ty, info)
   if( info /= 0 )then
@@ -603,10 +603,10 @@ subroutine getUpperBasin(tx, ty)
   !-------------------------------------------------------------
   call logent('Preparing params. and list of basins')
 
-  if( any(bsn(1:NX,1:NY) > 0) )then
-    bsnId0 = minval(bsn(1:NX,1:NY),mask=bsn(1:NX,1:NY)>0) - 1
-    bsnId_max = maxval(bsn(1:NX,1:NY))
-    nBsn_fix = bsnId_to_idx(maxval(bsn(1:NX,1:NY)))
+  if( any(bsn(1:MX,1:MY) > 0) )then
+    bsnId0 = minval(bsn(1:MX,1:MY),mask=bsn(1:MX,1:MY)>0) - 1
+    bsnId_max = maxval(bsn(1:MX,1:MY))
+    nBsn_fix = bsnId_to_idx(maxval(bsn(1:MX,1:MY)))
     call logmsg('bsnId >0 min: '//str(bsnId0+1)//', max: '//str(bsnId_max))
   else
     bsnId0 = 0
@@ -614,8 +614,8 @@ subroutine getUpperBasin(tx, ty)
     nBsn_fix = 0
     call logmsg('bsnId >0 null')
   endif
-  if( any(bsn(1:NX,1:NY) < 0 .and. bsn(1:NX,1:NY) /= BSN_MISS) )then
-    nBsn_tmp = -minval(bsn(1:NX,1:NY),mask=bsn(1:NX,1:NY)/=BSN_MISS)
+  if( any(bsn(1:MX,1:MY) < 0 .and. bsn(1:MX,1:MY) /= BSN_MISS) )then
+    nBsn_tmp = -minval(bsn(1:MX,1:MY),mask=bsn(1:MX,1:MY)/=BSN_MISS)
     call logmsg('bsnId <0 min: '//str(-nBsn_tmp))
   else
     nBsn_tmp = 0
@@ -646,25 +646,25 @@ subroutine getUpperBasin(tx, ty)
   enddo
 
   ix = 1
-  do iy = 1, NY
+  do iy = 1, MY
     if( bsn(ix,iy) == BSN_MISS ) cycle
     call add(lst_bsn(bsnId_to_idx(bsn(ix,iy)))%upper%n)
   enddo
 
-  ix = NX
-  do iy = 1, NY
+  ix = MX
+  do iy = 1, MY
     if( bsn(ix,iy) == BSN_MISS ) cycle
     call add(lst_bsn(bsnId_to_idx(bsn(ix,iy)))%upper%n)
   enddo
 
   iy = 1
-  do ix = 2, NX-1
+  do ix = 2, MX-1
     if( bsn(ix,iy) == BSN_MISS ) cycle
     call add(lst_bsn(bsnId_to_idx(bsn(ix,iy)))%upper%n)
   enddo
 
-  iy = NY
-  do ix = 2, NX-1
+  iy = MY
+  do ix = 2, MX-1
     if( bsn(ix,iy) == BSN_MISS ) cycle
     call add(lst_bsn(bsnId_to_idx(bsn(ix,iy)))%upper%n)
   enddo
@@ -692,7 +692,7 @@ subroutine getUpperBasin(tx, ty)
   enddo
 
   ix = 1
-  do iy = 2, NY-1
+  do iy = 2, MY-1
     if( bsn(ix,iy) == BSN_MISS ) cycle
     upper => lst_bsn(bsnId_to_idx(bsn(ix,iy)))%upper
     if( fdr(ix-1,iy-1) == FDR_SOUTHEAST )then
@@ -706,8 +706,8 @@ subroutine getUpperBasin(tx, ty)
     endif
   enddo
 
-  ix = NX
-  do iy = 2, NY-1
+  ix = MX
+  do iy = 2, MY-1
     if( bsn(ix,iy) == BSN_MISS ) cycle
     upper => lst_bsn(bsnId_to_idx(bsn(ix,iy)))%upper
     if( fdr(ix+1,iy-1) == FDR_SOUTHWEST )then
@@ -722,7 +722,7 @@ subroutine getUpperBasin(tx, ty)
   enddo
 
   iy = 1
-  do ix = 2, NX-1
+  do ix = 2, MX-1
     if( bsn(ix,iy) == BSN_MISS ) cycle
     upper => lst_bsn(bsnId_to_idx(bsn(ix,iy)))%upper
     if( fdr(ix-1,iy-1) == FDR_SOUTHEAST )then
@@ -736,8 +736,8 @@ subroutine getUpperBasin(tx, ty)
     endif
   enddo
 
-  iy = NY
-  do ix = 2, NX-1
+  iy = MY
+  do ix = 2, MX-1
     if( bsn(ix,iy) == BSN_MISS ) cycle
     upper => lst_bsn(bsnId_to_idx(bsn(ix,iy)))%upper
     if( fdr(ix-1,iy+1) == FDR_NORTHEAST )then
@@ -773,7 +773,7 @@ subroutine getUpperBasin(tx, ty)
   endif
 
   ix = 1
-  iy = NY
+  iy = MY
   if( bsn(ix,iy) /= BSN_MISS )then
     upper => lst_bsn(bsnId_to_idx(bsn(ix,iy)))%upper
     if( fdr(ix-1,iy+1) == FDR_NORTHEAST )then
@@ -793,7 +793,7 @@ subroutine getUpperBasin(tx, ty)
     endif
   endif
 
-  ix = NX
+  ix = MX
   iy = 1
   if( bsn(ix,iy) /= BSN_MISS )then
     upper => lst_bsn(bsnId_to_idx(bsn(ix,iy)))%upper
@@ -814,8 +814,8 @@ subroutine getUpperBasin(tx, ty)
     endif
   endif
 
-  ix = NX
-  iy = NY
+  ix = MX
+  iy = MY
   if( bsn(ix,iy) /= BSN_MISS )then
     upper => lst_bsn(bsnId_to_idx(bsn(ix,iy)))%upper
     if( fdr(ix+1,iy+1) == FDR_NORTHWEST )then
@@ -1202,13 +1202,13 @@ subroutine makeTiledBasinMaps(tx, ty)
   lst_bsnId_fix(:) = atile%lst_bsn(:)%id_fix
   call argsort(lst_bsnId, arg_bsnId)
 
-  allocate(bsn(NX,NY))
-  allocate(fdr(NX,NY))
+  allocate(bsn(MX,MY))
+  allocate(fdr(MX,MY))
   f_fdr = get_f_map_tile(RESOLUTION_1SEC, 'dir', tx, ty)
   call traperr( rbin(fdr, f_fdr) )
   !$omp parallel do
-  do iy = 1, NY
-  do ix = 1, NX
+  do iy = 1, MY
+  do ix = 1, MX
     if( fdr(ix,iy) == FDR_MISS )then
       bsn(ix,iy) = BSN_MISS
     else
@@ -1256,15 +1256,15 @@ subroutine makeTiledBasinMaps(tx, ty)
     do while( bsn(ix,iy) <= 0 )
       bsn(ix,iy) = bsnId_fix
       call get_nextxy(ix, iy, fdr(ix,iy), xx, yy)
-      if( xx < 1 .or. xx > NX .or. yy < 1 .or. yy > NY ) exit
+      if( xx < 1 .or. xx > MX .or. yy < 1 .or. yy > MY ) exit
       ix = xx
       iy = yy
     enddo
   enddo  ! EOF/
   close(un)
 
-  do iy = 1, NY
-  do ix = 1, NX
+  do iy = 1, MY
+  do ix = 1, MX
     if( fdr(ix,iy) == FDR_MISS )then
       if( bsn(ix,iy) /= BSN_MISS )then
         call errend(msg_unexpected_condition()//&
@@ -1320,8 +1320,8 @@ subroutine checkBasins(tx, ty)
   !-------------------------------------------------------------
   ! Read data
   !-------------------------------------------------------------
-  allocate(fdr(0:NX+1,0:NY+1))
-  allocate(bsn(0:NX+1,0:NY+1))
+  allocate(fdr(0:MX+1,0:MY+1))
+  allocate(bsn(0:MX+1,0:MY+1))
 
   call read_map_tile_margin(fdr, FDR_MISS, 'dir', tx, ty, info)
   if( info /= 0 )then
@@ -1341,8 +1341,8 @@ subroutine checkBasins(tx, ty)
   !-------------------------------------------------------------
   ix = 1
   iy = 1
-  do iy = 1, NY
-  do ix = 1, NX
+  do iy = 1, MY
+  do ix = 1, MX
     if( fdr(ix,iy) == FDR_MISS )then
       if( bsn(ix,iy) /= BSN_MISS )then
         call errend(msg_unexpected_condition()//&
@@ -1430,23 +1430,23 @@ subroutine renewBasinList()
   !-------------------------------------------------------------
   call logent('Calculating basin area')
 
-  allocate(rstara(NY,NTY))
-  allocate(lat(0:NY))
+  allocate(rstara(MY,NTY))
+  allocate(lat(0:MY))
   do ity = 1, NTY
     lat_north = REGION_NORTH - TILESIZE_LAT*(ity-1)
     call logmsg('ity='//str(ity)//' lat: '//str(int((/lat_north,lat_north-1/)),' - '))
-    do iy = 0, NY
-      lat(iy) = lat_north - TILESIZE_LAT*iy/NY
+    do iy = 0, MY
+      lat(iy) = lat_north - TILESIZE_LAT*iy/MY
     enddo
     call showarr(lat, 'lat')
-    rstara(:,ity) = area_sphere_rect(lat(0:NY-1)*d2r, lat(1:NY)*d2r) &
-                     !* (rad_360deg/3.6d2/NX) * (EARTH_R*1d-3)**2
+    rstara(:,ity) = area_sphere_rect(lat(0:MY-1)*d2r, lat(1:MY)*d2r) &
+                     !* (rad_360deg/3.6d2/MX) * (EARTH_R*1d-3)**2
                      * (GRIDSIZE_LON*d2r) * EARTH_R**2
     call showarr(rstara(:,ity), 'rstara')
   enddo
   deallocate(lat)
 
-  allocate(bsn(NX,NY))
+  allocate(bsn(MX,MY))
 
   allocate(bsn1d_ara(nBsn))
   bsn1d_ara(:) = 0.d0
@@ -1455,9 +1455,9 @@ subroutine renewBasinList()
   allocate(bsn1d_kxmax(nBsn))
   allocate(bsn1d_kymin(nBsn))
   allocate(bsn1d_kymax(nBsn))
-  bsn1d_kxmin(:) = ntx*NX
+  bsn1d_kxmin(:) = ntx*MX
   bsn1d_kxmax(:) = 1
-  bsn1d_kymin(:) = nty*NY
+  bsn1d_kymin(:) = nty*MY
   bsn1d_kymax(:) = 1
 
   do ity = 1, nty
@@ -1467,13 +1467,13 @@ subroutine renewBasinList()
     call logmsg('Tile '//tilename(itx,ity)//' ('//str((/itx,ity/),2)//')')
     call traperr( rbin(bsn, f_bsn) )
 
-    do iy = 1, NY
-    do ix = 1, NX
+    do iy = 1, MY
+    do ix = 1, MX
       bsnId = bsn(ix,iy)
       if( bsnId == BSN_MISS ) cycle
       call add(bsn1d_ara(bsnId), rstara(iy,ity))
-      kx = NX*(itx-1)+ix
-      ky = NY*(ity-1)+iy
+      kx = MX*(itx-1)+ix
+      ky = MY*(ity-1)+iy
       bsn1d_kxmin(bsnId) = min(bsn1d_kxmin(bsnId), kx)
       bsn1d_kxmax(bsnId) = max(bsn1d_kxmax(bsnId), kx)
       bsn1d_kymin(bsnId) = min(bsn1d_kymin(bsnId), ky)
@@ -1533,7 +1533,7 @@ end subroutine renewBasinList
 !
 ! IN:
 !   ${DIR_ORG}/dir/${tilename(tx,ty)}_dir.bin
-!   ${DIR_TILED}/bsn_tmp/${tilename(nx,ny)}.bin
+!   ${DIR_TILED}/bsn_tmp/${tilename(tx,ty)}.bin
 !   ${DIR_TILED}/id_area.txt
 !   ${DIR_TILED}/source/${tilename(tx,ty)}.txt
 ! OUT:
@@ -1587,11 +1587,11 @@ subroutine makeNewBasinMaps(tx, ty)
     call logret(PRCNAM, MODNAM)
     return
   endif
-  allocate(fdr(NX,NY))
+  allocate(fdr(MX,MY))
   call traperr( rbin(fdr, f_fdr) )
 
   f_bsn_old = get_f_map_tile(RESOLUTION_1SEC, 'bsn_tmp', tx, ty)
-  allocate(bsn(NX,NY))
+  allocate(bsn(MX,MY))
   call traperr( rbin(bsn, f_bsn_old) )
 
   f_lst_id_area = get_f_lst_tile(RESOLUTION_1SEC, 'id_area')
@@ -1633,7 +1633,7 @@ subroutine makeNewBasinMaps(tx, ty)
     do while( bsn(ix,iy) /= bsnId_new )
       bsn(ix,iy) = bsnId_new
       call get_nextxy(ix, iy, fdr(ix,iy), xx, yy)
-      if( xx < 1 .or. xx > NX .or. yy < 1 .or. yy > NY ) exit
+      if( xx < 1 .or. xx > MX .or. yy < 1 .or. yy > MY ) exit
       ix = xx
       iy = yy
     enddo
@@ -1742,7 +1742,7 @@ use c2_jflw_io, only: &
     allocate(basin%yf(1))
   enddo
 
-  allocate(bsn(NX,NY))
+  allocate(bsn(MX,MY))
 
   do ity = 1, NTY
   do itx = 1, NTX
@@ -1770,8 +1770,8 @@ use c2_jflw_io, only: &
     allocate(exist_bsnId(bsnId_min_this:bsnId_max_this))
     exist_bsnId(:) = 0_1
 
-    do iy = 1, NY
-    do ix = 1, NX
+    do iy = 1, MY
+    do ix = 1, MX
       if( bsn(ix,iy) == BSN_MISS ) cycle
       exist_bsnId(bsn(ix,iy)) = 1_1
     enddo
@@ -1806,15 +1806,15 @@ use c2_jflw_io, only: &
       endif
       basin%tx(basin%n) = itx
       basin%ty(basin%n) = ity
-      basin%xi(basin%n) = NX
+      basin%xi(basin%n) = MX
       basin%xf(basin%n) = 1
-      basin%yi(basin%n) = NY
+      basin%yi(basin%n) = MY
       basin%yf(basin%n) = 1
     enddo
 
     bsnId_prev = BSN_MISS
-    do iy = 1, NY
-    do ix = 1, NX
+    do iy = 1, MY
+    do ix = 1, MX
       if( bsn(ix,iy) == BSN_MISS ) cycle
       basin => lst_basin(bsn(ix,iy))
       basin%xi(basin%n) = min(basin%xi(basin%n),ix)
@@ -1858,9 +1858,9 @@ use c2_jflw_io, only: &
   write(un,"(1x,i10)") bsnId_max
   do bsnId = 1, bsnId_max
     basin => lst_basin(bsnId)
-    basin%gxi = NTX*NX
+    basin%gxi = NTX*MX
     basin%gxf = 1
-    basin%gyi = NTY*NY
+    basin%gyi = NTY*MY
     basin%gyf = 1
     do i = 1, basin%n
       call xy_to_gxy(basin%tx(i), basin%ty(i), basin%xi(i), basin%yi(i), gx, gy)
@@ -1915,7 +1915,7 @@ subroutine makeBasinDomainData(bsnId_min, bsnId_max)
 
   integer :: bsnId
   integer :: n, i
-  integer :: mx, my
+  integer :: mbx, mby
   integer :: gxi, gxf, gyi, gyf
   integer :: tx, ty
   integer :: xi, xf, yi, yf
@@ -1948,10 +1948,10 @@ subroutine makeBasinDomainData(bsnId_min, bsnId_max)
       call logmsg('...')
     endif
     open(newunit=un_out, file=f_domain, status='replace')
-    read(un,*) i_, n, mx, my, gxi, gxf, gyi, gyf
+    read(un,*) i_, n, mbx, mby, gxi, gxf, gyi, gyf
     read(un,*) west, east, south, north
-    write(un_out,"(a)") 'nx '//str(mx,DGT_GXY)
-    write(un_out,"(a)") 'ny '//str(my,DGT_GXY)
+    write(un_out,"(a)") 'nx '//str(mbx,DGT_GXY)
+    write(un_out,"(a)") 'ny '//str(mby,DGT_GXY)
     write(un_out,"(a)") 'gx '//str((/gxi,gxf/),DGT_GXY)
     write(un_out,"(a)") 'gy '//str((/gyi,gyf/),DGT_GXY)
     write(un_out,"(a)") 'west  '//str(west,'f20.15')
@@ -2011,8 +2011,8 @@ subroutine makeLowresBasinMaps(tx, ty)
     return
   endif
 
-  allocate(bsn(NX,NY))
-  allocate(bsn_lres(NX/RATIO_LRES,NY/RATIO_LRES))
+  allocate(bsn(MX,MY))
+  allocate(bsn_lres(MX/RATIO_LRES,MY/RATIO_LRES))
   call traperr( rbin(bsn, f_bsn) )
 
   allocate(lst_id(RATIO_LRES**2))
@@ -2020,10 +2020,10 @@ subroutine makeLowresBasinMaps(tx, ty)
 
   bsn_lres(:,:) = BSN_MISS
 
-  do iyy = 1, NY/RATIO_LRES
+  do iyy = 1, MY/RATIO_LRES
     yi = (iyy-1)*RATIO_LRES+1
     yf = iyy*RATIO_LRES
-    do ixx = 1, NX/RATIO_LRES
+    do ixx = 1, MX/RATIO_LRES
       xi = (ixx-1)*RATIO_LRES+1
       xf = ixx*RATIO_LRES
 

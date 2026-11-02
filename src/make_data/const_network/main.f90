@@ -19,8 +19,6 @@ program main
   use mod_separate_networks, only: &
     separateNetworks        , &
     makeSeparatedNetworkData
-  use mod_calc_network_mesh_intersections, only: &
-    calcNetworkMeshIntersections
   use mod_eval_basin, only: &
     calcNetworkBasinIntersections, &
     evalNetworkBasinConsistencies
@@ -100,16 +98,6 @@ program main
     region = arg_char('region')
 
     call evalWsCodeConsistency(region)
-
-  !
-  !-------------------------------------------------------------
-  case( 'calcNetworkMeshIntersections' )
-    call addarg('-uid', '', '', .false., 'Network id')
-    call parsearg()
-
-    uid = arg_char('-uid')
-
-    call calcNetworkMeshIntersections(uid)
 
   ! Sub Step 3. Calc. relations of Strrank channels and 
   !   FlwDir basins

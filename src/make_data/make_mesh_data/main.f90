@@ -8,24 +8,26 @@ program main
   use mod_remap, only: &
     makeRemappingTables, &
     remap                   
-  use mod_intersection, only: &
-    calcMeshIntersections
   use mod_mesh, only: &
-    makeHiresNetworkMask, &
-    scaleUpNetworkMask , &
+    calcMeshIntersections, &
+    makeHiresNetworkMask , &
+    scaleUpNetworkMask   , &
     trimBasin          
   use mod_topo, only: &
-    modifyFlwDir
+    modifyElv   , &
+    modifyFlwDir, &
+    calcUpperArea
   implicit none
   character(CLEN_KEY) :: task
 
   character(CLEN_KEY) :: resl
   character(DGT_NWKID) :: id
-  character(CLEN_KEY) :: basinType
+  character(CLEN_KEY) :: catmType
   character(CLEN_KEY) :: name_src
   character(CLEN_KEY) :: resl_src
   character(CLEN_KEY) :: var
   character(CLEN_KEY) :: outfmt
+  logical :: modified
   logical :: overwrite
 
   character(CLEN_PROC), parameter :: PRCNAM = 'program make_mesh_data'
@@ -38,7 +40,8 @@ program main
 !  -b-2 remap
 ! 2     trimBasin
 ! 3-1   modifyFlwDir
-!  -2   
+!  -2   modifyElv
+!  -3   calcUpperArea
   !-------------------------------------------------------------
   ! Read arguments
   !-------------------------------------------------------------
@@ -121,7 +124,7 @@ program main
   ! Main 2
   !-------------------------------------------------------------
   case( 'trimBasin' )
-    call addarg('basinType', 's', 'Type of basin {basin,network,networkset}')
+    call addarg('catmType', 's', 'Catchment type {basin,network,networkset}')
     call addarg('resl', 's', 'Mesh resolution')
     call addarg('id', 's', 'Basin id')
     call addarg('var', 's', 'Variable name')
@@ -129,16 +132,30 @@ program main
     call addarg('-w', '--overwrite', .false., .false., 'Overwrite existing output files')
     call parsearg()
 
-    basinType = lower(arg_char('basinType'))
+    catmType = lower(arg_char('catmType'))
     resl = lower(arg_char('resl'))
     id = arg_char('id')
     var = lower(arg_char('var'))
     outfmt = lower(arg_char('outfmt'))
     overwrite = arg_flag('--overwrite')
 
-    call trimBasin(basinType, resl, id, var, outfmt, overwrite)
+    call trimBasin(catmType, resl, id, var, outfmt, overwrite)
 
-  ! Main 3
+  ! Main 3.a
+  !-------------------------------------------------------------
+  case( 'modifyElv' )
+    call addarg('catmType', 's', 'Catchment type {basin,network,networkset}')
+    call addarg('resl', 's', 'Mesh resolution')
+    call addarg('-id', '', '', .false., 'Basin id')
+    call parsearg()
+
+    catmType = lower(arg_char('catmType'))
+    resl = lower(arg_char('resl'))
+    id = arg_char('-id')
+
+    call modifyElv(catmType, resl, id)
+
+  ! Main 3.b
   !-------------------------------------------------------------
   case( 'modifyFlwDir' )
     call addarg('networkType', 's', 'Network type {network,networkset}')
@@ -146,11 +163,27 @@ program main
     call addarg('-id', '', '', .false., 'Network id')
     call parsearg()
 
-    basinType = lower(arg_char('networkType'))
+    catmType = lower(arg_char('networkType'))
     resl = lower(arg_char('resl'))
     id = arg_char('-id')
 
-    call modifyFlwDir(basinType, resl, id)
+    call modifyFlwDir(catmType, resl, id)
+
+  ! Main 4
+  !-------------------------------------------------------------
+  case( 'calcUpperArea' )
+    call addarg('catmType', 's', 'Catchment type {basin,network,networkset}')
+    call addarg('resl', 's', 'Mesh resolution')
+    call addarg('-id', '', '', .false., 'Basin id')
+    call addarg('-m', '--modified', .false., .false., 'Use modified topography')
+    call parsearg()
+
+    catmType = lower(arg_char('catmType'))
+    resl = lower(arg_char('resl'))
+    id = arg_char('-id')
+    modified = arg_flag('--modified')
+
+    call calcUpperArea(catmType, resl, id, modified)
 
   !
   !-------------------------------------------------------------

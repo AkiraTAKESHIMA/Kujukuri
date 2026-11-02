@@ -15,9 +15,9 @@ module c3_joint_const
   character(CLEN_VAR), parameter :: DATANAME__STRNK = 'strrank'
   character(CLEN_VAR), parameter :: DATANAME__RRI = 'rri'
 
-  character(CLEN_VAR), parameter :: BASINTYPE__BASIN = 'basin'
-  character(CLEN_VAR), parameter :: BASINTYPE__NETWORK = 'network'
-  character(CLEN_VAR), parameter :: BASINTYPE__NETWORKSET = 'networkset'
+  character(CLEN_VAR), parameter :: CATMTYPE__BASIN = 'basin'
+  character(CLEN_VAR), parameter :: CATMTYPE__NETWORK = 'network'
+  character(CLEN_VAR), parameter :: CATMTYPE__NETWORKSET = 'networkset'
 
   character(CLEN_VAR), parameter :: NETWORKTYPE__NETWORK = 'network'
   character(CLEN_VAR), parameter :: NETWORKTYPE__NETWORKSET = 'networkset'

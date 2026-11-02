@@ -27,8 +27,8 @@ module c3_jflw_const
     JFLW_BSN_MISS  => BSN_MISS , &
     JFLW_BSN_UNDEF => BSN_UNDEF, &
     JFLW_LANDUSE_MISS => LANDUSE_MISS, &
-    JFLW_NX  => NX , &
-    JFLW_NY  => NY , &
+    JFLW_MX  => MX , &
+    JFLW_MY  => MY , &
     JFLW_NTX => NTX, &
     JFLW_NTY => NTY, &
     JFLW_NGX => NGX, &

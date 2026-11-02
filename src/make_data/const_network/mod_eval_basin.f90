@@ -38,14 +38,11 @@ contains
 !===============================================================
 subroutine calcNetworkBasinIntersections()
   use c2_jflw_const, &
-        set_resolution => set_resolution
-  use c2_strnk_io, only: &
-        strnk_region_str2idx         => region_str2idx     , &
-        strnk_region_idx2str         => region_idx2str     , &
-        strnk_get_f_stream_shp       => get_f_stream_shp   , &
-        strnk_get_f_tmp_networks_lst => get_f_tmp_networks_lst
+    set_resolution => set_resolution
+  use c3_strnk_io, only: &
+    strnk_get_f_lst_tmp_networks
   use mod_util, only: &
-        get_fmt_network
+    get_fmt_network
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'calcNetworkBasinIntersections'
 
@@ -73,7 +70,7 @@ subroutine calcNetworkBasinIntersections()
   !-------------------------------------------------------------
   call logent('Calculating intersections')
 
-  f = strnk_get_f_tmp_networks_lst()
+  f = strnk_get_f_lst_tmp_networks()
   call logmsg('Reading '//str(f))
   open(newunit=un, file=f, status='old')
   read(un,*) c_, nNwk
@@ -94,34 +91,34 @@ end subroutine calcNetworkBasinIntersections
 !===============================================================
 subroutine calc_channel_intersections(uid)
   use c1_grid, only: &
-        apprx_isct_with_meridian, &
-        apprx_isct_with_parallel
-  use c2_strnk_io, only: &
-        strnk_region_str2idx           => region_str2idx          , &
-        strnk_region_idx2str           => region_idx2str          , &
-        strnk_get_f_stream_shp         => get_f_stream_shp        , &
-        strnk_get_f_tmp_networks_tmp   => get_f_tmp_networks_lst  , &
-        strnk_get_f_tmp_network_entity => get_f_tmp_network_entity, &
-        strnk_get_f_isct_basin         => get_f_isct_basin        
+    apprx_isct_with_meridian, &
+    apprx_isct_with_parallel
   use c2_jflw_const
   use c2_jflw_grid, only: &
-        gxs_of_lon, &
-        gxe_of_lon, &
-        gys_of_lat, &
-        gye_of_lat, &
-        gx_to_x, &
-        gy_to_y, &
-        gx_of_x, &
-        gy_of_y, &
-        west_of_gx , &
-        east_of_gx , &
-        south_of_gy, &
-        north_of_gy
+    gxs_of_lon, &
+    gxe_of_lon, &
+    gys_of_lat, &
+    gye_of_lat, &
+    gx_to_x, &
+    gy_to_y, &
+    gx_of_x, &
+    gy_of_y, &
+    west_of_gx , &
+    east_of_gx , &
+    south_of_gy, &
+    north_of_gy
   use c2_jflw_io, only: &
-        tilename      , &
-        get_f_map_tile
+    tilename      , &
+    get_f_map_tile
+  use c3_strnk_io, only: &
+    strnk_region_str2idx          , &
+    strnk_region_idx2str          , &
+    strnk_get_f_stream_shp        , &
+    strnk_get_f_lst_tmp_networks  , &
+    strnk_get_f_tmp_network_entity, &
+    strnk_get_f_isct_basin                
   use mod_util, only: &
-        nwk_rgn_
+    nwk_rgn_
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'calc_channel_intersections'
   character(*), intent(in) :: uid
@@ -279,13 +276,13 @@ subroutine calc_channel_intersections(uid)
 
   do ity = tys, tye
     ys_this = 1
-    ye_this = NY
+    ye_this = MY
     if( ity == tys ) ys_this = ys
     if( ity == tye ) ye_this = ye
 
     do itx = txs, txe
       xs_this = 1
-      xe_this = NX
+      xe_this = MX
       if( itx == txs ) xs_this = xs
       if( itx == txe ) xe_this = xe
 
@@ -304,7 +301,7 @@ subroutine calc_channel_intersections(uid)
       
       call traperr( rbin(&
              bsnmap(gxs_this:gxe_this,gys_this:gye_this), &
-             f, lb=int((/xs_this,ys_this/),8), sz=int((/NX,NY/),8)) )
+             f, lb=int((/xs_this,ys_this/),8), sz=int((/MX,MY/),8)) )
     enddo  ! itx/
   enddo  ! ity/
 
@@ -658,13 +655,13 @@ subroutine calc_channel_intersections(uid)
 
     do ity = tys, tye
       ys_this = 1
-      ye_this = NY
+      ye_this = MY
       if( ity == tys ) ys_this = ys
       if( ity == tye ) ye_this = ye
 
       do itx = txs, txe
         xs_this = 1
-        xe_this = NX
+        xe_this = MX
         if( itx == txs ) xs_this = xs
         if( itx == txe ) xe_this = xe
 
@@ -758,14 +755,14 @@ end subroutine calc_channel_intersections
 !===============================================================
 subroutine evalNetworkBasinConsistencies()
   use c2_jflw_io, only: &
-        jflw_get_f_lst_tile => get_f_lst_tile
-  use c2_strnk_io, only: &
-        strnk_get_f_tmp_networks_lst => get_f_tmp_networks_lst, &
-        strnk_get_f_isct_basin       => get_f_isct_basin      , &
-        strnk_get_f_eval_basin       => get_f_eval_basin      , &
-        strnk_get_f_lst_eval_basin   => get_f_lst_eval_basin
+    get_f_lst_tile
+  use c3_strnk_io, only: &
+    strnk_get_f_lst_tmp_networks, &
+    strnk_get_f_isct_basin      , &
+    strnk_get_f_eval_basin      , &
+    strnk_get_f_lst_eval_basin  
   use mod_util, only: &
-        get_fmt_network
+    get_fmt_network
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'evalNetworkBasinConsistencies'
 
@@ -846,7 +843,7 @@ subroutine evalNetworkBasinConsistencies()
   !-------------------------------------------------------------
   call logent('Making basin list')
 
-  f = jflw_get_f_lst_tile(RESOLUTION_1SEC, 'id_area')
+  f = get_f_lst_tile(RESOLUTION_1SEC, 'id_area')
   call logmsg('Reading '//str(f))
   open(newunit=un, file=f, status='old')
   read(un,*) c_, nBasin
@@ -865,7 +862,7 @@ subroutine evalNetworkBasinConsistencies()
   !-------------------------------------------------------------
   call logent('Reading channel networks')
 
-  f = strnk_get_f_tmp_networks_lst()
+  f = strnk_get_f_lst_tmp_networks()
   call logmsg('Reading '//str(f))
   open(newunit=un, file=f, status='old')
   read(un,*) c_, nNwk_all
