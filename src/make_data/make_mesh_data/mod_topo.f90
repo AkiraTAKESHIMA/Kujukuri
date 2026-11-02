@@ -1196,7 +1196,6 @@ subroutine calc_upper_area__network(resl, id, modified, pixara)
   logical, intent(in) :: modified
   real(8), intent(in) :: pixara(:)
 
-  integer :: nNwk, jNwk
   integer(1), allocatable :: mskmap(:,:)
   integer(1), allocatable :: fdrmap(:,:)
   real(8)   , allocatable :: upamap(:,:)
@@ -1209,8 +1208,6 @@ subroutine calc_upper_area__network(resl, id, modified, pixara)
   real(8) :: err_norm
 
   character(CLEN_PATH) :: f
-  integer :: un
-  character :: c_
 
   call logbgn(PRCNAM, MODNAM)
   !-------------------------------------------------------------

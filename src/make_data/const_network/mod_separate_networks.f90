@@ -1360,25 +1360,26 @@ subroutine makeSeparatedNetworkData(id)
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
-  if( id == '' )then
-    f = get_f_lst_networks_channel()
-    call logmsg('Writing '//str(f))
-    call traperr( mkdir(dirname(f)) )
-    open(newunit=un_lst, file=f, status='replace')
-    write(un_lst,"(a)") 'i id nCh leng'
-  endif
-
   f = get_f_lst_tmp_networks_separation()
   call logmsg('Reading '//str(f))
   open(newunit=un, file=f, status='old')
   read(un,*) c_, nNwk
   read(un,*)
-
   dgt_nCh = 0
   do iNwk = 1, nNwk
     read(un,*) c_, id_, tmpid, jNwk, nCh
     dgt_nCh = max(dgt_nCh, dgt(nCh))
   enddo
+
+  if( id == '' )then
+    f = get_f_lst_networks_channel()
+    call logmsg('Writing '//str(f))
+    call traperr( mkdir(dirname(f)) )
+    open(newunit=un_lst, file=f, status='replace')
+    write(un_lst,"(a)") 'n '//str(nNwk)
+    write(un_lst,"(a)") 'i id nCh leng'
+  endif
+
   rewind(un)
   read(un,*)
   read(un,*)
