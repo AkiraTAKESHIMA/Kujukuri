@@ -62,6 +62,8 @@ module lib_math_sphere
   public :: area_sphere_intersection_latlon_polygon
 
   public :: dist_sphere
+  public :: dist_sphere_2
+  public :: dist_sphere_3
   !-------------------------------------------------------------
   ! Interfaces
   !-------------------------------------------------------------
@@ -5871,6 +5873,42 @@ real(8) function dist_sphere_0d(lon1, lat1, lon2, lat2) result(dist)
   dist = acos(min(1.d0, max(-1.d0, &
               sin(lat1)*sin(lat2) + cos(lat1)*cos(lat2)*cos(londiff_rad(lon1, lon2))))) * 2.d0
 end function dist_sphere_0d
+!===============================================================
+!
+!===============================================================
+real(8) function dist_sphere_2(lon1, lat1, lon2, lat2) result(dist)
+  implicit none
+  real(8), intent(in) :: lon1, lat1, lon2, lat2  ![rad]
+
+  real(8) :: clon, dlon, clat, dlat
+  real(8) :: k
+
+  clon = (lon1 + lon2) * 0.5d0
+  dlon = londiff_rad(lon1, lon2)
+
+  clat = (lat1 + lat2) * 0.5d0
+  dlat = lat2 - lat1
+
+  k = (sin(clat) * sin(dlat) * cos(dlon))**2 &
+    + (cos(clat) * cos(dlat) * sin(dlon))**2 &
+    + (cos(clat) * sin(dlat))**2
+  dist = 2.d0 * asin(sqrt(min(k,1.d0)))
+end function dist_sphere_2
+!===============================================================
+!
+!===============================================================
+real(8) function dist_sphere_3(lon1, lat1, lon2, lat2) result(dist)
+  implicit none
+  real(8), intent(in) :: lon1, lat1, lon2, lat2  ![rad]
+
+  real(8) :: dx, dy, dz, k
+
+  dx = (cos(lat2) * cos(lon2) - cos(lat1) * cos(lon1))
+  dy = (cos(lat2) * sin(lon2) - cos(lat1) * sin(lon1))
+  dz = (sin(lat2) - sin(lat1))
+  k = dx**2 + dy**2 + dz**2
+  dist = 2.d0 * asin(sqrt(min(k,1.d0)) * 0.5d0)
+end function dist_sphere_3
 !===============================================================
 !
 !===============================================================

@@ -148,7 +148,7 @@ real(8) function west_of_gx(gx) result(res)
   implicit none
   integer, intent(in) :: gx
 
-  res = REGION_WEST + TILESIZE_LON*((gx-1)/NX) + GRIDSIZE_LON*mod(gx-1,NX)
+  res = REGION_WEST + TILESIZE_LON*((gx-1)/MX) + GRIDSIZE_LON*mod(gx-1,MX)
 end function west_of_gx
 !===============================================================
 !
@@ -166,7 +166,7 @@ real(8) function south_of_gy(gy) result(res)
   implicit none
   integer, intent(in) :: gy
 
-  res = REGION_NORTH - TILESIZE_LAT*(gy/NY) - GRIDSIZE_LAT*mod(gy,NY)
+  res = REGION_NORTH - TILESIZE_LAT*(gy/MY) - GRIDSIZE_LAT*mod(gy,MY)
 end function south_of_gy
 !===============================================================
 !
@@ -184,8 +184,8 @@ real(8) function center_of_gx(gx) result(res)
   implicit none
   integer, intent(in) :: gx
 
-  res = REGION_WEST + TILESIZE_LON*(gx/NX) &
-        + GRIDSIZE_LON*(mod(gx,NX)-1+0.5d0)
+  res = REGION_WEST + TILESIZE_LON*(gx/MX) &
+        + GRIDSIZE_LON*(mod(gx,MX)-1+0.5d0)
 end function center_of_gx
 !===============================================================
 !
@@ -194,8 +194,8 @@ real(8) function center_of_gy(gy) result(res)
   implicit none
   integer, intent(in) :: gy
 
-  res = REGION_NORTH - TILESIZE_LAT*(gy/NY) &
-        - GRIDSIZE_LAT*(mod(gy,NY)-1+0.5d0)
+  res = REGION_NORTH - TILESIZE_LAT*(gy/MY) &
+        - GRIDSIZE_LAT*(mod(gy,MY)-1+0.5d0)
 end function center_of_gy
 !===============================================================
 !
@@ -272,7 +272,7 @@ integer function tx_of_gx(gx) result(tx)
   implicit none
   integer, intent(in) :: gx
 
-  tx = (gx-1) / NX + 1
+  tx = (gx-1) / MX + 1
 end function tx_of_gx
 !===============================================================
 !
@@ -281,7 +281,7 @@ integer function ty_of_gy(gy) result(ty)
   implicit none
   integer, intent(in) :: gy
 
-  ty = (gy-1) / NY + 1
+  ty = (gy-1) / MY + 1
 end function ty_of_gy
 !===============================================================
 !
@@ -290,7 +290,7 @@ integer function gxs_of_tx(tx) result(gxs)
   implicit none
   integer, intent(in) :: tx
 
-  gxs = NX*(tx-1) + 1
+  gxs = MX*(tx-1) + 1
 end function gxs_of_tx
 !===============================================================
 !
@@ -299,7 +299,7 @@ integer function gxe_of_tx(tx) result(gxe)
   implicit none
   integer, intent(in) :: tx
 
-  gxe = NX*tx
+  gxe = MX*tx
 end function gxe_of_tx
 !===============================================================
 !
@@ -308,7 +308,7 @@ integer function gys_of_ty(ty) result(gys)
   implicit none
   integer, intent(in) :: ty
 
-  gys = NY*(ty-1) + 1
+  gys = MY*(ty-1) + 1
 end function gys_of_ty
 !===============================================================
 !
@@ -317,7 +317,7 @@ integer function gye_of_ty(ty) result(gye)
   implicit none
   integer, intent(in) :: ty
 
-  gye = NY*ty
+  gye = MY*ty
 end function gye_of_ty
 !===============================================================
 !
@@ -326,7 +326,7 @@ integer function gx_of_x(tx, x) result(gx)
   implicit none
   integer, intent(in) :: tx, x
 
-  gx = NX*(tx-1) + x
+  gx = MX*(tx-1) + x
 end function gx_of_x
 !===============================================================
 !
@@ -335,7 +335,7 @@ integer function gy_of_y(ty, y) result(gy)
   implicit none
   integer, intent(in) :: ty, y
 
-  gy = NY*(ty-1) + y
+  gy = MY*(ty-1) + y
 end function gy_of_y
 !===============================================================
 !
@@ -357,7 +357,7 @@ subroutine gx_to_x(gx, tx, x)
   integer, intent(out) :: tx, x
 
   tx = tx_of_gx(gx)
-  x = gx - (tx-1)*NX
+  x = gx - (tx-1)*MX
 end subroutine gx_to_x
 !===============================================================
 !
@@ -368,7 +368,7 @@ subroutine gy_to_y(gy, ty, y)
   integer, intent(out) :: ty, y
 
   ty = ty_of_gy(gy)
-  y = gy - (ty-1)*NY
+  y = gy - (ty-1)*MY
 end subroutine gy_to_y
 !===============================================================
 !
@@ -551,9 +551,9 @@ subroutine calc_lineleng_in_pixels(&
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'calc_lineleng_in_pixels'
   real(8), intent(in) :: lon1, lat1, lon2, lat2
+  integer, intent(out) :: n
   integer, pointer :: lst_gx(:), lst_gy(:) ! out
   real(8), pointer :: lst_leng(:)  ! out
-  integer, intent(out) :: n
 
   real(8) :: wlon, wlat, elon, elat
   integer :: gxs, gxe, gys, gye, igx, igy
@@ -593,10 +593,12 @@ subroutine calc_lineleng_in_pixels(&
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
+  nn = (abs(gye-gys)+1) * (gxe-gxs+1)
+  allocate(lst_gx(nn))
+  allocate(lst_gy(nn))
+  allocate(lst_leng(nn))
+
   n = 0
-  call realloc(lst_gx, abs(gye-gys)+1, clear=.true.)
-  call realloc(lst_gy, abs(gye-gys)+1, clear=.true.)
-  call realloc(lst_leng, abs(gye-gys)+1, clear=.true.)
 
   do igy = gys, gye, sgn_gy
     if( igy == gys )then

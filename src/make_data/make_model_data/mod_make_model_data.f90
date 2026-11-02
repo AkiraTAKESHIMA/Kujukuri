@@ -7,14 +7,19 @@ module mod_make_model_data
   use lib_math
   use lib_io
   use c1_const
-  use c1_type
   use c1_util, only: &
-        slonlat, &
-        sBBox
+    slonlat, &
+    sBBox
+  use c2_strnk_type, only: &
+    cmn_node_   , &
+    cmn_channel_, &
+    cmn_watsys_ , &
+    cmn_nwknode_, &
+    cmn_network_
   use c2_nlni_const, only: &
-        DGT_WSCODE
+    DGT_WSCODE
   use c2_strnk_const, only: &
-        DGT_NWKUID
+    DGT_NWKID
   implicit none
   private
   !-------------------------------------------------------------
@@ -80,29 +85,28 @@ contains
 !
 !===============================================================
 recursive subroutine makeModelNetworkData(&
-    productName, leng_standard, uid_in &
+    productName, leng_standard, id_in &
 )
-  use c1_util, only: &
-    clear_cmn_network
-  use c1_io, only: &
-    read_network
   use c2_strnk_const
   use c2_strnk_io, only: &
+    read_network              , &
     get_f_lst_networks_channel, &
-    get_f_network_channel, &
+    get_f_network_channel     , &
     get_f_model_network
+  use c2_strnk_util, only: &
+    clear_cmn_network
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'makeModelNetworkData'
   character(*), intent(in) :: productName
   real(8), intent(in) :: leng_standard  ! [m]
-  character(*), intent(in) :: uid_in
+  character(*), intent(in) :: id_in
 
   type(cmn_network_) :: cmnnwk
   type(network_) :: nwk
   type(channel_), pointer :: ch
   type(section_), pointer :: sec
   type(edge_), pointer :: edge
-  character(DGT_NWKUID) :: uid_
+  character(DGT_NWKID) :: id_
   integer :: iSec
   real(8) :: leng, leng_next, leng_prev, leng_acc, leng_section
   real(8) :: pos, pos_prev
@@ -126,7 +130,7 @@ logical :: debug_this
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
-  if( uid_in == '' )then
+  if( id_in == '' )then
     f = get_f_lst_networks_channel()
 
     open(newunit=un, file=f, status='old')
@@ -135,8 +139,8 @@ logical :: debug_this
     read(un,*)
 
     do jNwk = 1, nNwk
-      read(un,*) c_, uid_
-      call makeModelNetworkData(productName, leng_standard, uid_)
+      read(un,*) c_, id_
+      call makeModelNetworkData(productName, leng_standard, id_)
     enddo  ! jNwk/
 
     close(un)
@@ -145,15 +149,15 @@ logical :: debug_this
     return
   endif
 
-  call logmsg('Network '//str(uid_in))
+  call logmsg('Network '//str(id_in))
   !-------------------------------------------------------------
   ! Prepare network data
   !-------------------------------------------------------------
   call logent('Preparing network data')
 
-  cmnnwk%uid = uid_in
+  cmnnwk%id = id_in
 
-  f = get_f_network_channel(cmnnwk%uid, 'sbin')
+  f = get_f_network_channel(cmnnwk%id, 'sbin')
   call logmsg('Reading '//str(f))
   call read_network(f, cmnnwk)
 
@@ -481,7 +485,7 @@ logical :: debug_this
   !-------------------------------------------------------------
   ! Output
   !-------------------------------------------------------------
-  f = get_f_model_network(productName, nwk%uid)
+  f = get_f_model_network(productName, nwk%id)
   call logmsg('Writing '//str(f))
   open(newunit=un, file=f, status='replace')
 
@@ -523,20 +527,19 @@ end subroutine makeModelNetworkData
 !
 !===============================================================
 subroutine makeModelCrossSectionData(&
-  name_network, name_crosssection, uid_in &
+  name_network, name_crosssection, id_in &
 )
-  use c1_io, only: &
-    read_network_size
   use c2_strnk_io, only: &
-    get_f_network_channel, &
+    read_network_size         , &
+    get_f_network_channel     , &
     get_f_network_crosssection, &
-    get_f_model_network, &
+    get_f_model_network       , &
     get_f_model_crosssection
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'makeModelCrossSectionData'
   character(*), intent(in) :: name_network
   character(*), intent(in) :: name_crosssection
-  character(*), intent(in) :: uid_in
+  character(*), intent(in) :: id_in
 
   integer :: nCh, jCh
   integer :: mCh, iCh
@@ -551,7 +554,7 @@ subroutine makeModelCrossSectionData(&
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
-  if( uid_in == '' )then
+  if( id_in == '' )then
 
     call logret(PRCNAM, MODNAM)
     return
@@ -561,7 +564,7 @@ subroutine makeModelCrossSectionData(&
   !-------------------------------------------------------------
   call logent('Loading cross section data of original channels')
 
-  f = get_f_network_channel(uid_in, 'sbin')
+  f = get_f_network_channel(id_in, 'sbin')
   call read_network_size(f, nCh=nCh)
 
   allocate(width_org(nCh))
@@ -569,16 +572,16 @@ subroutine makeModelCrossSectionData(&
   allocate(depth_org(nCh))
   allocate(levee_org(nCh))
 
-  f = get_f_network_crosssection(name_crosssection, 'width', uid_in)
+  f = get_f_network_crosssection(name_crosssection, 'width', id_in)
   call traperr( rbin(width_org, f) )
 
-  f = get_f_network_crosssection(name_crosssection, 'height', uid_in)
+  f = get_f_network_crosssection(name_crosssection, 'height', id_in)
   call traperr( rbin(hight_org, f) )
 
-  f = get_f_network_crosssection(name_crosssection, 'depth', uid_in)
+  f = get_f_network_crosssection(name_crosssection, 'depth', id_in)
   call traperr( rbin(depth_org, f) )
 
-  f = get_f_network_crosssection(name_crosssection, 'levee', uid_in)
+  f = get_f_network_crosssection(name_crosssection, 'levee', id_in)
   call traperr( rbin(levee_org, f) )
 
   call logext()
@@ -587,7 +590,7 @@ subroutine makeModelCrossSectionData(&
   !-------------------------------------------------------------
   call logent('Making river cross section data of model channels')
 
-  f = get_f_model_network(name_network, uid_in)
+  f = get_f_model_network(name_network, id_in)
   open(newunit=un, file=f, status='old')
   read(un,*) c_, mCh
 
@@ -619,19 +622,19 @@ subroutine makeModelCrossSectionData(&
   !-------------------------------------------------------------
   call logent('Outputting')
 
-  f = get_f_model_crosssection(name_network, name_crosssection, 'width', uid_in)
+  f = get_f_model_crosssection(name_network, name_crosssection, 'width', id_in)
   call logmsg('Writing '//str(f))
   call traperr( wbin(width, f, replace=.true.) )
 
-  f = get_f_model_crosssection(name_network, name_crosssection, 'height', uid_in)
+  f = get_f_model_crosssection(name_network, name_crosssection, 'height', id_in)
   call logmsg('Writing '//str(f))
   call traperr( wbin(hight, f, replace=.true.) )
 
-  f = get_f_model_crosssection(name_network, name_crosssection, 'depth', uid_in)
+  f = get_f_model_crosssection(name_network, name_crosssection, 'depth', id_in)
   call logmsg('Writing '//str(f))
   call traperr( wbin(depth, f, replace=.true.) )
 
-  f = get_f_model_crosssection(name_network, name_crosssection, 'levee', uid_in)
+  f = get_f_model_crosssection(name_network, name_crosssection, 'levee', id_in)
   call logmsg('Writing '//str(f))
   call traperr( wbin(levee, f, replace=.true.) )
   !-------------------------------------------------------------
@@ -712,8 +715,8 @@ subroutine copy_cmn2nwk(cmn, nwk)
   integer :: jCh
   integer :: jNode
 
-  allocate(character(1) :: nwk%uid)
-  nwk%uid = cmn%uid
+  allocate(character(1) :: nwk%id)
+  nwk%id = cmn%id
 
   nwk%nWsys = cmn%nWsys
   allocate(nwk%wsys(nwk%nWsys))

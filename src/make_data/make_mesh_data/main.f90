@@ -4,29 +4,44 @@ program main
   use lib_log
   use lib_io
   use c2_strnk_const, only: &
-        DGT_NWKUID
+    DGT_NWKID
   use mod_remap, only: &
-        makeRemappingTables     , &
-        remap                   
+    makeRemappingTables, &
+    remap                   
   use mod_mesh, only: &
-        rasterizeNetworks       , &
-        make1secNetworkMask     , &
-        make1secNetworkUpperArea, &
-        scaleUpNetworkMask      , &
-        trimBasin               
+    calcMeshIntersections, &
+    makeHiresNetworkMask , &
+    scaleUpNetworkMask   , &
+    trimBasin          
+  use mod_topo, only: &
+    modifyElv   , &
+    modifyFlwDir, &
+    calcUpperArea
   implicit none
   character(CLEN_KEY) :: task
 
   character(CLEN_KEY) :: resl
-  character(DGT_NWKUID) :: uid
-  character(CLEN_KEY) :: basinType
+  character(DGT_NWKID) :: id
+  character(CLEN_KEY) :: catmType
   character(CLEN_KEY) :: name_src
   character(CLEN_KEY) :: resl_src
   character(CLEN_KEY) :: var
   character(CLEN_KEY) :: outfmt
+  logical :: modified
   logical :: overwrite
 
   character(CLEN_PROC), parameter :: PRCNAM = 'program make_mesh_data'
+
+
+! 1-a-1 calcHiresMeshIntersections
+!    -2 makeHiresNetworkMask
+!    -3 scaleUpNetworkMask
+!  -b-1 makeRemappingTables
+!  -b-2 remap
+! 2     trimBasin
+! 3-1   modifyFlwDir
+!  -2   modifyElv
+!  -3   calcUpperArea
   !-------------------------------------------------------------
   ! Read arguments
   !-------------------------------------------------------------
@@ -42,35 +57,27 @@ program main
 
   ! Main 1.a.1
   !-------------------------------------------------------------
-  case( 'rasterizeNetworks' )
-    call addarg('-uid', '', '', .false., 'Network ID')
+  case( 'calcMeshIntersections' )
+    call addarg('resl', 's', 'Mesh resolution')
+    call addarg('-id', '', '', .false., 'Network id')
     call parsearg()
 
-    uid = arg_char('-uid')
+    resl = lower(arg_char('resl'))
+    id = arg_char('-id')
 
-    call rasterizeNetworks(uid)
+    call calcMeshIntersections(resl, id)
 
   ! Main 1.a.2
   !-------------------------------------------------------------
-  case( 'make1secNetworkMask' )
-    call addarg('-uid', '', 'all', .false., 'Network ID')
+  case( 'makeHiresNetworkMask' )
+    call addarg('-id', '', '', .false., 'Network id')
     call parsearg()
 
-    uid = arg_char('-uid')
+    id = arg_char('-id')
 
-    call make1secNetworkMask(uid)
+    call makeHiresNetworkMask(id)
 
   ! Main 1.a.3
-  !-------------------------------------------------------------
-  case( 'make1secNetworkUpperArea' )
-    call addarg('-uid', '', 'all', .false., 'Network ID')
-    call parsearg()
-
-    uid = arg_char('-uid')
-
-    call make1secNetworkUpperArea(uid)
-
-  ! Main 1.a.4
   !-------------------------------------------------------------
   case( 'scaleUpNetworkMask' )
     call addarg('resl', '', 'Target resolution')
@@ -117,22 +124,66 @@ program main
   ! Main 2
   !-------------------------------------------------------------
   case( 'trimBasin' )
-    call addarg('basinType', 's', 'Type of J-FlwDir basin')
-    call addarg('resl', 's', 'Resolution of J-FlwDir mesh')
-    call addarg('uid', 's', 'Basin/Network/NetworkSet ID')
+    call addarg('catmType', 's', 'Catchment type {basin,network,networkset}')
+    call addarg('resl', 's', 'Mesh resolution')
+    call addarg('id', 's', 'Basin id')
     call addarg('var', 's', 'Variable name')
-    call addarg('outfmt', 's', 'Output format {default|RRI}')
+    call addarg('outfmt', 's', 'Output format {default,RRI}')
     call addarg('-w', '--overwrite', .false., .false., 'Overwrite existing output files')
     call parsearg()
 
-    basinType = lower(arg_char('basinType'))
+    catmType = lower(arg_char('catmType'))
     resl = lower(arg_char('resl'))
-    uid = arg_char('uid')
+    id = arg_char('id')
     var = lower(arg_char('var'))
     outfmt = lower(arg_char('outfmt'))
     overwrite = arg_flag('--overwrite')
 
-    call trimBasin(basinType, resl, uid, var, outfmt, overwrite)
+    call trimBasin(catmType, resl, id, var, outfmt, overwrite)
+
+  ! Main 3.a
+  !-------------------------------------------------------------
+  case( 'modifyElv' )
+    call addarg('catmType', 's', 'Catchment type {basin,network,networkset}')
+    call addarg('resl', 's', 'Mesh resolution')
+    call addarg('-id', '', '', .false., 'Basin id')
+    call parsearg()
+
+    catmType = lower(arg_char('catmType'))
+    resl = lower(arg_char('resl'))
+    id = arg_char('-id')
+
+    call modifyElv(catmType, resl, id)
+
+  ! Main 3.b
+  !-------------------------------------------------------------
+  case( 'modifyFlwDir' )
+    call addarg('networkType', 's', 'Network type {network,networkset}')
+    call addarg('resl', 's', 'Mesh resolution')
+    call addarg('-id', '', '', .false., 'Network id')
+    call parsearg()
+
+    catmType = lower(arg_char('networkType'))
+    resl = lower(arg_char('resl'))
+    id = arg_char('-id')
+
+    call modifyFlwDir(catmType, resl, id)
+
+  ! Main 4
+  !-------------------------------------------------------------
+  case( 'calcUpperArea' )
+    call addarg('catmType', 's', 'Catchment type {basin,network,networkset}')
+    call addarg('resl', 's', 'Mesh resolution')
+    call addarg('-id', '', '', .false., 'Basin id')
+    call addarg('-m', '--modified', .false., .false., 'Use modified topography')
+    call parsearg()
+
+    catmType = lower(arg_char('catmType'))
+    resl = lower(arg_char('resl'))
+    id = arg_char('-id')
+    modified = arg_flag('--modified')
+
+    call calcUpperArea(catmType, resl, id, modified)
 
   !
   !-------------------------------------------------------------

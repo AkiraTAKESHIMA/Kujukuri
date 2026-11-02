@@ -4,6 +4,7 @@ module c2_strnk_io
   use lib_log
   use lib_io
   use c2_strnk_const
+  use c2_strnk_type
   implicit none
   private
   !-------------------------------------------------------------
@@ -15,6 +16,10 @@ module c2_strnk_io
   public :: read_strrank_all
   public :: show_strrank_all
 
+  public :: read_network
+  public :: read_network_size
+  public :: write_network
+
   public :: write_network_mesh_domain
   public :: read_network_mesh_domain
 
@@ -23,17 +28,17 @@ module c2_strnk_io
   public :: get_f_rivernode_shp
   public :: get_f_rivernode_dbf
   public :: get_f_lst_tiled_idx
-  public :: get_f_lst_tiled_uid
+  public :: get_f_lst_tiled_id
+  public :: get_f_lst_tmp_networks
+  public :: get_f_lst_tmp_networks_separation
   public :: get_f_tmp_networks_fmt
-  public :: get_f_tmp_networks_lst
   public :: get_f_tmp_network_entity
   public :: get_f_tmp_network_channel
   public :: get_f_tmp_network_separation
   public :: get_f_lst_networks_channel
-  public :: get_f_lst_networks_raster
   public :: get_f_lst_networks_mesh
   public :: get_f_network_channel
-  public :: get_f_network_raster
+  public :: get_f_network_meshisct
   public :: get_f_network_mesh
   public :: get_f_network_channelscale
   public :: get_f_network_crosssection
@@ -127,6 +132,14 @@ end function region_str2idx
 !===============================================================
 !
 !===============================================================
+!
+!
+!
+!
+!
+!===============================================================
+!
+!===============================================================
 subroutine read_strrank_all(wsCode, shp)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'read_strrank_all'
@@ -205,20 +218,188 @@ end subroutine show_strrank_all
 !===============================================================
 !
 !===============================================================
+subroutine read_network(f, nwk)
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'read_network'
+  character(*), intent(in) :: f
+  type(cmn_network_), intent(inout) :: nwk
+
+  type(cmn_watsys_), pointer :: wsys
+  type(cmn_channel_), pointer :: ch
+  type(cmn_node_), pointer :: node
+  integer :: jWsys
+  integer :: jCh
+  integer :: jNode
+  integer :: clen_wsCode, clen_rvCode, clen_rvName
+
+  integer :: un
+
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  if( .not. allocated(nwk%id) )then
+    call errend('ID of the network is undefined.')
+  endif
+
+  open(newunit=un, file=f, form='unformatted', access='sequential', status='old')
+
+  read(un) nwk%nWsys
+  read(un) nwk%nCh
+  read(un) nwk%nNode
+
+  allocate(nwk%wsys_(nwk%nWsys))
+  allocate(nwk%channel_(nwk%nCh))
+
+  read(un) clen_wsCode
+  do jWsys = 1, nwk%nWsys
+    wsys => nwk%wsys_(jWsys)
+    allocate(character(clen_wsCode) :: wsys%wsCode)
+    read(un) wsys%wsCode, wsys%leng
+  enddo
+
+  do jCh = 1, nwk%nCh
+    ch => nwk%channel_(jCh)
+
+    read(un) clen_wsCode, clen_rvCode, clen_rvName
+    allocate(character(clen_wsCode) :: ch%wsCode)
+    allocate(character(clen_rvCode) :: ch%rvCode)
+    allocate(character(clen_rvName) :: ch%rvName)
+    read(un) ch%wsCode
+    read(un) ch%rvCode
+    read(un) ch%rvName
+
+    read(un) ch%n
+    allocate(ch%lon(ch%n))
+    allocate(ch%lat(ch%n))
+    read(un) ch%lon(:)
+    read(un) ch%lat(:)
+
+    read(un) ch%leng
+
+    allocate(ch%node_(2))
+    ch%node_(1)%lon = ch%lon(1)
+    ch%node_(1)%lat = ch%lat(1)
+    ch%node_(2)%lon = ch%lon(ch%n)
+    ch%node_(2)%lat = ch%lat(ch%n)
+    do jNode = 1, 2
+      node => ch%node_(jNode)
+      read(un) node%iNode, node%typ, node%elv, node%downleng
+    enddo  ! jNode/
+  enddo  ! jCh/
+
+  close(un)
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
+end subroutine read_network
+!===============================================================
+!
+!===============================================================
+subroutine read_network_size(f, nWsys, nCh, nNode)
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'read_network_size'
+  character(*), intent(in) :: f
+  integer, intent(out), optional :: nWsys, nCh, nNode
+
+  integer :: nWsys_, nCh_, nNode_
+  integer :: un
+
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
+  !-------------------------------------------------------------
+  open(newunit=un, file=f, form='unformatted', access='sequential', status='old')
+
+  read(un) nWsys_
+  read(un) nCh_
+  read(un) nNode_
+
+  close(un)
+
+  if( present(nWsys) ) nWsys = nWsys_
+  if( present(nCh) ) nCh = nCh_
+  if( present(nNode) ) nNode = nNode_
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
+end subroutine read_network_size
+!===============================================================
+!
+!===============================================================
+subroutine write_network(f, nwk)
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'write_network'
+  character(*), intent(in) :: f
+  type(cmn_network_), intent(in) :: nwk
+
+  type(cmn_watsys_), pointer :: wsys
+  type(cmn_channel_), pointer :: ch
+  type(cmn_node_), pointer :: node
+  integer :: jWsys
+  integer :: jCh
+  integer :: jNode
+
+  integer :: un
+
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  open(newunit=un, file=f, form='unformatted', access='sequential', status='replace')
+
+  write(un) nwk%nWsys
+  write(un) nwk%nCh
+  write(un) nwk%nNode
+
+  write(un) len_trim(nwk%channel_(1)%wsCode)
+  do jWsys = 1, nwk%nWsys
+    wsys => nwk%wsys_(jWsys)
+    write(un) wsys%wsCode, wsys%leng
+  enddo
+
+  do jCh = 1, nwk%nCh
+    ch => nwk%channel_(jCh)
+
+    write(un) len(ch%wsCode), len(ch%rvCode), len(ch%rvName)
+    write(un) ch%wsCode
+    write(un) ch%rvCode
+    write(un) ch%rvName
+    write(un) ch%n
+    write(un) ch%lon(:)
+    write(un) ch%lat(:)
+    write(un) ch%leng
+    do jNode = 1, 2
+      node => ch%node_(jNode)
+      write(un) node%iNode, node%typ, node%elv, node%downleng
+    enddo  ! jNode/
+  enddo  ! iiCh/
+
+  close(un)
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
+end subroutine write_network
+!===============================================================
+!
+!===============================================================
+!
+!
+!
+!
+!
+!===============================================================
+!
+!===============================================================
 subroutine write_network_mesh_domain(&
-    resl, uid, &
+    resl, id, &
     gxs, gxe, gys, gye, &
     west, east, south, north)
   implicit none
   character(*), intent(in) :: resl
-  character(*), intent(in) :: uid
+  character(*), intent(in) :: id
   integer, intent(in) :: gxs, gxe, gys, gye
   real(8), intent(in) :: west, east, south, north
 
   character(CLEN_PATH) :: f
   integer :: un
 
-  f = get_f_network_mesh(resl, 'domain', uid)
+  f = get_f_network_mesh(resl, 'domain', id)
   open(newunit=un, file=f, status='replace')
   write(un,"(a)") 'nx '//str(gxe-gxs+1)
   write(un,"(a)") 'ny '//str(gye-gys+1)
@@ -234,22 +415,31 @@ end subroutine write_network_mesh_domain
 !
 !===============================================================
 subroutine read_network_mesh_domain(&
-    resl, uid, &
-    gxs, gxe, gys, gye, &
-    west, east, south, north)
+  resl, id, &
+  nx, ny, gxs, gxe, gys, gye, &
+  west, east, south, north, &
+  echo &
+)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'read_network_mesh_domain'
   character(*), intent(in) :: resl
-  character(*), intent(in) :: uid
+  character(*), intent(in) :: id
+  integer, intent(out) :: nx, ny
   integer, intent(out) :: gxs, gxe, gys, gye
   real(8), intent(out) :: west, east, south, north
+  logical, intent(in), optional :: echo
 
-  integer :: nx, ny
+  logical :: echo_
+
   character(CLEN_PATH) :: f
   integer :: un
   character :: c_
 
-  f = get_f_network_mesh(resl, 'domain', uid)
+  echo_ = .false.
+  if( present(echo) ) echo_ = echo
+
+  f = get_f_network_mesh(resl, 'domain', id)
+  if( echo_ ) call logmsg('Reading '//str(f))
   open(newunit=un, file=f, status='old')
   read(un,*) c_, nx
   read(un,*) c_, ny
@@ -369,30 +559,36 @@ character(CLEN_PATH) function get_f_lst_tiled_idx(tileName) result(f)
   character(CLEN_PROC), parameter :: PRCNAM = 'get_f_lst_tiled_idx'
   character(*), intent(in) :: tileName
 
-  call logbgn(PRCNAM, MODNAM, '-p')
-  !-------------------------------------------------------------
   f = joined(DIR_PRD, 'lst_tiled_idx/'//trim(tileName)//'.txt')
-
-  call traperr( mkdir(dirname(f)) )
-  !-------------------------------------------------------------
-  call logret(PRCNAM, MODNAM)
 end function get_f_lst_tiled_idx
 !===============================================================
 !
 !===============================================================
-character(CLEN_PATH) function get_f_lst_tiled_uid(tileName) result(f)
+character(CLEN_PATH) function get_f_lst_tiled_id(tileName) result(f)
   implicit none
-  character(CLEN_PROC), parameter :: PRCNAM = 'get_f_lst_tiled_uid'
+  character(CLEN_PROC), parameter :: PRCNAM = 'get_f_lst_tiled_id'
   character(*), intent(in) :: tileName
 
-  call logbgn(PRCNAM, MODNAM, '-p')
-  !-------------------------------------------------------------
-  f = joined(DIR_PRD, 'lst_tiled_uid/'//trim(tileName)//'.txt')
+  f = joined(DIR_PRD, 'lst_tiled_id/'//trim(tileName)//'.txt')
+end function get_f_lst_tiled_id
+!===============================================================
+!
+!===============================================================
+character(CLEN_PATH) function get_f_lst_tmp_networks() result(f)
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'get_f_lst_tmp_networks'
 
-  call traperr( mkdir(dirname(f)) )
-  !-------------------------------------------------------------
-  call logret(PRCNAM, MODNAM)
-end function get_f_lst_tiled_uid
+  f = joined(DIR_PRD, 'tmp_network/all.txt')
+end function get_f_lst_tmp_networks
+!===============================================================
+!
+!===============================================================
+character(CLEN_PATH) function get_f_lst_tmp_networks_separation() result(f)
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'get_f_lst_tmp_networks_separation'
+
+  f = joined(DIR_PRD, 'tmp_network_separation/all.txt')
+end function get_f_lst_tmp_networks_separation
 !===============================================================
 !
 !===============================================================
@@ -400,82 +596,47 @@ character(CLEN_PATH) function get_f_tmp_networks_fmt() result(f)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'get_f_tmp_networks_fmt'
 
-  call logbgn(PRCNAM, MODNAM, '-p')
-  !-------------------------------------------------------------
   f = joined(DIR_PRD, 'tmp_network/format.txt')
-
-  call traperr( mkdir(dirname(f)) )
-  !-------------------------------------------------------------
-  call logret(PRCNAM, MODNAM)
 end function get_f_tmp_networks_fmt
 !===============================================================
 !
 !===============================================================
-character(CLEN_PATH) function get_f_tmp_networks_lst() result(f)
-  implicit none
-  character(CLEN_PROC), parameter :: PRCNAM = 'get_f_tmp_networks_lst'
-
-  call logbgn(PRCNAM, MODNAM, '-p')
-  !-------------------------------------------------------------
-  f = joined(DIR_PRD, 'tmp_network/all.txt')
-
-  call traperr( mkdir(dirname(f)) )
-  !-------------------------------------------------------------
-  call logret(PRCNAM, MODNAM)
-end function get_f_tmp_networks_lst
-!===============================================================
-!
-!===============================================================
-character(CLEN_PATH) function get_f_tmp_network_entity(uid) result(f)
+character(CLEN_PATH) function get_f_tmp_network_entity(id) result(f)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'get_f_tmp_network_entity'
-  character(*), intent(in) :: uid
+  character(*), intent(in) :: id
 
-  call logbgn(PRCNAM, MODNAM, '-p')
-  !-------------------------------------------------------------
-  f = joined(DIR_PRD, 'tmp_network_entity_node/'//str(uid)//'.txt')
-
-  call traperr( mkdir(dirname(f)) )
-  !-------------------------------------------------------------
-  call logret(PRCNAM, MODNAM)
+  f = joined(DIR_PRD, 'tmp_network_entity_node/'//str(id)//'.txt')
 end function get_f_tmp_network_entity
 !===============================================================
 !
 !===============================================================
-character(CLEN_PATH) function get_f_tmp_network_channel(uid, typ) result(f)
+character(CLEN_PATH) function get_f_tmp_network_channel(id, typ) result(f)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'get_f_tmp_network_channel'
-  character(*), intent(in) :: uid
+  character(*), intent(in) :: id
   character(*), intent(in) :: typ
 
   call logbgn(PRCNAM, MODNAM, '-p')
   !-------------------------------------------------------------
   selectcase( typ )
   case( 'sbin', 'json' )
-    f = joined(DIR_PRD, 'tmp_network_channel/'//str(typ)//'/'//str(uid)//'.'//str(typ))
+    f = joined(DIR_PRD, 'tmp_network_channel/'//str(typ)//'/'//str(id)//'.'//str(typ))
   case default
     call errend(msg_invalid_value('typ', typ))
   endselect
-
-  call traperr( mkdir(dirname(f)) )
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
 end function get_f_tmp_network_channel
 !===============================================================
 !
 !===============================================================
-character(CLEN_PATH) function get_f_tmp_network_separation(uid) result(f)
+character(CLEN_PATH) function get_f_tmp_network_separation(id) result(f)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'get_f_network_separation'
-  character(*), intent(in) :: uid
+  character(*), intent(in) :: id
 
-  call logbgn(PRCNAM, MODNAM, '-p')
-  !-------------------------------------------------------------
-  f = joined(DIR_PRD, 'tmp_network_separation/'//str(uid)//'.txt')
-
-  call traperr( mkdir(dirname(f)) )
-  !-------------------------------------------------------------
-  call logret(PRCNAM, MODNAM)
+  f = joined(DIR_PRD, 'tmp_network_separation/'//str(id)//'.txt')
 end function get_f_tmp_network_separation
 !===============================================================
 !
@@ -484,29 +645,8 @@ character(CLEN_PATH) function get_f_lst_networks_channel() result(f)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'get_f_lst_networks_channel'
 
-  call logbgn(PRCNAM, MODNAM, '-p')
-  !-------------------------------------------------------------
   f = joined(DIR_PRD, 'network_channel/all.txt')
-
-  call traperr( mkdir(dirname(f)) )
-  !-------------------------------------------------------------
-  call logret(PRCNAM, MODNAM)
 end function get_f_lst_networks_channel
-!===============================================================
-!
-!===============================================================
-character(CLEN_PATH) function get_f_lst_networks_raster() result(f)
-  implicit none
-  character(CLEN_PROC), parameter :: PRCNAM = 'get_f_lst_networks_raster'
-
-  call logbgn(PRCNAM, MODNAM, '-p')
-  !-------------------------------------------------------------
-  f = joined(DIR_PRD, 'network_raster/all.txt')
-
-  call traperr( mkdir(dirname(f)) )
-  !-------------------------------------------------------------
-  call logret(PRCNAM, MODNAM)
-end function get_f_lst_networks_raster
 !===============================================================
 !
 !===============================================================
@@ -516,69 +656,61 @@ character(CLEN_PATH) function get_f_lst_networks_mesh(&
   character(CLEN_PROC), parameter :: PRCNAM = 'get_f_lst_networks_mesh'
   character(*), intent(in) :: resl
 
-  call logbgn(PRCNAM, MODNAM, '-p')
-  !-------------------------------------------------------------
   f = joined(DIR_PRD, 'network_mesh/'//str(resl)//'/domain/all.txt')
-
-  call traperr( mkdir(dirname(f)) )
-  !-------------------------------------------------------------
-  call logret(PRCNAM, MODNAM)
 end function get_f_lst_networks_mesh
 !===============================================================
 !
 !===============================================================
-character(CLEN_PATH) function get_f_network_channel(uid, typ) result(f)
+character(CLEN_PATH) function get_f_network_channel(id, typ) result(f)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'get_f_network_channel'
-  character(*), intent(in) :: uid
+  character(*), intent(in) :: id
   character(*), intent(in) :: typ
 
   call logbgn(PRCNAM, MODNAM, '-p')
   !-------------------------------------------------------------
   selectcase( typ )
   case( 'sbin', 'json' )
-    f = joined(DIR_PRD, 'network_channel/'//str(typ)//'/'//str(uid)//'.'//str(typ))
+    f = joined(DIR_PRD, 'network_channel/'//str(typ)//'/'//str(id)//'.'//str(typ))
   case default
     call errend(msg_invalid_value('typ', typ))
   endselect
-
-  call traperr( mkdir(dirname(f)) )
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
 end function get_f_network_channel
 !===============================================================
 !
 !===============================================================
-character(CLEN_PATH) function get_f_network_raster(uid) result(f)
+character(CLEN_PATH) function get_f_network_meshisct(&
+    meshType, resl, id &
+) result(f)
   implicit none
-  character(CLEN_PROC), parameter :: PRCNAM = 'get_f_network_raster'
-  character(*), intent(in) :: uid
+  character(CLEN_PROC), parameter :: PRCNAM = 'get_f_network_meshisct'
+  character(*), intent(in) :: meshType
+  character(*), intent(in) :: resl
+  character(*), intent(in) :: id
 
-  call logbgn(PRCNAM, MODNAM, '-p')
-  !-------------------------------------------------------------
-  f = joined(DIR_PRD, 'network_raster/'//str(uid)//'.sbin')
-
-  call traperr( mkdir(dirname(f)) )
-  !-------------------------------------------------------------
-  call logret(PRCNAM, MODNAM)
-end function get_f_network_raster
+  f = joined(DIR_PRD, 'network_meshisct/'//&
+             str(meshType)//'/'//str(resl)//'/'//str(id)//'.sbin')
+end function get_f_network_meshisct
 !===============================================================
 !
 !===============================================================
 character(CLEN_PATH) function get_f_network_mesh(&
-    resl, var, uid) result(f)
+    resl, var, id) result(f)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'get_f_network_mesh'
   character(*), intent(in) :: resl
   character(*), intent(in) :: var
-  character(*), intent(in) :: uid
+  character(*), intent(in) :: id
 
   character(3) :: ext
 
   call logbgn(PRCNAM, MODNAM, '-p')
   !-------------------------------------------------------------
   selectcase( var )
-  case( 'mask', 'upg', 'dir', 'elv', 'upa', 'landuse' )
+  case( 'mask', 'upg', 'dir', 'elv', 'upa', 'landuse', &
+        'elv_mod', 'dir_mod', 'upa_mod' )
     ext = 'bin'
   case( 'domain' )
     ext = 'txt'
@@ -586,122 +718,94 @@ character(CLEN_PATH) function get_f_network_mesh(&
     call errend(msg_invalid_value('var', var))
   endselect
 
-  f = joined(DIR_PRD, 'network_mesh/'//str(resl)//'/'//str(var)//'/'//str(uid)//'.'//str(ext))
-
-  call traperr( mkdir(dirname(f)) )
+  f = joined(DIR_PRD, 'network_mesh/'//str(resl)//'/'//str(var)//'/'//str(id)//'.'//str(ext))
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
 end function get_f_network_mesh
 !===============================================================
 !
 !===============================================================
-character(CLEN_PATH) function get_f_network_channelscale(uid) result(f)
+character(CLEN_PATH) function get_f_network_channelscale(id) result(f)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'get_f_network_channelscale'
-  character(*), intent(in) :: uid
+  character(*), intent(in) :: id
 
-  f = joined(DIR_PRD, 'network_channelscale/'//str(uid)//'.bin')
-
-  call traperr( mkdir(dirname(f)) )
+  f = joined(DIR_PRD, 'network_channelscale/'//str(id)//'.bin')
 end function get_f_network_channelscale
 !===============================================================
 !
 !===============================================================
 character(CLEN_PATH) function get_f_network_crosssection(&
-    productName, var, uid &
+    productName, var, id &
 ) result(f)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'get_f_network_crosssection'
   character(*), intent(in) :: productName
   character(*), intent(in) :: var
-  character(*), intent(in) :: uid
+  character(*), intent(in) :: id
 
   f = joined(DIR_PRD, 'network_crosssection/'//&
-    str(productName)//'/'//str(var)//'/'//str(uid)//'.bin')
-
-  call traperr( mkdir(dirname(f)) )
+    str(productName)//'/'//str(var)//'/'//str(id)//'.bin')
 end function get_f_network_crosssection
 !===============================================================
 !
 !===============================================================
 character(CLEN_PATH) function get_f_model_network(&
-    name, uid &
+    name, id &
 ) result(f)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'get_f_model_network'
   character(*), intent(in) :: name
-  character(*), intent(in) :: uid
+  character(*), intent(in) :: id
 
-  f = joined(DIR_PRD, 'model_network/'//str(name)//'/'//str(uid)//'.txt')
-
-  call traperr( mkdir(dirname(f)) )
+  f = joined(DIR_PRD, 'model_network/'//str(name)//'/'//str(id)//'.txt')
 end function get_f_model_network
 !===============================================================
 !
 !===============================================================
 character(CLEN_PATH) function get_f_model_crosssection(&
-    name_network, name_crosssection, var, uid &
+    name_network, name_crosssection, var, id &
 ) result(f)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'get_f_model_crosssection'
   character(*), intent(in) :: name_network
   character(*), intent(in) :: name_crosssection
   character(*), intent(in) :: var
-  character(*), intent(in) :: uid
+  character(*), intent(in) :: id
 
   f = joined(DIR_PRD, 'model_crosssection/'//&
     str(name_network)//'/'//str(name_crosssection)//'/'//&
-    str(var)//'/'//str(uid)//'.bin')
-
-  call traperr( mkdir(dirname(f)) )
+    str(var)//'/'//str(id)//'.bin')
 end function get_f_model_crosssection
 !===============================================================
 !
 !===============================================================
-character(CLEN_PATH) function get_f_entdown(uid) result(f)
+character(CLEN_PATH) function get_f_entdown(id) result(f)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'get_f_entdown'
-  character(*), intent(in) :: uid
+  character(*), intent(in) :: id
 
-  call logbgn(PRCNAM, MODNAM, '-p')
-  !-------------------------------------------------------------
-  f = joined(DIR_PRD, 'entdown/'//str(uid)//'.txt')
-
-  call traperr( mkdir(dirname(f)) )
-  !-------------------------------------------------------------
-  call logret(PRCNAM, MODNAM)
+  f = joined(DIR_PRD, 'entdown/'//str(id)//'.txt')
 end function get_f_entdown
 !===============================================================
 !
 !===============================================================
-character(CLEN_PATH) function get_f_isct_basin(uid) result(f)
+character(CLEN_PATH) function get_f_isct_basin(id) result(f)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'get_f_isct_basin'
-  character(*), intent(in) :: uid
+  character(*), intent(in) :: id
 
-  call logbgn(PRCNAM, MODNAM, '-p')
-  !-------------------------------------------------------------
-  f = joined(DIR_PRD, 'isct_basin/'//str(uid)//'.txt')
-
-  call traperr( mkdir(dirname(f)) )
-  !-------------------------------------------------------------
-  call logret(PRCNAM, MODNAM)
+  f = joined(DIR_PRD, 'isct_basin/'//str(id)//'.txt')
 end function get_f_isct_basin
 !===============================================================
 !
 !===============================================================
-character(CLEN_PATH) function get_f_eval_basin(uid) result(f)
+character(CLEN_PATH) function get_f_eval_basin(id) result(f)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'get_f_eval_basin'
-  character(*), intent(in) :: uid
+  character(*), intent(in) :: id
 
-  call logbgn(PRCNAM, MODNAM, '-p')
-  !-------------------------------------------------------------
-  f = joined(DIR_PRD, 'eval_basin/'//str(uid)//'.json')
-
-  call traperr( mkdir(dirname(f)) )
-  !-------------------------------------------------------------
-  call logret(PRCNAM, MODNAM)
+  f = joined(DIR_PRD, 'eval_basin/'//str(id)//'.json')
 end function get_f_eval_basin
 !===============================================================
 !
@@ -710,13 +814,7 @@ character(CLEN_PATH) function get_f_lst_eval_basin() result(f)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'get_f_lst_eval_basin'
 
-  call logbgn(PRCNAM, MODNAM, '-p')
-  !-------------------------------------------------------------
   f = joined(DIR_PRD, 'eval_basin/summary.txt')
-
-  call traperr( mkdir(dirname(f)) )
-  !-------------------------------------------------------------
-  call logret(PRCNAM, MODNAM)
 end function get_f_lst_eval_basin
 !===============================================================
 !

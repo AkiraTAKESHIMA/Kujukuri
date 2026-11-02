@@ -23,14 +23,14 @@ parameter( ddt_min_slo = 1.d0 )
   real(8) safety, pgrow, pshrnk, errcon
   parameter (safety=0.9d0,pgrow=-.2d0,pshrnk=-.25d0,errcon=1.89d-4)
 
-  real(8), allocatable, save :: fs1(:), fs2(:), fs3(:), fs4(:), fs5(:), fs6(:)
-  real(8), allocatable, save :: hs_tmp(:), hs_err(:)
+!  real(8), allocatable, save :: fs1(:), fs2(:), fs3(:), fs4(:), fs5(:), fs6(:)
+!  real(8), allocatable, save :: hs_tmp(:), hs_err(:)
 
-  real(8), allocatable, save :: fg1(:), fg2(:), fg3(:), fg4(:), fg5(:), fg6(:)
-  real(8), allocatable, save :: hg_tmp(:), hg_err(:)
+!  real(8), allocatable, save :: fg1(:), fg2(:), fg3(:), fg4(:), fg5(:), fg6(:)
+!  real(8), allocatable, save :: hg_tmp(:), hg_err(:)
 
-  real(8), allocatable, save :: fr1(:), fr2(:), fr3(:), fr4(:), fr5(:), fr6(:)
-  real(8), allocatable, save :: vr_tmp(:), vr_err(:), hr_err(:)
+!  real(8), allocatable, save :: fr1(:), fr2(:), fr3(:), fr4(:), fr5(:), fr6(:)
+!  real(8), allocatable, save :: vr_tmp(:), vr_err(:), hr_err(:)
 
 real(8) a2,a3,a4,a5,a6,b21,b31,b32,b41,b42,b43,b51,b52,b53, &
         b54,b61,b62,b63,b64,b65,c1,c3,c4,c6,dc1,dc3,dc4,dc5,dc6

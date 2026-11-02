@@ -36,8 +36,8 @@ module c2_nlni_const
   integer, parameter :: TYMAX = 68
   integer, parameter :: NTX = TXMAX - TXMIN + 1
   integer, parameter :: NTY = TYMAX - TYMIN + 1
-  integer            :: NX
-  integer            :: NY
+  integer            :: MX
+  integer            :: MY
   integer            :: NGX
   integer            :: NGY
   real(8), parameter :: TILESIZE_LON = 1.d0
@@ -71,21 +71,21 @@ subroutine set_resolution(resolution)
   !-------------------------------------------------------------
   selectcase( resolution )
   case( RESOLUTION_100M )
-    NX = 800
-    NY = 800
+    MX = 800
+    MY = 800
   case( RESOLUTION_3SEC )
-    NX = 1200
-    NY =  800
+    MX = 1200
+    MY =  800
   case default
     call errend(msg_invalid_value('resolution', resolution))
   endselect
 
-  NGX = NX * NTX
-  NGY = NY * NTY
-  CELLSIZE_LON = TILESIZE_LON / NX
-  CELLSIZE_LAT = TILESIZE_LAT / NY
+  NGX = MX * NTX
+  NGY = MY * NTY
+  CELLSIZE_LON = TILESIZE_LON / MX
+  CELLSIZE_LAT = TILESIZE_LAT / MY
 
-  DGT_XY = dgt(max(NX,NY))
+  DGT_XY = dgt(max(MX,MY))
   DGT_GXY = dgt(max(NGX,NGY))
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)

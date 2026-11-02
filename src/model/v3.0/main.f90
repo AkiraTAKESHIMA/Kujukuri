@@ -9,8 +9,7 @@ program main
 
   call prep_static_data()
 
-  stop
-
+stop
   call prep_driver()
 
   call exec_simulation()

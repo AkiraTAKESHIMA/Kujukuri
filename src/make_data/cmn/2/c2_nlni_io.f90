@@ -131,20 +131,21 @@ end function get_wsName
 !
 !===============================================================
 subroutine read_map_from_tile__int4(&
-    var, gxs, gys, dat)
+  var, gxs, gys, dat &
+)
   use c2_nlni_grid, only: &
-        tx_of_gx   , &
-        ty_of_gy   , &
-        gxs_of_tx  , &
-        gxe_of_tx  , &
-        gys_of_ty  , &
-        gye_of_ty  , &
-        gx_of_x    , &
-        gy_of_y    , &
-        west_of_gx , &
-        east_of_gx , &
-        south_of_gy, &
-        north_of_gy
+    tx_of_gx   , &
+    ty_of_gy   , &
+    gxs_of_tx  , &
+    gxe_of_tx  , &
+    gys_of_ty  , &
+    gye_of_ty  , &
+    gx_of_x    , &
+    gy_of_y    , &
+    west_of_gx , &
+    east_of_gx , &
+    south_of_gy, &
+    north_of_gy
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'read_map_from_tile__int4'
   character(*), intent(in)  :: var
@@ -197,7 +198,7 @@ subroutine read_map_from_tile__int4(&
       if( access(f,' ') /= 0 ) cycle
       call traperr( rbin(&
                dat(gxs_this:gxe_this,gys_this:gye_this), &
-               f, sz=int((/NX,NY/),8), lb=int((/xs,ys/),8)) )
+               f, sz=int((/MX,MY/),8), lb=int((/xs,ys/),8)) )
     enddo  ! itx/
   enddo  ! ity/
   !-------------------------------------------------------------
@@ -215,15 +216,16 @@ end subroutine read_map_from_tile__int4
 ! west, east, south, north: coordinates of the bounding box
 !===============================================================
 subroutine clip_from_tile__int1(&
-    dat, &
-    varName, resolution_org, resolution, &
-    west, east, south, north, &
-    miss, mask)
+  dat, &
+  varName, resolution_org, resolution, &
+  west, east, south, north, &
+  miss, mask &
+)
   use c2_nlni_grid, only: &
-        txs_of_lon, txe_of_lon, &
-        tys_of_lat, tye_of_lat, &
-        gxs_of_lon, gxe_of_lon, &
-        gys_of_lat, gye_of_lat
+    txs_of_lon, txe_of_lon, &
+    tys_of_lat, tye_of_lat, &
+    gxs_of_lon, gxe_of_lon, &
+    gys_of_lat, gye_of_lat
   implicit none
   integer(1)  , intent(out) :: dat(:,:)
   character(*), intent(in) :: varName
@@ -263,25 +265,25 @@ subroutine clip_from_tile__int1(&
 
   dat(:,:) = miss
   do ity = tys, tye
-    lys = max( 1, gys-(ity-tymin)*ny)
-    lye = min(ny, gye-(ity-tymin)*ny)
+    lys = max( 1, gys-(ity-tymin)*MY)
+    lye = min(MY, gye-(ity-tymin)*MY)
 
-    gys_ = max(gys, (ity-tymin)*ny+1)
-    gye_ = min(gye, (ity-tymin+1)*ny)
+    gys_ = max(gys, (ity-tymin)*MY+1)
+    gye_ = min(gye, (ity-tymin+1)*MY)
 
     do itx = txs, txe
-      lxs = max( 1, gxs-(itx-txmin)*nx)
-      lxe = min(nx, gxe-(itx-txmin)*nx)
+      lxs = max( 1, gxs-(itx-txmin)*MX)
+      lxe = min(MX, gxe-(itx-txmin)*MX)
 
-      gxs_ = max(gxs, (itx-txmin)*nx+1)
-      gxe_ = min(gxe, (itx-txmin+1)*nx)
+      gxs_ = max(gxs, (itx-txmin)*MX+1)
+      gxe_ = min(gxe, (itx-txmin+1)*MX)
 
       f = get_f_map_tile_remapped(varName, resolution_org, resolution, itx, ity)
       if( access(f,' ') /= 0 ) cycle
 print*, trim(f)
       call traperr( rbin(&
              dat(gxs_-gxs+1:gxe_-gxs+1,gys_-gys+1:gye_-gys+1), &
-             f, sz=int((/nx,ny/),8), lb=int((/lxs,lys/),8)) )
+             f, sz=int((/MX,MY/),8), lb=int((/lxs,lys/),8)) )
     enddo  ! itx/
   enddo  ! ity/
 
@@ -307,7 +309,8 @@ end subroutine clip_from_tile__int1
 !
 !===============================================================
 character(CLEN_PATH) function dirname_resolution(&
-    resolution_org, resolution_rmp) result(res)
+  resolution_org, resolution_rmp &
+) result(res)
   implicit none
   character(*), intent(in) :: resolution_org, resolution_rmp
 

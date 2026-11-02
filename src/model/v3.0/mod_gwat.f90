@@ -1,8 +1,16 @@
 module mod_gwat
+  use lib_const
+  use lib_base
+  use lib_log
   use def_const
   use def_static
   implicit none
-
+  private
+  !-------------------------------------------------------------
+  ! Public procedures
+  !-------------------------------------------------------------
+  public :: advance_gwat
+  !-------------------------------------------------------------
 contains
 !===============================================================
 !

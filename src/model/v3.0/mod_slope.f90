@@ -1,4 +1,7 @@
 module mod_slope
+  use lib_const
+  use lib_base
+  use lib_log
   use def_const
   use def_static
   implicit none
@@ -9,6 +12,7 @@ module mod_slope
   public :: prep_slope
   public :: advance_slope
   public :: h2lev
+  public :: h2sfc
   public :: infilt
   public :: outflow_slope
   !-------------------------------------------------------------
@@ -19,6 +23,8 @@ module mod_slope
   real(8), allocatable :: qs_idx(:,:)  !(I4,slo_count)
   real(8), allocatable :: rain(:,:)  !(nx,ny)
   real(8), allocatable :: rain_idx(:)  !(slo_count)
+  real(8), allocatable :: hs_err(:), hs_tmp(:)
+  real(8), allocatable :: fs1(:), fs2(:), fs3(:), fs4(:), fs5(:), fs6(:)
   !-------------------------------------------------------------
 contains
 !===============================================================
@@ -355,7 +361,7 @@ q = q * len / area
 
 end subroutine hq
 !===============================================================
-! water depth (h) to actual water level (lev)
+! effective water depth (h) to actual water level (lev)
 !===============================================================
 subroutine h2lev(h, k, lev)
   implicit none
@@ -376,6 +382,21 @@ subroutine h2lev(h, k, lev)
     lev = h / gammaa_idx(k)
   endif
 end subroutine h2lev
+!===============================================================
+! effective water depth (h) to surface water level (sfc)
+!===============================================================
+subroutine h2sfc(h, k, sfc)
+  implicit none
+  real(8), intent(in) :: h
+  integer, intent(in) :: k
+  real(8), intent(out) :: sfc
+
+  if( soildepth_idx(k) == 0.d0 )then
+    sfc = h
+  else
+    sfc = max(h - soildepth_idx(k) * gammaa_idx(k), 0.d0)
+  endif
+end subroutine h2sfc
 !===============================================================
 !
 !===============================================================
@@ -431,22 +452,20 @@ end subroutine infilt
 !===============================================================
 !
 !===============================================================
-subroutine outflow_slope(hs)
+subroutine outflow_slope(hs_idx)
   use mod_budget, only: &
     update_accum_out
   implicit none
-  real(8), intent(inout) :: hs(:,:)
+  real(8), intent(inout) :: hs_idx(:)
 
-  integer :: ix, iy
+  integer :: k
 
-  do iy = 1, ny
-  do ix = 1, nx
-    if( domain(ix,iy) /= DOMAIN__OUTLET ) cycle
+  do k = 1, slo_count
+    if( domain_slo_idx(k) /= DOMAIN__OUTLET ) cycle
 
-    call update_accum_out(hs(ix,iy)*area)
+    call update_accum_out(hs_idx(k)*area)
 
-    hs(ix,iy) = 0.d0
-  enddo
+    hs_idx(k) = 0.d0
   enddo
 end subroutine outflow_slope
 !===============================================================

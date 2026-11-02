@@ -287,14 +287,14 @@ subroutine read_map_from_tile__int1(&
   dat(:,:) = miss
   do ity = tys, tye
     ys_this = 1
-    ye_this = NY
+    ye_this = MY
     if( ity == tys ) ys_this = ys
     if( ity == tye ) ye_this = ye
     gys_this = gy_of_y(ity, ys_this)
     gye_this = gy_of_y(ity, ye_this)
     do itx = txs, txe
       xs_this = 1
-      xe_this = NX
+      xe_this = MX
       if( itx == txs ) xs_this = xs
       if( itx == txe ) xe_this = xe
       gxs_this = gx_of_x(itx, xs_this)
@@ -305,7 +305,7 @@ subroutine read_map_from_tile__int1(&
 
       call traperr( rbin(&
              dat(gxs_this:gxe_this,gys_this:gye_this), f, &
-             dtype, sz=int((/NX,NY/),8), lb=int((/xs_this,ys_this/),8)) )
+             dtype, sz=int((/MX,MY/),8), lb=int((/xs_this,ys_this/),8)) )
     enddo  ! itx/
   enddo  ! ity/
   !-------------------------------------------------------------
@@ -347,14 +347,14 @@ subroutine read_map_from_tile__int4(&
   dat(:,:) = miss
   do ity = tys, tye
     ys_this = 1
-    ye_this = NY
+    ye_this = MY
     if( ity == tys ) ys_this = ys
     if( ity == tye ) ye_this = ye
     gys_this = gy_of_y(ity, ys_this)
     gye_this = gy_of_y(ity, ye_this)
     do itx = txs, txe
       xs_this = 1
-      xe_this = NX
+      xe_this = MX
       if( itx == txs ) xs_this = xs
       if( itx == txe ) xe_this = xe
       gxs_this = gx_of_x(itx, xs_this)
@@ -365,7 +365,7 @@ subroutine read_map_from_tile__int4(&
 
       call traperr( rbin(&
              dat(gxs_this:gxe_this,gys_this:gye_this), f, &
-             dtype, sz=int((/NX,NY/),8), lb=int((/xs_this,ys_this/),8)) )
+             dtype, sz=int((/MX,MY/),8), lb=int((/xs_this,ys_this/),8)) )
     enddo  ! itx/
   enddo  ! ity/
   !-------------------------------------------------------------
@@ -407,14 +407,14 @@ subroutine read_map_from_tile__real(&
   dat(:,:) = miss
   do ity = tys, tye
     ys_this = 1
-    ye_this = NY
+    ye_this = MY
     if( ity == tys ) ys_this = ys
     if( ity == tye ) ye_this = ye
     gys_this = gy_of_y(ity, ys_this)
     gye_this = gy_of_y(ity, ye_this)
     do itx = txs, txe
       xs_this = 1
-      xe_this = NX
+      xe_this = MX
       if( itx == txs ) xs_this = xs
       if( itx == txe ) xe_this = xe
       gxs_this = gx_of_x(itx, xs_this)
@@ -425,7 +425,7 @@ subroutine read_map_from_tile__real(&
 
       call traperr( rbin(&
              dat(gxs_this:gxe_this,gys_this:gye_this), f, &
-             dtype, sz=int((/NX,NY/),8), lb=int((/xs_this,ys_this/),8)) )
+             dtype, sz=int((/MX,MY/),8), lb=int((/xs_this,ys_this/),8)) )
     enddo  ! itx/
   enddo  ! ity/
   !-------------------------------------------------------------
@@ -486,7 +486,7 @@ subroutine read_basin_map_from_tile__int1(&
 
     call traperr( rbin(&
            dat(lgxi:lgxf,lgyi:lgyf), get_f_map_tile(resl,var,tx,ty), &
-           dtype, sz=int((/NX,NY/),8), lb=int((/xi,yi/),8)) )
+           dtype, sz=int((/MX,MY/),8), lb=int((/xi,yi/),8)) )
   enddo  ! i/
   close(un)
 
@@ -553,7 +553,7 @@ subroutine read_basin_map_from_tile__int4(&
 
     call traperr( rbin(&
            dat(lgxi:lgxf,lgyi:lgyf), get_f_map_tile(resl,var,tx,ty), &
-           dtype, sz=int((/NX,NY/),8), lb=int((/xi,yi/),8)) )
+           dtype, sz=int((/MX,MY/),8), lb=int((/xi,yi/),8)) )
   enddo  ! i/
   close(un)
 
@@ -620,7 +620,7 @@ subroutine read_basin_map_from_tile__real(&
 
     call traperr( rbin(&
            dat(lgxi:lgxf,lgyi:lgyf), get_f_map_tile(resl,var,tx,ty), &
-           dtype, sz=int((/NX,NY/),8), lb=int((/xi,yi/),8)) )
+           dtype, sz=int((/MX,MY/),8), lb=int((/xi,yi/),8)) )
   enddo  ! i/
   close(un)
 
@@ -687,7 +687,7 @@ subroutine read_basin_map_from_tile__dble(&
 
     call traperr( rbin(&
            dat(lgxi:lgxf,lgyi:lgyf), get_f_map_tile(resl,var,tx,ty), &
-           dtype, sz=int((/NX,NY/),8), lb=int((/xi,yi/),8)) )
+           dtype, sz=int((/MX,MY/),8), lb=int((/xi,yi/),8)) )
   enddo  ! i/
   close(un)
 
@@ -747,8 +747,6 @@ character(CLEN_PATH) function get_f_map_tile(&
   case default
     call errend(msg_invalid_value('var', var))
   endselect
-
-  call traperr( mkdir(dirname(f)) )
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
 end function get_f_map_tile
@@ -787,8 +785,6 @@ character(CLEN_PATH) function get_f_lst_tile(&
   case default
     call errend(msg_invalid_value('var', var))
   endselect
-
-  call traperr( mkdir(dirname(f)) )
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
 end function get_f_lst_tile
@@ -803,14 +799,8 @@ character(CLEN_PATH) function get_f_map_basin(&
   character(*), intent(in) :: var
   character(*), intent(in) :: bsnId
 
-  call logbgn(PRCNAM, MODNAM, '-p')
-  !-------------------------------------------------------------
   f = joined(DIR_BASIN, &
              trim(resl)//'/'//trim(var)//'/'//trim(bsnId)//'.bin')
-
-  call traperr( mkdir(dirname(f)) )
-  !-------------------------------------------------------------
-  call logret(PRCNAM, MODNAM)
 end function get_f_map_basin
 !===============================================================
 !
@@ -840,8 +830,6 @@ character(CLEN_PATH) function get_f_dat_basin(&
     call errend(msg_invalid_value('var', var), &
                 '', PRCNAM, MODNAM)
   endselect
-
-  call traperr( mkdir(dirname(f)) )
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
 end function get_f_dat_basin
@@ -874,8 +862,6 @@ character(CLEN_PATH) function get_f_lst_all(resl, var) result(res)
   case default
     call errend(msg_invalid_value('var', var))
   endselect
-
-  call traperr( mkdir(DIR_ALL) )
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
 end function get_f_lst_all
@@ -887,8 +873,6 @@ character(CLEN_PATH) function get_dir_rt(resl_src, resl_tgt) result(res)
   character(*), intent(in) :: resl_src, resl_tgt
 
   res = joined(DIR_TILED, str(resl_tgt)//'/rt_from_jflw-'//str(resl_src))
-
-  call traperr( mkdir(res) )
 end function get_dir_rt
 !===============================================================
 !

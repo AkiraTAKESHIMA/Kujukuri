@@ -1,4 +1,7 @@
 module mod_section
+  use lib_const
+  use lib_base
+  use lib_log
   use def_const
   use def_static
   implicit none
@@ -10,7 +13,6 @@ module mod_section
   public :: sec_hq_riv
   public :: hr2vr
   public :: vr2hr
-  public :: hr_update
   public :: sec_h2b
   !-------------------------------------------------------------
   !
@@ -93,27 +95,15 @@ end subroutine vr2hr
 !===============================================================
 !
 !===============================================================
-subroutine hr_update(hr_org, vr_inc, k, hr_new)
-  implicit none
-
-  real(8) hr_org, vr_inc, hr_new, vr_org, vr_new
-  integer k
-
-  call hr2vr(hr_org, k, vr_org)
-  vr_new = vr_org + vr_inc
-  call vr2hr(vr_new, k, hr_new)
-end subroutine hr_update
-!===============================================================
-!
-!===============================================================
 subroutine sec_h2b(h, k, b)
   implicit none
 
   real(8) h, b
   integer k, id, div_max, i
 
-id = sec_map_idx(k)
-if( id .le. 0 ) then
+!id = sec_map_idx(k)
+!if( id .le. 0 ) then
+if( .true. )then
 
  b = channel(k)%width
 
