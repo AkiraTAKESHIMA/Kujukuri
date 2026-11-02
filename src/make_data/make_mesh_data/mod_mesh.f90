@@ -20,7 +20,6 @@ module mod_mesh
   !-------------------------------------------------------------
   public :: calcMeshIntersections
   public :: makeHiresNetworkMask
-  public :: makeHiresNetworkUpperArea
   public :: scaleUpNetworkMask
   public :: trimBasin
   !-------------------------------------------------------------
@@ -484,10 +483,7 @@ subroutine makeHiresNetworkMask(id)
   read(un,*)
   do i = 1, n
     nwk => lst_nwk(i)
-    read(un,*) c_, &
-               nwk%id, &
-               c_, c_, & ! nwk%tmpid, nwk%jNwk
-               nwk%nCh, nwk%leng
+    read(un,*) c_, nwk%id, nwk%nCh, nwk%leng
   enddo
   close(un)
   !-------------------------------------------------------------
@@ -571,6 +567,7 @@ subroutine make_hires_network_mask(&
   integer :: iPix
   integer :: nEdgePix
   integer, pointer :: lst_gx(:), lst_gy(:)
+  integer, pointer :: lst_gx_edge(:), lst_gy_edge(:)
 
   integer :: gxs_next, gxe_next, gys_next, gye_next
   integer :: gxs_outer, gxe_outer, gys_outer, gye_outer
@@ -589,16 +586,14 @@ subroutine make_hires_network_mask(&
   nNwk = size(lst_nwk)
 
   nwk_self => lst_nwk(jNwk_self)
-  isct_self => nwk_self%isct
+  call logmsg('Network '//str(nwk_self%id))
   call read_isct_with_mesh(nwk_self)
-
-  call logmsg('('//str(jNwk_self,dgt(nNwk))//') '//&
-      str(nwk_self%id)//' meshes: '//str(isct_self%n))
   !-------------------------------------------------------------
   ! Init. nwkmap
   !-------------------------------------------------------------
   call logent('Initializing network mesh')
 
+  isct_self => nwk_self%isct
   gxs = isct_self%gxs
   gxe = isct_self%gxe
   gys = isct_self%gys
@@ -615,6 +610,11 @@ subroutine make_hires_network_mask(&
   gys_outer = max(gys_next - 1, 1)
   gye_outer = min(gye_next + 1, NGY)
 
+  call logmsg('Inner ['//str((/gxs,gxe/),DGT_GXY,':')//&
+                    ','//str((/gys,gye/),DGT_GXY,':')//']')
+  call logmsg('Outer ['//str((/gxs_outer,gxe_outer/),DGT_GXY,':')//&
+                    ','//str((/gys_outer,gye_outer/),DGT_GXY,':')//']')
+
   allocate(nwkmap(gxs_outer:gxe_outer,gys_outer:gye_outer))
   nwkmap(:,:) = STAT_NWKMESH__UNKNOWN
 
@@ -628,6 +628,9 @@ subroutine make_hires_network_mask(&
   where( fdrmap == FDR_MISS )
     nwkmap = STAT_NWKMESH__OCEAN
   endwhere
+
+  allocate(lst_gx((gye_outer-gys_outer+1)+(gxe_outer+gxs_outer+1)))
+  allocate(lst_gy((gye_outer-gys_outer+1)+(gxe_outer+gxs_outer+1)))
 
   call logext()
   !-------------------------------------------------------------
@@ -665,7 +668,7 @@ subroutine make_hires_network_mask(&
 
   call logext()
   !-------------------------------------------------------------
-  ! Get domain that includes nwk mesh
+  ! Get the domain that includes nwk mesh
   !-------------------------------------------------------------
   call logent('Getting the domain that includes the network mesh')
 
@@ -803,12 +806,15 @@ subroutine make_hires_network_mask(&
   call logext()
   !-------------------------------------------------------------
   ! Fill the map with the valid status
+  !
+  ! -- All elements of $nwkmap may be less than 0, which means
+  !    no channel intersects with land cells.
   !-------------------------------------------------------------
   call logent('Filling the map with the valid status')
 
   do igy = gys, gye
   do igx = gxs, gxe
-    if( fdrmap(igx,igy) <= 0_1 )then
+    if( fdrmap(igx,igy) < 0_1 )then
       nwkmap(igx,igy) = STAT_NWKMESH__OCEAN
     elseif( nwkmap(igx,igy) == STAT_NWKMESH__UNKNOWN )then
       is_ok = reached_nwk(igx, igy)
@@ -831,8 +837,8 @@ subroutine make_hires_network_mask(&
   call logent('Getting the outer edge of network mesh')
 
   nEdgePix = max(gxe_outer-gxs_outer+1, gye_outer-gys_outer+1) * 4
-  allocate(lst_gx(nEdgePix))
-  allocate(lst_gy(nEdgePix))
+  allocate(lst_gx_edge(nEdgePix))
+  allocate(lst_gy_edge(nEdgePix))
   !print*, gxs_outer, gxe_outer, gys_outer, gye_outer
 
   nEdgePix = 0
@@ -842,22 +848,25 @@ subroutine make_hires_network_mask(&
 
     if( all(nwkmap(igx-1:igx+1,igy-1:igy+1) > 0_1) ) cycle
 
-    if( nEdgePix == size(lst_gx) )then
-      call realloc(lst_gx, nEdgePix*2, clear=.false.)
-      call realloc(lst_gy, nEdgePix*2, clear=.false.)
+    if( nEdgePix == size(lst_gx_edge) )then
+      call realloc(lst_gx_edge, nEdgePix*2, clear=.false.)
+      call realloc(lst_gy_edge, nEdgePix*2, clear=.false.)
     endif
     call add(nEdgePix)
-    lst_gx(nEdgePix) = igx
-    lst_gy(nEdgePix) = igy
+    lst_gx_edge(nEdgePix) = igx
+    lst_gy_edge(nEdgePix) = igy
   enddo  ! igx/
   enddo  ! igy/
 
-  call realloc(lst_gx, nEdgePix, clear=.false.)
-  call realloc(lst_gy, nEdgePix, clear=.false.)
-  call logmsg('Number of edge pixels: '//str(nEdgePix))
+  call realloc(lst_gx_edge, nEdgePix, clear=.false.)
+  call realloc(lst_gy_edge, nEdgePix, clear=.false.)
+  call logmsg('# of edge pixels: '//str(nEdgePix))
 
-  !call traperr( wbin(lst_gx, 'tmp/edge_x.bin', replace=.true.) )
-  !call traperr( wbin(lst_gy, 'tmp/edge_y.bin', replace=.true.) )
+  !call traperr( wbin(lst_gx_edge, 'tmp/edge_x.bin', replace=.true.) )
+  !call traperr( wbin(lst_gy_edge, 'tmp/edge_y.bin', replace=.true.) )
+
+  call realloc(lst_gx_edge, 0)
+  call realloc(lst_gy_edge, 0)
 
   call logext()
   !-------------------------------------------------------------
@@ -865,10 +874,10 @@ subroutine make_hires_network_mask(&
   !-------------------------------------------------------------
   call logent('Outputting')
 
-  call logmsg('('//str((/gxe-gxs+1,gye-gys+1/),dgt(maxval(shape(nwkmap))),', ')//') '//&
+  call logmsg('Mesh ('//str((/gxe-gxs+1,gye-gys+1/),dgt(maxval(shape(nwkmap))),', ')//') '//&
               '['//str((/gxs,gxe/),DGT_GXY,':')//&
               ','//str((/gys,gye/),DGT_GXY,':')//']')
-  call logmsg(sBBox(west_of_gx(gxs),east_of_gx(gxe),south_of_gy(gye),north_of_gy(gys)))
+  call logmsg('BBox '//sBBox(west_of_gx(gxs),east_of_gx(gxe),south_of_gy(gye),north_of_gy(gys)))
 
   call write_network_mesh_domain(&
     RESOLUTION_1SEC, nwk_self%id, &
@@ -881,6 +890,15 @@ subroutine make_hires_network_mask(&
   call traperr( wbin(nwkmap(gxs:gxe,gys:gye), f, replace=.true.) )
 
   call logext()
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  nullify(nwk)
+  nullify(nwk_self)
+  deallocate(nwkmap)
+  deallocate(fdrmap)
+  deallocate(lst_gx)
+  deallocate(lst_gy)
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
 !---------------------------------------------------------------
@@ -927,6 +945,7 @@ subroutine read_isct_with_mesh(nwk)
 
   ni => nwk%isct
   ni%n = sum(nwk%channel(:)%isct%n)
+  call logmsg('Total # of cells: '//str(ni%n))
   allocate(ni%gx(ni%n))
   allocate(ni%gy(ni%n))
   allocate(ni%leng(ni%n))
@@ -939,11 +958,11 @@ subroutine read_isct_with_mesh(nwk)
     call add(ni%n, ci%n)
   enddo  ! jCh
 
-  allocate(arg(ci%n))
-  call argsort(ci%gx, arg)
-  call sort(ci%gx, arg)
-  call sort(ci%gy, arg)
-  call sort(ci%leng, arg)
+  allocate(arg(ni%n))
+  call argsort(ni%gx, arg)
+  call sort(ni%gx, arg)
+  call sort(ni%gy, arg)
+  call sort(ni%leng, arg)
 
   imax = ni%n
   ni%n = 0
@@ -959,9 +978,9 @@ subroutine read_isct_with_mesh(nwk)
     if( any(ni%gx(is:ie) /= ni%gx(is)) )then
       call errend('Sorting failed (1)')
     endif
-    call argsort(ci%gy(is:ie), arg(is:ie))
-    call sort(ci%gy(is:ie), arg(is:ie))
-    call sort(ci%leng(is:ie), arg(is:ie))
+    call argsort(ni%gy(is:ie), arg(is:ie))
+    call sort(ni%gy(is:ie), arg(is:ie))
+    call sort(ni%leng(is:ie), arg(is:ie))
 
     iie = is - 1
     do while( iie < ie )
@@ -981,6 +1000,16 @@ subroutine read_isct_with_mesh(nwk)
       ni%leng(ni%n) = sum(ni%leng(iis:iie))
     enddo  ! iis,iie
   enddo  ! is,ie
+
+  call logmsg('Summarized # of cells: '//str(ni%n))
+  call realloc(ni%gx, ni%n, clear=.false.)
+  call realloc(ni%gy, ni%n, clear=.false.)
+  call realloc(ni%leng, ni%n, clear=.false.)
+
+  ni%gxs = minval(ni%gx)
+  ni%gxe = maxval(ni%gx)
+  ni%gys = minval(ni%gy)
+  ni%gye = maxval(ni%gy)
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
 end subroutine read_isct_with_mesh
@@ -993,302 +1022,110 @@ logical function reached_nwk(gx, gy) result(res)
   integer, intent(in) :: gx, gy
 
   integer :: igx, igy, gxx, gyy
+  integer :: n, i
   integer :: stat
+!logical :: is_debug
+!is_debug = gx == 60368 .and. gy == 37787
 
   res = .false.
-  stat = 2
+
+  if( fdrmap(gx,gy) < 0_1 )then
+    nwkmap(gx,gy) = STAT_NWKMESH__OCEAN
+    return
+  endif
+
+  stat = STAT_NWKMESH__UNKNOWN
+  n = 0
 
   igx = gx
   igy = gy
-  do while( fdrmap(igx,igy) > 0_1 )
+  do
+!if( is_debug )then
+!  call logmsg('nwk: '//str(nwkmap(igx,igy))//' fdr: '//str(fdrmap(igx,igy)))
+!endif
+    selectcase( nwkmap(igx,igy) )
+    !-----------------------------------------------------------
+    ! Case: Reaches this network
+    case( STAT_NWKMESH__ISCT, &
+          STAT_NWKMESH__REACH )
+      res = .true.
+      stat = STAT_NWKMESH__REACH
+      exit
+    !-----------------------------------------------------------
+    ! Case: Not confirmed
+    case( STAT_NWKMESH__UNKNOWN )
+      if( size(lst_gx) == n )then
+        call realloc(lst_gx, n*2, clear=.false.)
+        call realloc(lst_gy, n*2, clear=.false.)
+      endif
+      call add(n)
+      lst_gx(n) = igx
+      lst_gy(n) = igy
+    !-----------------------------------------------------------
+    ! Case: Reaches other network
+    case( STAT_NWKMESH__ISCT_OTHER, &
+          STAT_NWKMESH__REACH_OTHER )
+      stat = STAT_NWKMESH__REACH_OTHER
+      exit
+    !-----------------------------------------------------------
+    ! Case: Go out of domain
+    case( STAT_NWKMESH__OUT )
+      stat = STAT_NWKMESH__OUT
+      exit
+    !-----------------------------------------------------------
+    ! Case: Reaches ocean
+    case( STAT_NWKMESH__OCEAN )
+      !if( n > 0 )then
+      !  call errend('nwkmap == '//str(STAT_NWKMESH__OCEAN)//' (ocean)'//&
+      !    ' and n > 0'//&
+      !    '\n(gx,gy): ('//str((/gx,gy/),',')//')')
+      !endif
+      stat = STAT_NWKMESH__OCEAN
+      exit
+    !-----------------------------------------------------------
+    ! Case: ERROR
+    case default
+      call errend(msg_invalid_value('nwkmap', nwkmap(igx,igy)), &
+        '', PRCNAM, MODNAM)
+    endselect
+    !-----------------------------------------------------------
+    ! Check if it reached outlet
+    !-----------------------------------------------------------
+    selectcase( fdrmap(igx,igy) )
+    case( 1_1: )
+      continue
+    case( FDR_RIVERMOUTH, &
+          FDR_INLAND )
+      stat = STAT_NWKMESH__OUT
+      exit
+    case( FDR_MISS, &
+          FDR_UNDEF )
+      call errend(msg_unexpected_condition()//&
+        '\nfdr == '//str(fdrmap(igx,igy))//&
+        '\n(gx,gy): '//str((/gx,gy/),','))
+    case default
+      call errend(msg_invalid_value('fdrmap', fdrmap(igx,igy)))
+    endselect
+    !-----------------------------------------------------------
+    ! Move to the next grid
+    !-----------------------------------------------------------
     call get_nextxy(igx, igy, fdrmap(igx,igy), gxx, gyy)
     igx = gxx
     igy = gyy
 
     if( gxx < gxs_outer .or. gxx > gxe_outer .or. &
         gyy < gys_outer .or. gyy > gye_outer )then
-      res = .false.
-      stat = 2
+      stat = STAT_NWKMESH__OUT
       exit
-    else
-      selectcase( nwkmap(gxx,gyy) )
-      case( STAT_NWKMESH__ISCT, &
-            STAT_NWKMESH__REACH )
-        res = .true.
-        stat = 0
-        exit
-      case( STAT_NWKMESH__UNKNOWN )
-        continue
-      case( STAT_NWKMESH__ISCT_OTHER, &
-            STAT_NWKMESH__REACH_OTHER )
-        res = .false.
-        stat = 1
-        exit
-      endselect
     endif
-  enddo  ! while fdrmap > 0
+  enddo
 
-  selectcase( stat )
-  !-------------------------------------------------------------
-  ! Case: Reaches this network
-  case( 0 )
-    igx = gx
-    igy = gy
-    do while( nwkmap(igx,igy) == STAT_NWKMESH__UNKNOWN )
-      nwkmap(igx,igy) = STAT_NWKMESH__REACH
-      call get_nextxy(igx, igy, fdrmap(igx,igy), gxx, gyy)
-      igx = gxx
-      igy = gyy
-    enddo  ! while fdrmap > 0
-  !-------------------------------------------------------------
-  ! Case: Reaches other network
-  case( 1  )
-    igx = gx
-    igy = gy
-    do while( nwkmap(igx,igy) == STAT_NWKMESH__UNKNOWN )
-      nwkmap(igx,igy) = STAT_NWKMESH__REACH_OTHER
-      call get_nextxy(igx, igy, fdrmap(igx,igy), gxx, gyy)
-      igx = gxx
-      igy = gyy
-    enddo  ! while fdrmap > 0
-  !-------------------------------------------------------------
-  ! Case: Go out of domain
-  case( 2 )
-    igx = gx
-    igy = gy
-    do while( fdrmap(igx,igy) /= FDR_MISS )
-      nwkmap(igx,igy) = STAT_NWKMESH__OUT
-      call get_nextxy(igx, igy, fdrmap(igx,igy), gxx, gyy)
-      igx = gxx
-      igy = gyy
-      if( gxx < gxs_outer .or. gxe_outer < gxx .or. &
-          gyy < gys_outer .or. gye_outer < gyy ) exit
-    enddo  ! while fdrmap > 0
-  !-------------------------------------------------------------
-  ! Case: ERROR
-  case default
-    call errend(msg_invalid_value('stat', stat), &
-        '', PRCNAM, MODNAM)
-  endselect
+  do i = 1, n
+    nwkmap(lst_gx(i),lst_gy(i)) = stat
+  enddo
 end function reached_nwk
 !---------------------------------------------------------------
 end subroutine make_hires_network_mask
-!===============================================================
-!
-!===============================================================
-!
-!
-!
-!
-!
-!===============================================================
-!
-!===============================================================
-recursive subroutine makeHiresNetworkUpperArea(id)
-  use c2_strnk_io, only: &
-    read_network              , &
-    read_network_mesh_domain  , &
-    get_f_lst_networks_channel, &
-    get_f_network_mesh        
-  use c2_jflw_const, &
-    set_resolution => set_resolution
-  use c2_jflw_grid, only: &
-    gxs_of_lon , &
-    gxe_of_lon , &
-    gys_of_lat , &
-    gye_of_lat , &
-    south_of_gy, &
-    get_nextxy
-  use c2_jflw_io, only: &
-    read_map_from_tile
-  implicit none
-  character(CLEN_PROC), parameter :: PRCNAM = 'makeHiresNetworkUpperArea'
-  character(*), intent(in) :: id
-
-  character(DGT_NWKID) :: id_this
-  integer :: nNwk, jNwk
-  integer(1), allocatable :: mskmap(:,:)
-  integer(1), allocatable :: fdrmap(:,:)
-  real(8)   , allocatable :: upamap(:,:)
-  real(8)   , allocatable :: addmap(:,:)
-  real(8), allocatable :: pixlat(:)
-  real(8), allocatable :: pixlen(:)
-  integer :: nx, ny, gxs, gxe, gys, gye
-  integer :: igx, igy, gxx, gyy
-  real(8) :: west, east, south, north
-  logical :: is_updated
-  real(8) :: bsnara, upa_sum
-  real(8) :: err_norm
-
-  character(CLEN_PATH) :: f
-  integer :: un
-  character :: c_
-
-  real(8), allocatable, save :: pixara(:)
-  logical, save :: is_raster_resolution_defined = .false.
-
-  call logbgn(PRCNAM, MODNAM)
-  !-------------------------------------------------------------
-  ! Run for all networks and return
-  !-------------------------------------------------------------
-  if( id == '' )then
-    f = get_f_lst_networks_channel()
-    open(newunit=un, file=f, status='old')
-    read(un,*) c_, nNwk
-    do jNwk = 1, nNwk
-      read(un,*) c_, id_this
-      call makeHiresNetworkUpperArea(id_this)
-    enddo
-    close(un)
-
-    if( is_raster_resolution_defined )then
-      is_raster_resolution_defined = .false.
-      deallocate(pixara)
-      deallocate(pixlen)
-    endif
-
-    call logret(PRCNAM, MODNAM)
-    return
-  endif
-  !-------------------------------------------------------------
-  ! Prepare static data common for all networks
-  !-------------------------------------------------------------
-  if( .not. is_raster_resolution_defined )then
-    is_raster_resolution_defined = .true.
-    call set_resolution(RESOLUTION_1SEC)
-
-    ! Calc. pixel area
-    allocate(pixara(1:NGY))
-    allocate(pixlen(1:NGY))
-    allocate(pixlat(0:NGY))
-
-    pixlat(0) = REGION_NORTH * d2r
-    do igy = 1, NGY
-      pixlat(igy) = south_of_gy(igy) * d2r
-    enddo
-    !call logmsg('pixlat: '//str(pixlat(:2)*r2d,'f11.7',', ')//&
-    !            ', ..., '//str(pixlat(NGY-2:)*r2d,'f11.7',', '))
-
-    pixara(:) = area_sphere_rect(pixlat(0:NGY-1), pixlat(1:NGY)) * (GRIDSIZE_LON*d2r) * EARTH_R**2
-
-    ! Prepare pixel length data
-    do igy = 1, NGY
-      pixlen(igy) = dist_sphere(&
-        0.d0, pixlat(igy-1)*d2r, GRIDSIZE_LON*d2r, pixlat(igy)*d2r &
-      ) * EARTH_R
-    enddo
-
-    deallocate(pixlat)
-  endif
-  !-------------------------------------------------------------
-  ! Read domain info.
-  !-------------------------------------------------------------
-  call logmsg('Network '//str(id))
-
-  call read_network_mesh_domain(&
-    RESOLUTION_1SEC, id, &
-    nx, ny, gxs, gxe, gys, gye, &
-    west, east, south, north &
-  )
-
-  allocate(mskmap(gxs-1:gxe+1,gys-1:gye+1))
-  allocate(upamap(gxs-1:gxe+1,gys-1:gye+1))
-
-  allocate(fdrmap(gxs-1:gxe+1,gys-1:gye+1))
-  allocate(addmap(gxs-1:gxe+1,gys-1:gye+1))
-  !-------------------------------------------------------------
-  ! Read maps
-  !-------------------------------------------------------------
-  call logent('Reading topography data')
-
-  f = get_f_network_mesh(RESOLUTION_1SEC, 'mask', id)
-  mskmap(:,:) = 0_1
-  call traperr( rbin(mskmap(gxs:gxe,gys:gye), f) )
-
-  call read_map_from_tile(&
-    RESOLUTION_1SEC, 'dir', DTYPE_INT1, FDR_MISS, &
-    gxs, gys, &
-    fdrmap(gxs:gxe,gys:gye) &
-  )
-
-  call logext()
-  !-------------------------------------------------------------
-  ! Calc. upper area
-  !-------------------------------------------------------------
-  call logent('Calculating upper area')
-
-  addmap(:,:) = 0.d0
-  do igy = gys, gye
-  do igx = gxs, gxe
-    if( mskmap(igx,igy) < 0_1 ) cycle
-    addmap(igx,igy) = pixara(igy)
-  enddo
-  enddo
-  bsnara = sum(addmap)
-
-  upamap(:,:) = 0.d0
-  is_updated = .true.
-  do while( is_updated )
-    is_updated = .false.
-    do igy = gys, gye
-    do igx = gxs, gxe
-      if( mskmap(igx,igy) < 0_1 ) cycle
-
-      if( addmap(igx,igy) == 0.d0 ) cycle
-
-      call get_nextxy(igx, igy, fdrmap(igx,igy), gxx, gyy)
-
-      call add(upamap(igx,igy), addmap(igx,igy))
-
-      if( gxx > 0 )then
-        call add(addmap(gxx,gyy), addmap(igx,igy))
-      endif
-
-      addmap(igx,igy) = 0.d0
-
-      is_updated = .true.
-    enddo  ! igx/
-    enddo  ! igy/
-  enddo  ! while is_updated/
-
-  ! Validate results
-  upa_sum = 0.d0
-  do igy = gys, gye
-  do igx = gxs, gxe
-    if( mskmap(igx,igy) < 0_1 ) cycle
-    call get_nextxy(igx, igy, fdrmap(igx,igy), gxx, gyy)
-    if( gxx < 0 ) cycle
-    if( mskmap(gxx,gyy) < 0_1 )then
-      call add(upa_sum, upamap(igx,igy))
-    endif
-  enddo  ! igx/
-  enddo  ! igy/
-
-  err_norm = (upa_sum - bsnara) / bsnara
-  if( err_norm > 1d-8 )then
-    call errend('basin area : '//str(bsnara)//&
-              '\nsum. of upa: '//str(upa_sum)//&
-              '\nnormalized error: '//str(err_norm))
-  endif
-  !-------------------------------------------------------------
-  deallocate(fdrmap)
-  deallocate(addmap)
-  deallocate(mskmap)
-
-  call logext()
-  !-------------------------------------------------------------
-  ! Output
-  !-------------------------------------------------------------
-  f = get_f_network_mesh(RESOLUTION_1SEC, 'upa', id)
-  call logmsg('Writing '//str(f))
-  call traperr( wbin(upamap(gxs:gxe,gys:gye), f, dtype=DTYPE_REAL, replace=.true.) )
-  !-------------------------------------------------------------
-  !
-  !-------------------------------------------------------------
-  deallocate(upamap)
-  !-------------------------------------------------------------
-  call logret(PRCNAM, MODNAM)
-end subroutine makeHiresNetworkUpperArea
 !===============================================================
 !
 !===============================================================
