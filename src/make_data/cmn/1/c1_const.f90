@@ -24,11 +24,11 @@ module c1_const
 
   ! Variable
   character(CLEN_KEY), parameter :: VARNAME__FDR = 'dir'
-  character(CLEN_KEY), parameter :: VARNAME__LANDUSE = 'landuse'
   character(CLEN_KEY), parameter :: VARNAME__UPG = 'upg'
   character(CLEN_KEY), parameter :: VARNAME__ELV = 'elv'
   character(CLEN_KEY), parameter :: VARNAME__UPA = 'upa'
   character(CLEN_KEY), parameter :: VARNAME__WTH = 'wth'
+  character(CLEN_KEY), parameter :: VARNAME__LANDUSE = 'landuse'
 
   ! Catchment number
   integer, parameter :: CAT_MISS = -9999
