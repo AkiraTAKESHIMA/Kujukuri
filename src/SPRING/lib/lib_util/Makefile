@@ -11,9 +11,10 @@ include $(TOPSRCDIR)/Mkinclude
 TARGET = lib_util.a
 
 OBJ_F = \
+  lib_util_type.o\
   lib_util_str_const.o\
-  lib_util_char.o\
   lib_util_str.o\
+  lib_util_char.o\
   lib_util_swap.o\
   lib_util_phys.o\
   lib_util.o

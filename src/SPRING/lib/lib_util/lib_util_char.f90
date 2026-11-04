@@ -9,7 +9,7 @@ module lib_util_char
   !------------------------------------------------------------
   public :: num_of_words
   public :: count_words
-  public :: devide_into_words
+  public :: read_words
 
   public :: log4_char
   public :: int1_char
@@ -105,13 +105,34 @@ end subroutine count_words
 !==============================================================
 !
 !==============================================================
-subroutine devide_into_words(str, words)
+subroutine read_words(c, lst)
+  use lib_util_type, only: &
+    container_char_
   implicit none
-  character(*), intent(in)  :: str
-  character(*), intent(out) :: words(:)
+  character(*), intent(in) :: c
+  type(container_char_), pointer :: lst(:)
 
-  read(str,*) words(:)
-end subroutine devide_into_words
+  integer :: n, i, loc0, loc1
+
+  n = num_of_words(c, ',')
+  allocate(lst(n))
+
+  loc0 = 0
+  loc1 = index(c, ',')
+  i = 0
+  do while( loc1 /= loc0 )
+    i = i + 1
+    allocate(character(loc1-1-loc0) :: lst(i)%val)
+    lst(i)%val = c(loc0+1:loc1-1)
+    loc0 = loc1
+    loc1 = loc0 + index(c(loc1+1:),',')
+  enddo
+
+  i = i + 1
+  loc1 = len_trim(c)
+  allocate(character(loc1-loc0) :: lst(i)%val)
+  lst(i)%val = c(loc0+1:loc1)
+end subroutine  read_words
 !==============================================================
 !
 !==============================================================
