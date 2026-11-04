@@ -53,6 +53,7 @@ module c2_jflw_grid
 
   public :: get_nextxy
   public :: get_fdr
+  public :: get_angle_fdr
 
   public :: calc_lineleng_in_pixels
   !-------------------------------------------------------------
@@ -498,11 +499,11 @@ integer(1) function get_fdr(gx, gy, gxx, gyy) result(fdr)
   case( 1 )
     selectcase( gyy - gy )
     case( 0 )
-      fdr = FDR_UNDEF
+      fdr = FDR_EAST
     case( 1 )
-      fdr = FDR_SOUTHWEST
+      fdr = FDR_SOUTHEAST
     case( -1 )
-      fdr = FDR_NORTHWEST
+      fdr = FDR_NORTHEAST
     case default
       call errend(msg_unexpected_condition()//&
                 '\n  abs(gyy-gy) > 1'//&
@@ -512,11 +513,11 @@ integer(1) function get_fdr(gx, gy, gxx, gyy) result(fdr)
   case( -1 )
     selectcase( gyy - gy )
     case( 0 )
-      fdr = FDR_UNDEF
+      fdr = FDR_WEST
     case( 1 )
-      fdr = FDR_SOUTHEAST
+      fdr = FDR_SOUTHWEST
     case( -1 )
-      fdr = FDR_NORTHEAST
+      fdr = FDR_NORTHWEST
     case default
       call errend(msg_unexpected_condition()//&
                 '\n  abs(gyy-gy) > 1'//&
@@ -530,6 +531,36 @@ integer(1) function get_fdr(gx, gy, gxx, gyy) result(fdr)
                 '', PRCNAM, MODNAM)
   endselect
 end function get_fdr
+!===============================================================
+! Get angle on the lonlat plane
+!===============================================================
+real(8) function get_angle_fdr(fdr) result(res)
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'get_angle_fdr'
+  integer(1), intent(in) :: fdr
+
+  selectcase( fdr )
+  case( FDR_EAST )
+    res = 0.d0
+  case( FDR_NORTHEAST )
+    res = 45.d0
+  case( FDR_NORTH )
+    res = 90.d0
+  case( FDR_NORTHWEST )
+    res = 135.d0
+  case( FDR_WEST )
+    res = 180.d0
+  case( FDR_SOUTHWEST )
+    res = 225.d0
+  case( FDR_SOUTH )
+    res = 270.d0
+  case( FDR_SOUTHEAST )
+    res = 315.d0
+  case default
+    call errend('Angle is not defined for fdr = '//str(fdr), &
+      '', PRCNAM, MODNAM)
+  endselect
+end function get_angle_fdr
 !===============================================================
 !
 !===============================================================

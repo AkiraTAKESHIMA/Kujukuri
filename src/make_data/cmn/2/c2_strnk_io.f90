@@ -387,22 +387,34 @@ end subroutine write_network
 !
 !===============================================================
 subroutine write_network_mesh_domain(&
-    resl, id, &
-    gxs, gxe, gys, gye, &
-    west, east, south, north)
+  resl, id, &
+  nx, ny, gxs, gxe, gys, gye, &
+  west, east, south, north, &
+  echo &
+)
   implicit none
   character(*), intent(in) :: resl
   character(*), intent(in) :: id
+  integer, intent(in) :: nx, ny
   integer, intent(in) :: gxs, gxe, gys, gye
   real(8), intent(in) :: west, east, south, north
+  logical, intent(in), optional :: echo
+
+  logical :: echo_
 
   character(CLEN_PATH) :: f
   integer :: un
 
+  echo_ = .false.
+  if( present(echo) ) echo_ = echo
+
   f = get_f_network_mesh(resl, 'domain', id)
+  if( echo_ ) call logmsg('Reading '//str(f))
+  call traperr( mkdir(dirname(f)) )
+
   open(newunit=un, file=f, status='replace')
-  write(un,"(a)") 'nx '//str(gxe-gxs+1)
-  write(un,"(a)") 'ny '//str(gye-gys+1)
+  write(un,"(a)") 'nx '//str(nx)
+  write(un,"(a)") 'ny '//str(ny)
   write(un,"(a)") 'gx '//str((/gxs,gxe/))
   write(un,"(a)") 'gy '//str((/gys,gye/))
   write(un,"(a)") 'west '//str(west,'f20.15')
@@ -709,8 +721,8 @@ character(CLEN_PATH) function get_f_network_mesh(&
   call logbgn(PRCNAM, MODNAM, '-p')
   !-------------------------------------------------------------
   selectcase( var )
-  case( 'mask', 'upg', 'dir', 'elv', 'upa', 'landuse', &
-        'elv_mod', 'dir_mod', 'upa_mod' )
+  case( 'mask', 'elv', 'dir', 'upg', 'upa', 'landuse', &
+        'elv_mod', 'dir_mod', 'upg_mod', 'upa_mod' )
     ext = 'bin'
   case( 'domain' )
     ext = 'txt'

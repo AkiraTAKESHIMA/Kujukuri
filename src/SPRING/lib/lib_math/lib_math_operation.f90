@@ -70,8 +70,13 @@ module lib_math_operation
   end interface
 
   interface div
+    module procedure div__real_int4
+    module procedure div__real_int8
+    module procedure div__real_real
+    module procedure div__real_dble
     module procedure div__dble_int4
     module procedure div__dble_int8
+    module procedure div__dble_real
     module procedure div__dble_dble
   end interface
   !-------------------------------------------------------------
@@ -527,6 +532,46 @@ end subroutine mul__dble_dble
 !===============================================================
 !
 !===============================================================
+subroutine div__real_int4(x, a)
+  implicit none
+  real(4)   , intent(inout) :: x
+  integer(4), intent(in)    :: a
+
+  x = x / a
+end subroutine div__real_int4
+!===============================================================
+!
+!===============================================================
+subroutine div__real_int8(x, a)
+  implicit none
+  real(4)   , intent(inout) :: x
+  integer(8), intent(in)    :: a
+
+  x = x / a
+end subroutine div__real_int8
+!===============================================================
+!
+!===============================================================
+subroutine div__real_real(x, a)
+  implicit none
+  real(4), intent(inout) :: x
+  real(4), intent(in)    :: a
+
+  x = x / a
+end subroutine div__real_real
+!===============================================================
+!
+!===============================================================
+subroutine div__real_dble(x, a)
+  implicit none
+  real(4), intent(inout) :: x
+  real(8), intent(in)    :: a
+
+  x = x / a
+end subroutine div__real_dble
+!===============================================================
+!
+!===============================================================
 subroutine div__dble_int4(x, a)
   implicit none
   real(8)   , intent(inout) :: x
@@ -544,6 +589,16 @@ subroutine div__dble_int8(x, a)
 
   x = x / a
 end subroutine div__dble_int8
+!===============================================================
+!
+!===============================================================
+subroutine div__dble_real(x, a)
+  implicit none
+  real(8), intent(inout) :: x
+  real(4), intent(in)    :: a
+
+  x = x / a
+end subroutine div__dble_real
 !===============================================================
 !
 !===============================================================
