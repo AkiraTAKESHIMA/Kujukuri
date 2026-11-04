@@ -20,8 +20,9 @@ module mod_mesh
   !-------------------------------------------------------------
   public :: calcMeshIntersections
   public :: makeHiresNetworkMask
+  public :: scaleUp
   public :: scaleUpNetworkMask
-  public :: trimBasin
+  public :: trimCatm
   !-------------------------------------------------------------
   ! Private module variables
   !-------------------------------------------------------------
@@ -636,41 +637,45 @@ subroutine make_hires_network_mask(&
   !-------------------------------------------------------------
   ! Aggregate intersections of channels
   !-------------------------------------------------------------
-  call logent('Aggregating intersections of channels')
-
-  do jNwk = 1, nNwk
-    if( jNwk == jNwk_self ) cycle
-    nwk => lst_nwk(jNwk)
-    isct => nwk%isct
-
-    if( isct%gxe < gxs_outer .or. gxe_outer < isct%gxs .or. &
-        isct%gye < gys_outer .or. gye_outer < isct%gys ) cycle
-
-    !call logmsg('nwk '//str(nwk%id)//&
-    !    ' ('//str((/nwk%west,nwk%east/),'f12.7',',')//&
-    !     ','//str((/nwk%south,nwk%north/),'f11.7',',')//')'//&
-    !     ' nCh: '//str(nwk%nCh))
-
-    if( isct%n == 0 )then
-      call read_isct_with_mesh(nwk)
-    endif
-
-    do iPix = 1, isct%n
-      if( isct%gx(iPix) < gxs_outer .or. gxe_outer < isct%gx(iPix) .or. &
-          isct%gy(iPix) < gys_outer .or. gye_outer < isct%gy(iPix) ) cycle
-      nwkmap(isct%gx(iPix),isct%gy(iPix)) = STAT_NWKMESH__ISCT_OTHER
-    enddo  ! iPix/
-  enddo  ! jNwk/
-
-  do iPix = 1, isct_self%n
-    nwkmap(isct_self%gx(iPix),isct_self%gy(iPix)) = STAT_NWKMESH__ISCT
-  enddo  ! iPix/
-
-  call logext()
+!  call logent('Aggregating intersections of channels')
+!
+!  do jNwk = 1, nNwk
+!    if( jNwk == jNwk_self ) cycle
+!    nwk => lst_nwk(jNwk)
+!    isct => nwk%isct
+!
+!    if( isct%gxe < gxs_outer .or. gxe_outer < isct%gxs .or. &
+!        isct%gye < gys_outer .or. gye_outer < isct%gys ) cycle
+!
+!    !call logmsg('nwk '//str(nwk%id)//&
+!    !    ' ('//str((/nwk%west,nwk%east/),'f12.7',',')//&
+!    !     ','//str((/nwk%south,nwk%north/),'f11.7',',')//')'//&
+!    !     ' nCh: '//str(nwk%nCh))
+!
+!    if( isct%n == 0 )then
+!      call read_isct_with_mesh(nwk)
+!    endif
+!
+!    do iPix = 1, isct%n
+!      if( isct%gx(iPix) < gxs_outer .or. gxe_outer < isct%gx(iPix) .or. &
+!          isct%gy(iPix) < gys_outer .or. gye_outer < isct%gy(iPix) ) cycle
+!      nwkmap(isct%gx(iPix),isct%gy(iPix)) = STAT_NWKMESH__ISCT_OTHER
+!    enddo  ! iPix/
+!  enddo  ! jNwk/
+!
+!  do iPix = 1, isct_self%n
+!    nwkmap(isct_self%gx(iPix),isct_self%gy(iPix)) = STAT_NWKMESH__ISCT
+!  enddo  ! iPix/
+!
+!  call logext()
   !-------------------------------------------------------------
   ! Get the domain that includes nwk mesh
   !-------------------------------------------------------------
   call logent('Getting the domain that includes the network mesh')
+
+  do iPix = 1, isct_self%n
+    nwkmap(isct_self%gx(iPix),isct_self%gy(iPix)) = STAT_NWKMESH__ISCT
+  enddo  ! iPix/
 
   is_ok = .false.
   do while( .not. is_ok )
@@ -822,6 +827,10 @@ subroutine make_hires_network_mask(&
   enddo  ! igx/
   enddo  ! igy/
 
+  do iPix = 1, isct_self%n
+    nwkmap(isct_self%gx(iPix),isct_self%gy(iPix)) = STAT_NWKMESH__ISCT
+  enddo  ! iPix/
+
   !print*, gxe-gxs+1, gye-gys+1
   !call traperr( wbin(nwkmap(gxs:gxe,gys:gye), 'tmp/nwkmap.bin', replace=.true.) )
 
@@ -881,7 +890,7 @@ subroutine make_hires_network_mask(&
 
   call write_network_mesh_domain(&
     RESOLUTION_1SEC, nwk_self%id, &
-    gxs, gxe, gys, gye, &
+    gxe-gxs+1, gye-gys+1, gxs, gxe, gys, gye, &
     west_of_gx(gxs), east_of_gx(gxe), south_of_gy(gye), north_of_gy(gys) &
   )
 
@@ -1137,6 +1146,437 @@ end subroutine make_hires_network_mask
 !===============================================================
 !
 !===============================================================
+subroutine scaleUp(catmType, resl_in, resl_out, modified, id)
+  use c1_grid, only: &
+    get_cellsize_ratio
+  use c2_strnk_io, only: &
+    get_f_lst_networks_channel
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'scaleUp'
+  character(*), intent(in) :: catmType
+  character(*), intent(in) :: resl_in
+  character(*), intent(in) :: resl_out
+  logical     , intent(in) :: modified
+  character(*), intent(in) :: id
+
+  integer :: ratio
+  integer :: nCatm, iCatm
+  character(32) :: id_
+  character(4) :: c_mod
+  character(CLEN_PATH) :: f
+  integer :: un
+  character :: c_
+
+  call logbgn(PRCNAM, MODNAM)
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  if( resl_in == resl_out )then
+    call logmsg('Source and target resolution are same.')
+    call logret(PRCNAM, MODNAM)
+    return
+  endif
+
+  if( modified )then
+    c_mod = '_mod'
+  else
+    c_mod = ''
+  endif
+
+  ratio = get_cellsize_ratio(resl_in, resl_out)
+
+  selectcase( catmType )
+  case( CATMTYPE__NETWORK )
+    if( id == '' )then
+      f = get_f_lst_networks_channel()
+      call logmsg('Reading '//str(f))
+      open(newunit=un, file=f, status='old')
+      read(un,*) c_, nCatm
+      read(un,*)
+      do iCatm = 1, nCatm
+        read(un,*) c_, id_
+        call scale_up__network(resl_in, resl_out, ratio, c_mod, id_)
+      enddo
+      close(un)
+    else
+      call scale_up__network(resl_in, resl_out, ratio, c_mod, id)
+    endif
+  endselect
+
+
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
+end subroutine scaleUp
+!===============================================================
+!
+!===============================================================
+subroutine scale_up__network(&
+  resl_in, resl_out, ratio, c_mod, id &
+)
+  use c2_strnk_io, only: &
+    read_network_mesh_domain , &
+    write_network_mesh_domain, &
+    get_f_network_mesh
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'scale_up__network'
+  character(*), intent(in) :: resl_in
+  character(*), intent(in) :: resl_out
+  integer     , intent(in) :: ratio
+  character(*), intent(in) :: c_mod
+  character(*), intent(in) :: id
+
+  integer :: nx, ny, gxs, gxe, gys, gye
+  real(8) :: west, east, south, north
+  integer :: nx2, ny2, gxs2, gxe2, gys2, gye2
+  real(8) :: west2, east2, south2, north2
+  real(4)   , pointer :: elv2(:,:)
+  integer(1), pointer :: fdr2(:,:)
+  integer(4), pointer :: upg2(:,:)
+
+  character(CLEN_PATH) :: f_elv, f_fdr, f_upg
+
+  call logbgn(PRCNAM, MODNAM)
+  call logmsg('Network '//str(id))
+  !-------------------------------------------------------------
+  ! Prep.
+  !-------------------------------------------------------------
+  call logent('Preparing inputs')
+
+  call read_network_mesh_domain(&
+    resl_in, id, &
+    nx, ny, gxs, gxe, gys, gye, &
+    west, east, south, north, &
+    echo=.true. &
+  )
+
+  f_elv = get_f_network_mesh(resl_in, 'elv'//str(c_mod), id)
+  f_fdr = get_f_network_mesh(resl_in, 'dir'//str(c_mod), id)
+  f_upg = get_f_network_mesh(resl_in, 'upg'//str(c_mod), id)
+
+  call logext()
+  !-------------------------------------------------------------
+  ! Main
+  !-------------------------------------------------------------
+  call logent('Scaling up')
+
+  nullify(elv2, fdr2, upg2)
+
+  call scale_up__core(&
+    ratio, &
+    nx, ny, gxs, gxe, gys, gye, &
+    west, east, south, north, &
+    f_elv, f_fdr, f_upg, &
+    nx2, ny2, gxs2, gxe2, gys2, gye2, &
+    west2, east2, south2, north2, &
+    elv2, fdr2, upg2 &
+  )
+
+  call logext()
+  !-------------------------------------------------------------
+  ! Output
+  !-------------------------------------------------------------
+  call logent('Outputting')
+
+  call write_network_mesh_domain(&
+    resl_out, id, &
+    nx2, ny2, gxs2, gxe2, gys2, gye2, &
+    west2, east2, south2, north2, &
+    echo=.true. &
+  )
+
+  f_elv = get_f_network_mesh(resl_out, 'elv'//str(c_mod), id)
+  call logmsg('Writing '//str(f_elv))
+  call traperr( mkdir(dirname(f_elv)) )
+  call traperr( wbin(elv2, f_elv) )
+
+  f_fdr = get_f_network_mesh(resl_out, 'dir'//str(c_mod), id)
+  call logmsg('Writing '//str(f_fdr))
+  call traperr( mkdir(dirname(f_fdr)) )
+  call traperr( wbin(fdr2, f_fdr) )
+
+  call logext()
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  deallocate(elv2, fdr2, upg2)
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
+end subroutine scale_up__network
+!===============================================================
+!
+!===============================================================
+subroutine scale_up__core(&
+  ratio, &
+  nx0, ny0, gxs0, gxe0, gys0, gye0, &
+  west0, east0, south0, north0, &
+  f_elv, f_fdr, f_upg, &
+  nx2, ny2, gxs2, gxe2, gys2, gye2, &
+  west2, east2, south2, north2, &
+  elv2, fdr2, upg2 &
+)
+  use c2_jflw_const
+  use c2_jflw_grid, only: &
+    get_nextxy, &
+    get_fdr
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'scale_up__core'
+  integer, intent(in) :: ratio
+  integer, intent(in) :: nx0, ny0, gxs0, gxe0, gys0, gye0
+  real(8), intent(in) :: west0, east0, south0, north0
+  character(*), intent(in) :: f_elv, f_fdr, f_upg
+  integer, intent(out) :: nx2, ny2, gxs2, gxe2, gys2, gye2
+  real(8), intent(out) :: west2, east2, south2, north2
+  real(4)   , pointer :: elv2(:,:)  ! out
+  integer(1), pointer :: fdr2(:,:)  ! out
+  integer(4), pointer :: upg2(:,:)  ! out
+
+  real(4)   , allocatable :: elv(:,:)
+  integer(1), allocatable :: fdr(:,:)
+  integer(4), allocatable :: upg(:,:)
+  integer, allocatable :: top(:,:), bottom(:,:), left(:,:), right(:,:)
+  integer, allocatable :: tile(:,:)
+  integer, allocatable :: upgmax(:,:)
+  integer, allocatable :: x_upgmax(:,:), y_upgmax(:,:)
+  integer, allocatable :: upstream2(:,:)
+  integer, allocatable :: upg_dif(:,:)
+  integer, allocatable :: pass2(:,:)
+  integer :: nx, ny, gxs, gxe, gys, gye
+  integer :: xs, xe, ys, ye
+  integer :: ix, iy, xx, yy
+  real(8) :: cellsize
+  real(8) :: west, east, south, north
+  integer :: ix2, iy2, xx2, yy2
+  real(8) :: cellsize2
+  integer :: corner
+  integer :: k
+
+  integer :: dgt_xy2
+
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
+  !-------------------------------------------------------------
+  ! Modify the domain
+  ! -- Make ($gxs-1) and $gxe are multiples of $ratio
+  !-------------------------------------------------------------
+  call logent('Modifying the domain')
+
+  gxs = ((gxs0-1) / ratio) * ratio + 1
+  gxe = ((gxe0-1) / ratio + 1) * ratio
+  gys = ((gys0-1) / ratio) * ratio + 1
+  gye = ((gye0-1) / ratio + 1) * ratio
+  xs = gxs0 - gxs + 1
+  xe = xs + (gxe0 - gxs0 + 1) - 1
+  nx = gxe - gxs + 1
+  ys = gys0 - gys + 1
+  ye = ys + (gye0 - gys0 + 1) - 1
+  ny = gye - gys + 1
+
+  cellsize = (east0 - west0) / nx0
+  west = west0 - (xs-1) * cellsize
+  east = east0 + (nx-xe) * cellsize
+  south = south0 - (ny-ye) * cellsize
+  north = north0 + (ys-1) * cellsize
+
+  call logmsg('Original'//&
+    '\n  nx: '//str(nx0)//' ('//str((/gxs0,gxe0/),' - ')//')'//&
+    '\n  ny: '//str(ny0)//' ('//str((/gys0,gye0/),' - ')//')'//&
+    '\n  BBox: '//sBBox(west0,east0,south0,north0))
+  call logmsg('Modified'//&
+    '\n  nx: '//str(nx)//' ('//str((/gxs,gxe/),' - ')//')'//&
+      ' margin: '//str((/xs-1,nx-xe/),', ')//&
+    '\n  ny: '//str(ny)//' ('//str((/gys,gye/),' - ')//')'//&
+      ' margin: '//str((/ys-1,ny-ye/),', ')//&
+    '\n  BBox: '//sBBox(west,east,south,north))
+
+  call logext()
+  !-------------------------------------------------------------
+  ! Load topography data
+  !-------------------------------------------------------------
+  call logent('Loading topography data')
+
+  allocate(elv(nx,ny))
+  allocate(fdr(nx,ny))
+  allocate(upg(nx,ny))
+
+  elv(:,:) = ELV_MISS
+  fdr(:,:) = FDR_MISS
+  upg(:,:) = UPG_MISS
+  call traperr( rbin(elv(xs:xe,ys:ye), f_elv) )
+  call traperr( rbin(fdr(xs:xe,ys:ye), f_fdr) )
+  call traperr( rbin(upg(xs:xe,ys:ye), f_upg) )
+
+  call logext()
+  !-------------------------------------------------------------
+  ! Set the domain of the new resolution
+  !-------------------------------------------------------------
+  call logent('Setting the domain of the new resolution')
+
+  if( ratio >= 9 )then
+    corner = 3
+  elseif( ratio >= 6 )then
+    corner = 2
+  elseif( ratio >= 3 )then
+    corner = 1
+  else
+    corner = 0
+  endif
+
+  nx2 = nx / ratio
+  ny2 = ny / ratio
+  gxs2 = (gxs-1) / ratio + 1
+  gxe2 = gxe / ratio
+  gys2 = (gys-1) / ratio + 1
+  gye2 = gye / ratio
+
+  dgt_xy2 = dgt(max(nx2, ny2))
+
+  cellsize2 = cellsize * ratio
+  west2 = west
+  east2 = east
+  south2 = south
+  north2 = north
+
+  allocate(top(nx2,ny2), bottom(nx2,ny2), left(nx2,ny2), right(nx2,ny2))
+  allocate(tile(nx,ny))
+  allocate(upgmax(nx2,ny2))
+  allocate(x_upgmax(nx2,ny2), y_upgmax(nx2,ny2))
+
+  allocate(upstream2(nx2,ny2), upg_dif(nx,ny))
+  allocate(pass2(nx2,ny2))
+
+  allocate(elv2(nx2,ny2))
+  allocate(fdr2(nx2,ny2))
+  allocate(upg2(nx2,ny2))
+
+  call logext()
+  !-------------------------------------------------------------
+  ! Make tile mask
+  !-------------------------------------------------------------
+  call logent('Making a tile mask')
+
+  do iy2 = 1, ny2
+  do ix2 = 1, nx2
+    top(ix2,iy2) = (iy2-1) * ratio + 1
+    bottom(ix2,iy2) = iy2 * ratio
+    left(ix2,iy2) = (ix2-1) * ratio + 1
+    right(ix2,iy2) = ix2 * ratio
+  enddo
+  enddo
+
+  tile(:,:) = 1
+
+  ! Cutoff corners
+  if( corner >= 1 )then
+    do iy2 = 1, ny2
+    do ix2 = 1, nx2
+      ! top left
+      tile(left(ix2,iy2):left(ix2,iy2)+(corner-1), &
+           top(ix2,iy2):top(ix2,iy2)+(corner-1)) = 0
+
+      ! top right
+      tile(right(ix2,iy2)-(corner-1):right(ix2,iy2), &
+           top(ix2,iy2):top(ix2,iy2)+(corner-1)) = 0
+
+      ! bottom left
+      tile(left(ix2,iy2):left(ix2,iy2)+(corner-1), &
+           bottom(ix2,iy2)-(corner-1):bottom(ix2,iy2)) = 0
+
+      ! bottom right
+      tile(right(ix2,iy2)-(corner-1):right(ix2,iy2), &
+           bottom(ix2,iy2)-(corner-1):bottom(ix2,iy2)) = 0
+    enddo  ! ix2
+    enddo  ! iy2
+  endif
+
+  call logext()
+  !-------------------------------------------------------------
+  ! Find the largest upg
+  !-------------------------------------------------------------
+  call logent('Finding the largest upg')
+
+  upgmax(:,:) = 0
+  elv2(:,:) = 0.0
+  do iy2 = 1, ny2
+  do ix2 = 1, nx2
+    k = 0
+    do iy = top(ix2,iy2), bottom(ix2,iy2)
+    do ix = left(ix2,iy2), right(ix2,iy2)
+      if( elv(ix,iy) == ELV_MISS .or. tile(ix,iy) == 0 ) cycle
+      if( upg(ix,iy) >= upgmax(ix2,iy2) )then
+        upgmax(ix2,iy2) = upg(ix,iy)
+        x_upgmax(ix2,iy2) = ix
+        y_upgmax(ix2,iy2) = iy
+      endif
+      call add(elv2(ix2,iy2), elv(ix,iy))
+      call add(k)
+    enddo  ! ix
+    enddo  ! iy
+
+    if( k >= ratio**2 / 2 )then
+      call div(elv2(ix2,iy2), k)
+    else
+      elv2(ix2,iy2) = ELV_MISS
+    endif
+  enddo  ! ix2
+  enddo  ! iy2
+
+  call logext()
+  !-------------------------------------------------------------
+  ! Find the neighbor
+  !-------------------------------------------------------------
+  call logent('Finding the neighbor')
+
+  fdr2(:,:) = FDR_MISS
+  do iy2 = 1, ny2
+  do ix2 = 1, nx2
+    if( elv2(ix2,iy2) == ELV_MISS ) cycle
+
+    ix = x_upgmax(ix2,iy2)
+    iy = y_upgmax(ix2,iy2)
+    xx = ix
+    yy = iy
+
+    do while( fdr(ix,iy) > 0_1 )
+      call get_nextxy(ix, iy, fdr(ix,iy), xx, yy)
+
+      if( tile(xx,yy) == 1 )then
+        if( (xx-1)/ratio+1 /= ix2 .or. (yy-1)/ratio+1 /= iy2 )then
+          exit
+        endif
+      endif
+
+      ix = xx
+      iy = yy
+    enddo
+
+    xx2 = (xx-1) / ratio + 1
+    yy2 = (yy-1) / ratio + 1
+    if( fdr(ix,iy) == FDR_RIVERMOUTH )then
+      fdr2(xx2,yy2) = FDR_RIVERMOUTH
+    else
+      fdr2(ix2,iy2) = get_fdr(ix2, iy2, xx2, yy2)
+    endif
+  enddo  ! ix2
+  enddo  ! iy2
+
+  call logext()
+  !-------------------------------------------------------------
+  ! Validate the results
+  !-------------------------------------------------------------
+
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
+end subroutine scale_up__core
+!===============================================================
+!
+!===============================================================
+!
+!
+!
+!
+!
+!===============================================================
+!
+!===============================================================
 subroutine scaleUpNetworkMask(resl)
   use c1_grid, only: &
     get_cellsize_in_sec
@@ -1263,9 +1703,9 @@ subroutine scale_up_network_mask(&
 
   f = get_f_network_mesh(resl, 'domain', id)
   call write_network_mesh_domain(&
-         resl, id, &
-         gxs, gxe, gys, gye, &
-         west_of_gx(gxs), east_of_gx(gxe), south_of_gy(gye), north_of_gy(gys) &
+    resl, id, &
+    gxe-gxs+1, gye-gys+1, gxs, gxe, gys, gye, &
+    west_of_gx(gxs), east_of_gx(gxe), south_of_gy(gye), north_of_gy(gys) &
   )
 
   f = get_f_network_mesh(resl, 'mask', id)
@@ -1300,19 +1740,22 @@ end subroutine scale_up_network_mask
 !===============================================================
 !
 !===============================================================
-subroutine trimBasin(&
-  catmType, resl, id, varName, outfmt, overwrite &
+subroutine trimCatm(&
+  catmType, resl, id, varName, outFmt, overwrite &
 )
   use c3_jflw_const, &
         jflw_set_resolution => jflw_set_resolution
   implicit none
-  character(CLEN_PATH), parameter :: PRCNAM = 'trimBasin'
+  character(CLEN_PATH), parameter :: PRCNAM = 'trimCatm'
   character(*), intent(in) :: catmType
   character(*), intent(in) :: resl
   character(*), intent(in) :: varName
   character(*), intent(in) :: id
-  character(*), intent(in) :: outfmt
+  character(*), intent(in) :: outFmt
   logical     , intent(in) :: overwrite
+
+  type(container_char_), pointer :: lst_varName(:)
+  type(container_char_), pointer :: lst_outFmt(:)
 
   call logbgn(PRCNAM, MODNAM)
   !-------------------------------------------------------------
@@ -1320,17 +1763,22 @@ subroutine trimBasin(&
   !-------------------------------------------------------------
   call jflw_set_resolution(resl)
 
-  call trim_basin(&
-    catmType, resl, id, varName, outfmt, overwrite &
+  call read_words(varName, lst_varName)
+  call read_words(outFmt, lst_outFmt)
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  call trim_catm(&
+    catmType, resl, id, lst_varName, lst_outFmt, overwrite &
   )
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
-end subroutine trimBasin
+end subroutine trimCatm
 !===============================================================
 !
 !===============================================================
-subroutine trim_basin(&
-  catmType, resl, id, varName, outfmt, overwrite &
+subroutine trim_catm(&
+  catmType, resl, id, lst_varName, lst_outFmt, overwrite &
 )
   use c3_jflw_const
   use c3_jflw_io, only: &
@@ -1350,12 +1798,12 @@ subroutine trim_basin(&
     joint_conv_fdr_jflw2rri => conv_fdr_jflw2rri, &
     joint_get_miss          => get_miss
   implicit none
-  character(CLEN_PATH), parameter :: PRCNAM = 'trim_basin'
+  character(CLEN_PATH), parameter :: PRCNAM = 'trim_catm'
   character(*), intent(in) :: catmType
   character(*), intent(in) :: resl
   character(*), intent(in) :: id
-  character(*), intent(in) :: varName
-  character(*), intent(in) :: outfmt
+  type(container_char_), intent(in) :: lst_varName(:)
+  type(container_char_), intent(in) :: lst_outFmt(:)
   logical     , intent(in) :: overwrite
 
   integer(1), allocatable :: i1map(:,:)
@@ -1371,6 +1819,11 @@ subroutine trim_basin(&
   character(CLEN_VAR) :: inputDataName
   character(CLEN_KEY) :: dtype
   character(CLEN_PATH) :: f_msk, f_var
+  logical :: is_ok
+  integer :: iVarName
+  integer :: iOutFmt
+  character(:), allocatable :: varName
+  character(:), allocatable :: outFmt
 
   character(CLEN_KEY), parameter :: OUTFMT__DEFAULT = 'default'
   character(CLEN_KEY), parameter :: OUTFMT__RRI     = 'rri'
@@ -1381,37 +1834,39 @@ subroutine trim_basin(&
   !-------------------------------------------------------------
   ! Setup
   !-------------------------------------------------------------
-  selectcase( outfmt )
-  case( OUTFMT__DEFAULT )
-    inputDataName = DATANAME__JFLW
+  call logent('Setup')
 
-    selectcase( catmType )
-    case( CATMTYPE__BASIN )
-      f_var = jflw_get_f_map_basin(resl, varName, id)
-    case( CATMTYPE__NETWORK )
-      f_var = strnk_get_f_network_mesh(resl, varName, id)
-    case( CATMTYPE__NETWORKSET )
-      call errend(msg_not_implemented()//&
-        '\n  catmType: '//str(catmType))
-    case default
-      call errend(msg_invalid_value('catmType', catmType))
-    endselect
-  case( OUTFMT__RRI )
-    inputDataName = DATANAME__RRI
+  allocate(character(1) :: varName)
+  allocate(character(1) :: outFmt)
 
-    f_var = rri_get_f_data(catmType, resl, varName, id)
-  case default
-    call errend(msg_invalid_value('outfmt', outfmt))
-  endselect
+  is_ok = .true.
+  do iVarName = 1, size(lst_varName)
+    varName = lst_varName(iVarName)%val
 
-  if( .not. overwrite .and. access(f_var,' ') == 0 )then
-    call logmsg('File already exists: '//str(f_var))
+    do iOutFmt = 1, size(lst_outFmt)
+      outFmt = lst_outFmt(iOutFmt)%val
+
+      f_var = get_f_var(catmType, varName, outFmt)
+
+      if( access(f_var, ' ') /= 0 )then
+        is_ok = .false.
+        exit
+      endif
+    enddo  ! iOutFmt
+  enddo  ! iVarName
+
+  if( .not. overwrite .and. is_ok )then
+    call logmsg('All output files already exist.')
     call logret(PRCNAM, MODNAM)
     return
   endif
+
+  call logext()
   !-------------------------------------------------------------
-  ! Make a mask
+  ! Prep. mask
   !-------------------------------------------------------------
+  call logent('Preparing a mask')
+
   selectcase( catmType )
   !-------------------------------------------------------------
   ! Case: J-FlwDir basin map
@@ -1482,109 +1937,170 @@ subroutine trim_basin(&
   case default
     call errend(msg_invalid_value('catmType', catmType))
   endselect
+
+  call logext()
   !-------------------------------------------------------------
   ! Trim map and output
   !-------------------------------------------------------------
-  selectcase( varName )
+  call logent('Trimming')
+
+  do iVarName = 1, size(lst_varName)
+    varName = lst_varName(iVarName)%val
+
+    do iOutfmt = 1, size(lst_outfmt)
+      outFmt = lst_outFmt(iOutFmt)%val
+
+      selectcase( outFmt )
+      case( OUTFMT__DEFAULT )
+        inputDataName = DATANAME__JFLW
+      case( OUTFMT__RRI )
+        inputDataName = DATANAME__RRI
+      case default
+        call errend(msg_invalid_value('outFmt', outFmt))
+      endselect
+
+      selectcase( varName )
+      !-----------------------------------------------------------
+      ! Case: Int1 (dir, landuse)
+      case( VARNAME__FDR, VARNAME__LANDUSE )
+        dtype = DTYPE_INT1
+
+        call joint_get_miss(inputDataName, varName, i1miss)
+        i4miss = int(i1miss, 4)
+
+        allocate(i4map(gxs:gxe,gys:gye))
+
+        call jflw_read_map_from_tile(&
+            resl, varName, DTYPE_INT1, i4miss, gxs, gys, i4map)
+
+        where( .not. mskmap ) i4map = i4miss
+      !-----------------------------------------------------------
+      ! Case: Int4 (upg)
+      case( VARNAME__UPG )
+        dtype = DTYPE_INT4
+
+        call joint_get_miss(inputDataName, varName, i4miss)
+
+        allocate(i4map(gxs:gxe,gys:gye))
+
+        call jflw_read_map_from_tile(&
+            resl, varName, DTYPE_INT4, i4miss, gxs, gys, i4map)
+
+        where( .not. mskmap ) i4map = i4miss
+      !-----------------------------------------------------------
+      ! Case: Real (elv, upa, wth)
+      case( VARNAME__ELV, VARNAME__UPA, VARNAME__WTH )
+        dtype = DTYPE_REAL
+
+        call joint_get_miss(inputDataName, varName, r4miss)
+
+        allocate(r4map(gxs:gxe,gys:gye))
+
+        call jflw_read_map_from_tile(&
+          resl, varName, DTYPE_REAL, r4miss, gxs, gys, r4map)
+
+        where( .not. mskmap ) r4map = r4miss
+      !-----------------------------------------------------------
+      ! Case: ERROR
+      case default
+        call errend(msg_invalid_value('varName', varName))
+      endselect
+      !-----------------------------------------------------------
+      ! Output
+      !-----------------------------------------------------------
+      f_var = get_f_var(catmType, varName, outFmt)
+
+      selectcase( outFmt )
+      !---------------------------------------------------------
+      ! Case: Default (plain binary)
+      case( OUTFMT__DEFAULT )
+        call logmsg('Writing '//str(f_var))
+
+        selectcase( dtype )
+        case( DTYPE_INT1, DTYPE_INT4 )
+          call traperr( wbin(i4map, f_var, replace=.true.) )
+        case( DTYPE_REAL )
+          call traperr( wbin(r4map, f_var, replace=.true.) )
+        case default
+          call errend(msg_invalid_value('dtype', dtype))
+        endselect
+      !---------------------------------------------------------
+      ! Case: RRI
+      case( OUTFMT__RRI )
+        if( varName == VARNAME__FDR )then
+          do igy = gys, gye
+          do igx = gxs, gxe
+            call joint_conv_fdr_jflw2rri(int(i4map(igx,igy),1), i4map(igx,igy))
+          enddo  ! igx/
+          enddo  ! igy/
+        endif
+
+        selectcase( dtype )
+        case( DTYPE_INT1, DTYPE_INT4 )
+          call rri_write_map(&
+            catmType, resl, varName, id, &
+            i4map, i4miss, &
+            west, south, JFLW_GRIDSIZE_LON &
+          )
+        case( DTYPE_REAL )
+          call rri_write_map(&
+            catmType, resl, varName, id, &
+            r4map, r4miss, &
+            west, south, JFLW_GRIDSIZE_LON &
+          )
+        case default
+          call errend(msg_invalid_value('dtype', dtype))
+        endselect
+      !---------------------------------------------------------
+      ! Case: ERROR
+      case default
+        call errend(msg_invalid_value('outFmt', outFmt))
+      endselect
+    enddo  ! iOutfmt
+  enddo  ! iVar
+
+  call logext()
   !-------------------------------------------------------------
-  ! Case: Int1 (dir, landuse)
-  case( VARNAME__FDR, VARNAME__LANDUSE )
-    dtype = DTYPE_INT1
+  call logret(PRCNAM, MODNAM)
+!---------------------------------------------------------------
+contains
+!---------------------------------------------------------------
+!
+!---------------------------------------------------------------
+character(CLEN_PATH) function get_f_var(&
+  catmType, varName, outFmt &
+) result(f)
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = '__IP__get_f_var'
+  character(*), intent(in) :: catmType
+  character(*), intent(in) :: varName
+  character(*), intent(in) :: outFmt
 
-    call joint_get_miss(inputDataName, varName, i1miss)
-    i4miss = int(i1miss, 4)
+  call logbgn(PRCNAM, MODNAM, '-p')
 
-    allocate(i4map(gxs:gxe,gys:gye))
-
-    call jflw_read_map_from_tile(&
-        resl, varName, DTYPE_INT1, i4miss, gxs, gys, i4map)
-
-    where( .not. mskmap ) i4map = i4miss
-  !-------------------------------------------------------------
-  ! Case: Int4 (upg)
-  case( VARNAME__UPG )
-    dtype = DTYPE_INT4
-
-    call joint_get_miss(inputDataName, varName, i4miss)
-
-    allocate(i4map(gxs:gxe,gys:gye))
-
-    call jflw_read_map_from_tile(&
-        resl, varName, DTYPE_INT4, i4miss, gxs, gys, i4map)
-
-    where( .not. mskmap ) i4map = i4miss
-  !-------------------------------------------------------------
-  ! Case: Real (elv, upa, wth)
-  case( VARNAME__ELV, VARNAME__UPA, VARNAME__WTH )
-    dtype = DTYPE_REAL
-
-    call joint_get_miss(inputDataName, varName, r4miss)
-
-    allocate(r4map(gxs:gxe,gys:gye))
-
-    call jflw_read_map_from_tile(&
-      resl, varName, DTYPE_REAL, r4miss, gxs, gys, r4map)
-
-    where( .not. mskmap ) r4map = r4miss
-  !-------------------------------------------------------------
-  ! Case: ERROR
-  case default
-    call errend(msg_invalid_value('varName', varName))
-  endselect
-  !-------------------------------------------------------------
-  !
-  !-------------------------------------------------------------
-  if( varName == VARNAME__FDR .and. outfmt == OUTFMT__RRI )then
-    do igy = gys, gye
-    do igx = gxs, gxe
-      call joint_conv_fdr_jflw2rri(int(i4map(igx,igy),1), i4map(igx,igy))
-    enddo  ! igx/
-    enddo  ! igy/
-  endif
-  !-------------------------------------------------------------
-  ! Output
-  !-------------------------------------------------------------
-  selectcase( outfmt )
-  !-------------------------------------------------------------
-  ! Case: Default (plain binary)
+  selectcase( outFmt )
   case( OUTFMT__DEFAULT )
-    call logmsg('Writing '//str(f_var))
-
-    selectcase( dtype )
-    case( DTYPE_INT1, DTYPE_INT4 )
-      call traperr( wbin(i4map, f_var, replace=.true.) )
-    case( DTYPE_REAL )
-      call traperr( wbin(r4map, f_var, replace=.true.) )
+    selectcase( catmType )
+    case( CATMTYPE__BASIN )
+      f = jflw_get_f_map_basin(resl, varName, id)
+    case( CATMTYPE__NETWORK )
+      f = strnk_get_f_network_mesh(resl, varName, id)
+    case( CATMTYPE__NETWORKSET )
+      call errend(msg_not_implemented()//&
+        '\n  catmType: '//str(catmType))
     case default
-      call errend(msg_invalid_value('dtype', dtype))
+      call errend(msg_invalid_value('catmType', catmType))
     endselect
-  !-------------------------------------------------------------
-  ! Case: RRI
   case( OUTFMT__RRI )
-    selectcase( dtype )
-    case( DTYPE_INT1, DTYPE_INT4 )
-      call rri_write_map(&
-        catmType, resl, varName, id, &
-        i4map, i4miss, &
-        west, south, JFLW_GRIDSIZE_LON &
-      )
-    case( DTYPE_REAL )
-      call rri_write_map(&
-        catmType, resl, varName, id, &
-        r4map, r4miss, &
-        west, south, JFLW_GRIDSIZE_LON &
-      )
-    case default
-      call errend(msg_invalid_value('dtype', dtype))
-    endselect
-  !-------------------------------------------------------------
-  ! Case: ERROR
+    f = rri_get_f_data(catmType, resl, varName, id)
   case default
     call errend(msg_invalid_value('outfmt', outfmt))
   endselect
-  !-------------------------------------------------------------
-  call logret(PRCNAM, MODNAM)
-end subroutine trim_basin
+
+  call logext()
+end function get_f_var
+!---------------------------------------------------------------
+end subroutine trim_catm
 !===============================================================
 !
 !===============================================================

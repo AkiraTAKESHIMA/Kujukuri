@@ -41,9 +41,9 @@ module mod_topo
 
   type isct_
     integer :: n
-    integer, pointer :: x(:), y(:)
+    integer, pointer :: gx(:), gy(:)
     real(8), pointer :: leng(:)
-    integer :: xs, xe, ys, ye
+    integer :: gxs, gxe, gys, gye
   end type
 
   type :: channel_
@@ -75,7 +75,7 @@ module mod_topo
     integer :: nNode
     type(nwknode_), pointer :: node(:)
     integer :: nx, ny
-    integer :: xs, xe, ys, ye
+    integer :: gxs, gxe, gys, gye
     real(8) :: west, east, south, north
     integer, pointer :: jCh(:)
   end type
@@ -315,9 +315,14 @@ end subroutine modifyFlwDir
 subroutine modify_flwdir_network(resl, id)
   use c2_jflw_const
   use c2_jflw_grid, only: &
-    center_of_gy, &
-    north_of_gy, &
-    south_of_gy
+    center_of_gx , &
+    center_of_gy , &
+    north_of_gy  , &
+    south_of_gy  , &
+    get_nextxy   , &
+    get_fdr      , &
+    get_angle_fdr
+  use c2_strnk_const
   use c2_strnk_io, only: &
     read_network            , &
     read_network_mesh_domain, &
@@ -337,12 +342,15 @@ subroutine modify_flwdir_network(resl, id)
   type(isct_), pointer :: ci
   type(nwknode_), pointer :: nwknode
   type(cmn_network_) :: cmnnwk
-  integer(1), allocatable :: nwkmap(:,:)  !(xs:xe,ys:ye)
-  integer(1), allocatable :: fdrmap(:,:)
+  integer(1), allocatable :: isc(:,:)  !(xs:xe,ys:ye)
+  integer(1), allocatable :: msk(:,:)  !(xs:xe,ys:ye)
+  integer(1), allocatable :: fdr(:,:)
+  integer(1), allocatable :: reach(:,:)
+  logical(1), allocatable :: passed(:,:)
   integer, allocatable :: lst_iNode_src(:)  !(nNode_src)
   real(8), allocatable :: lst_dist_src(:)
   real(8), allocatable :: mesh_size(:)  !(gys:gye)
-  integer, pointer :: lst_x(:), lst_y(:)  !(nMesh)
+  integer, pointer :: lst_gx(:), lst_gy(:)  !(nMesh)
   real(8), pointer :: lst_leng(:)
   logical, pointer :: lst_counted(:)
   integer :: nNode_src
@@ -356,22 +364,49 @@ subroutine modify_flwdir_network(resl, id)
   integer :: chdir
   integer :: nMesh, iMesh, jMesh, kMesh
   logical :: is_updated
-  integer :: ix, iy
-  real(8), allocatable :: lst_lon(:), lst_lat(:)
-  integer, allocatable :: lst_jCh(:), lst_jNode(:)
-  integer, allocatable :: arg(:)
+  logical :: is_ok
+  integer :: igx, igy, jgx, jgy, kgx, kgy, gx, gy, gxx, gyy
+  integer :: gx_next, gy_next
+  integer :: n, i
+  real(8) :: angle_in, angle_target
+  real(8) :: angle_join, angle_join_min
+  real(8), pointer :: lst_lon(:), lst_lat(:)
+  integer, pointer :: lst_jCh(:), lst_jNode(:)
+  integer, pointer :: arg(:)
 
   integer :: iter
   real(8) :: leng_mesh
 
-  real(8), parameter :: THRESH_MESHSIZE_FRAC = 1.d0
-  integer, parameter :: THRESH_ITER = 10000
-
   character(CLEN_PATH) :: f
   integer :: un
 
+  real(8), parameter :: THRESH_MESHSIZE_FRAC = 1.d0
+  integer, parameter :: THRESH_ITER = 10000
+
+  integer(1), parameter :: ISCT__NO       = 0_1
+  integer(1), parameter :: ISCT__NETWORK  = 1_1
+  integer(1), parameter :: ISCT__ISOLATED = 2_1
+
+  integer(1), parameter :: REACH__RIVERMOUTH = 1
+  integer(1), parameter :: REACH__INLAND     = 2
+  integer(1), parameter :: REACH__OCEAN      = 3
+  integer(1), parameter :: REACH__SOURCE     = -1
+  integer(1), parameter :: REACH__MISS       = -2
+  integer(1), parameter :: REACH__UNDEF      = -99
+
+  logical :: debug_this = .false.
+
   call logbgn(PRCNAM, MODNAM)
   call logmsg('Network '//str(id))
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  nullify(lst_gx, lst_gy)
+  nullify(lst_leng)
+  nullify(lst_counted)
+  nullify(lst_lon, lst_lat)
+  nullify(lst_jCh, lst_jNode)
+  nullify(arg)
   !-------------------------------------------------------------
   ! Read input data
   !-------------------------------------------------------------
@@ -392,13 +427,13 @@ subroutine modify_flwdir_network(resl, id)
   ! Mesh domain
   call read_network_mesh_domain(&
     resl, id, &
-    nwk%nx, nwk%ny, nwk%xs, nwk%xe, nwk%ys, nwk%ye, &
+    nwk%nx, nwk%ny, nwk%gxs, nwk%gxe, nwk%gys, nwk%gye, &
     nwk%west, nwk%east, nwk%south, nwk%north, &
     echo=.true.)
 
   call logmsg('Mesh: ('//str((/nwk%nx,nwk%ny/),',')//') '//&
-                    '['//str((/nwk%xs,nwk%xe/),DGT_GXY,':')//&
-                    ','//str((/nwk%ys,nwk%ye/),DGT_GXY,':')//']')
+                    '['//str((/nwk%gxs,nwk%gxe/),DGT_GXY,':')//&
+                    ','//str((/nwk%gys,nwk%gye/),DGT_GXY,':')//']')
 
   ! Intersections
   f = get_f_network_meshisct(MESHTYPE__JFLW, resl, id)
@@ -411,36 +446,36 @@ subroutine modify_flwdir_network(resl, id)
     ci => ch%isct
 
     read(un) ci%n
-    allocate(ci%x(ci%n))
-    allocate(ci%y(ci%n))
+    allocate(ci%gx(ci%n))
+    allocate(ci%gy(ci%n))
     allocate(ci%leng(ci%n))
-    read(un) ci%x(:)
-    read(un) ci%y(:)
+    read(un) ci%gx(:)
+    read(un) ci%gy(:)
     read(un) ci%leng(:)
 
-    ci%xs = minval(ci%x)
-    ci%xe = maxval(ci%x)
-    ci%ys = minval(ci%y)
-    ci%ye = maxval(ci%y)
+    ci%gxs = minval(ci%gx)
+    ci%gxe = maxval(ci%gx)
+    ci%gys = minval(ci%gy)
+    ci%gye = maxval(ci%gy)
   enddo  ! jCh
   close(un)
 
-  if( nwk%xs > minval(nwk%channel(:)%isct%xs) .or. &
-      nwk%xe < maxval(nwk%channel(:)%isct%xe) .or. &
-      nwk%ys > minval(nwk%channel(:)%isct%ys) .or. &
-      nwk%ye < maxval(nwk%channel(:)%isct%ye) )then
+  if( nwk%gxs > minval(nwk%channel(:)%isct%gxs) .or. &
+      nwk%gxe < maxval(nwk%channel(:)%isct%gxe) .or. &
+      nwk%gys > minval(nwk%channel(:)%isct%gys) .or. &
+      nwk%gye < maxval(nwk%channel(:)%isct%gye) )then
     call errend('Inconsistency between domain and intersection.'//&
       '\nintersection: ['//&
-      str((/minval(nwk%channel(:)%isct%xs),maxval(nwk%channel(:)%isct%xe)/),DGT_GXY,':')//','//&
-      str((/minval(nwk%channel(:)%isct%ys),maxval(nwk%channel(:)%isct%ye)/),DGT_GXY,':')//']')
+      str((/minval(nwk%channel(:)%isct%gxs),maxval(nwk%channel(:)%isct%gxe)/),DGT_GXY,':')//','//&
+      str((/minval(nwk%channel(:)%isct%gys),maxval(nwk%channel(:)%isct%gye)/),DGT_GXY,':')//']')
   endif
 
   ! Mesh data
-  allocate(fdrmap(nwk%xs:nwk%xe,nwk%ys:nwk%ye))
+  allocate(fdr(nwk%gxs:nwk%gxe,nwk%gys:nwk%gye))
 
   f = get_f_network_mesh(resl, 'dir', id)
   call logmsg('Reading '//str(f))
-  call traperr( rbin(fdrmap, f, dtype=DTYPE_INT4) )
+  call traperr( rbin(fdr, f, dtype=DTYPE_INT4) )
 
   call logext()
   !-------------------------------------------------------------
@@ -451,10 +486,10 @@ subroutine modify_flwdir_network(resl, id)
   nwk%nNode = nwk%nCh * 2
   allocate(nwk%node(nwk%nNode))
 
-  allocate(lst_lon(nwk%nNode))
-  allocate(lst_lat(nwk%nNode))
-  allocate(lst_jCh(nwk%nNode))
-  allocate(lst_jNode(nwk%nNode))
+  call realloc(lst_lon, nwk%nNode)
+  call realloc(lst_lat, nwk%nNode)
+  call realloc(lst_jCh, nwk%nNode)
+  call realloc(lst_jNode, nwk%nNode)
 
   iNode = 0
   do jCh = 1, nwk%nCh
@@ -527,10 +562,10 @@ subroutine modify_flwdir_network(resl, id)
   call logmsg('Nodes: '//str(nwk%nNode))
 
   deallocate(arg)
-  deallocate(lst_lon)
-  deallocate(lst_lat)
-  deallocate(lst_jCh)
-  deallocate(lst_jNode)
+  call realloc(lst_lon, 0)
+  call realloc(lst_lat, 0)
+  call realloc(lst_jCh, 0)
+  call realloc(lst_jNode, 0)
 
   ! Info. of opposite side node
   do iNode = 1, nwk%nNode
@@ -538,20 +573,41 @@ subroutine modify_flwdir_network(resl, id)
 
     allocate(nwknode%iNode(nwknode%nCh))
     nwknode%iNode_to_outlet = 0
-    downleng_min = nwknode%downleng
+    downleng_min = EARTH_R
+    is_ok = .true.
     do jjCh = 1, nwknode%nCh
-      node => nwk%channel(nwknode%jCh(jjCh))%node(3-nwknode%jNode(jjCh))
+      ch => nwk%channel(nwknode%jCh(jjCh))
+      node => ch%node(3-nwknode%jNode(jjCh))
       nwknode%iNode(jjCh) = node%iNode
       if( node%downleng < downleng_min )then
         downleng_min = node%downleng
         nwknode%iNode_to_outlet = node%iNode
         nwknode%jjCh_to_outlet = jjCh
       elseif( node%downleng == downleng_min )then
-        if( iNode /= nwknode%iNode_to_outlet )then
-          call errend('node%downleng == downleng_min')
+        if( node%iNode /= nwknode%iNode_to_outlet )then
+          if( ch%leng < nwk%channel(nwknode%jjCh_to_outlet)%leng )then
+            nwknode%iNode_to_outlet = node%iNode
+            nwknode%jjCh_to_outlet = jjCh
+          elseif( ch%leng == nwk%channel(nwknode%jjCh_to_outlet)%leng )then
+            is_ok = .false.
+          endif
         endif
       endif
     enddo  ! jjCh/
+
+    if( .not. is_ok )then
+      call logmsg('node#'//str(iNode)//' '//slonlat(nwknode%lon, nwknode%lat)//&
+        ' iNode_to_outlet: '//str(nwknode%iNode_to_outlet)//&
+        ' downleng: '//str(nwknode%downleng)//&
+        ' downleng_min: '//str(downleng_min))
+      do jjCh = 1, nwknode%nCh
+        node => nwk%channel(nwknode%jCh(jjCh))%node(3-nwknode%jNode(jjCh))
+        call logmsg('node#'//str(node%iNode,dgt(nwk%nNode))//&
+         ' '//slonlat(node%lon, node%lat)//' downleng: '//str(node%downleng))
+      enddo
+      call logmsg('Same distance to outlet and same channel length: not implemented yet')
+      stop
+    endif
   enddo  ! iNode/
 
   call logext()
@@ -643,21 +699,21 @@ subroutine modify_flwdir_network(resl, id)
   !-------------------------------------------------------------
   call logent('Calculating mesh size')
 
-  allocate(mesh_size(nwk%ys:nwk%ye))
+  allocate(mesh_size(nwk%gys:nwk%gye))
 
-  do iy = nwk%ys, nwk%ye
+  do igy = nwk%gys, nwk%gye
     ! length in longit: dlon * R*cos(lat)
     !           latit : dlat * R
-    mesh_size(iy) = sqrt(&
-      (GRIDSIZE_LON*d2r * cos(center_of_gy(iy)*d2r)) &
+    mesh_size(igy) = sqrt(&
+      (GRIDSIZE_LON*d2r * cos(center_of_gy(igy)*d2r)) &
       * (GRIDSIZE_LAT*d2r) &
     ) * EARTH_R
-    !mesh_size(iy) = area_sphere_rect(north_of_gy(iy)*d2r, south_of_gy(iy)*d2r)&
+    !mesh_size(igy) = area_sphere_rect(north_of_gy(igy)*d2r, south_of_gy(igy)*d2r)&
     !  * GRIDSIZE_LON*d2r * EARTH_R**2
   enddo  ! iy/
   ! Diameter of the circle with the same area to the mesh
   !mesh_size(:) = sqrt(mesh_size(:) / pi) * 2.d0
-  call logmsg('Mesh size: '//str(sum(mesh_size)/(nwk%ye-nwk%ys+1))//' [m]')
+  call logmsg('Mesh size: '//str(sum(mesh_size)/(nwk%gye-nwk%gys+1))//' [m]')
 
   call logext()
   !-------------------------------------------------------------
@@ -665,23 +721,24 @@ subroutine modify_flwdir_network(resl, id)
   !-------------------------------------------------------------
   call logent('Making mesh line from source to outlet')
 
-  nMesh = (nwk%xe-nwk%xs+1) + (nwk%ye-nwk%ys+1)
-  allocate(lst_x(nMesh))
-  allocate(lst_y(nMesh))
+  nMesh = (nwk%gxe-nwk%gxs+1) + (nwk%gye-nwk%gys+1)
+  allocate(lst_gx(nMesh))
+  allocate(lst_gy(nMesh))
   allocate(lst_leng(nMesh))
   allocate(lst_counted(nMesh))
 
-  allocate(nwkmap(nwk%xs:nwk%xe,nwk%ys:nwk%ye))
-  nwkmap(:,:) = 0_1
+  allocate(isc(nwk%gxs:nwk%gxe,nwk%gys:nwk%gye))
+  isc(:,:) = ISCT__NO
 
   do iiNode = 1, nNode_src
-    !-----------------------------------------------------------
-    ! Make a list of intersections
-    !-----------------------------------------------------------
     iNode = lst_iNode_src(iiNode)
     nwknode => nwk%node(iNode)
-    call logmsg('src node#'//str(iNode,dgt(nwk%nNode))//' dist '//str(nwknode%downleng))
+    !call logmsg('src node#'//str(iNode,dgt(nwk%nNode))//' dist '//str(nwknode%downleng))
 
+    !debug_this = iNode == 10658
+    !-----------------------------------------------------------
+    ! Rasterize the channels
+    !-----------------------------------------------------------
     nMesh = 0
     iter = 0
     do while( nwknode%downleng > 0.d0 )
@@ -707,12 +764,15 @@ subroutine modify_flwdir_network(resl, id)
         ie = 1
       endif
 
-      !call logmsg('ch#'//str(jCh,dgt(nwk%nCh))//' dir '//str(chdir,2)//&
-      !' '//slonlat(ch%node(1)%lon,ch%node(1)%lat)//&
-      !' - '//str(slonlat(ch%node(2)%lon,ch%node(2)%lat))//&
-      !'\n['//str((/ci%x(1),ci%y(1)/),DGT_GXY,',')//'] - ['//&
-      ! str((/ci%x(ci%n),ci%y(ci%n)/),DGT_GXY,',')//']'//&
-      ! ' n: '//str(ci%n))
+      if( debug_this )then
+        call logmsg('ch#'//str(jCh,dgt(nwk%nCh))//' dir '//str(chdir,2)//&
+          ' '//slonlat(ch%node(jNode)%lon,ch%node(jNode)%lat)//&
+          ' - '//str(slonlat(ch%node(3-jNode)%lon,ch%node(3-jNode)%lat))//&
+          ' dist: '//str(nwk%node(ch%node(3-jNode)%iNode)%downleng)//&
+          '\n['//str((/ci%gx(1),ci%gy(1)/),DGT_GXY,',')//'] - ['//&
+          str((/ci%gx(ci%n),ci%gy(ci%n)/),DGT_GXY,',')//']'//&
+          ' n: '//str(ci%n))
+      endif
 
       call update_list_isct()
 
@@ -721,25 +781,47 @@ subroutine modify_flwdir_network(resl, id)
       !call logmsg('  - node#'//str(iNode,dgt(nwk%nNode))//' dist '//str(nwknode%downleng))
     enddo  ! while nwknode%downleng > 0
 
-
     call make_continuous_mesh_line()
+    !-----------------------------------------------------------
+    ! Modify flwdir
+    !-----------------------------------------------------------
+    do iMesh = 1, nMesh-1
+!if( (lst_gx(iMesh) == 63058 .and. lst_gy(iMesh) == 35215) .or. &
+!    (lst_gx(iMesh) == 63059 .and. lst_gy(iMesh) == 35215) )then
+!  call logmsg('fdr('//str((/lst_gx(iMesh),lst_gy(iMesh)/),DGT_GXY,',')//&
+!    ') '//str(fdr(lst_gx(iMesh),lst_gy(iMesh)))//' -> '//&
+!    str(get_fdr(lst_gx(iMesh), lst_gy(iMesh), lst_gx(iMesh+1), lst_gy(iMesh+1))))
+!endif
+      fdr(lst_gx(iMesh),lst_gy(iMesh)) &
+      = get_fdr(lst_gx(iMesh), lst_gy(iMesh), lst_gx(iMesh+1), lst_gy(iMesh+1))
+    enddo
 
-
-    call modify_flow_direction(.true.)
-
-
+    gx = lst_gx(nMesh)
+    gy = lst_gy(nMesh)
+    if( fdr(gx,gy) /= FDR_RIVERMOUTH )then
+      call logmsg('fdr('//str((/gx,gy/),',')//') -> river mouth')
+      fdr(gx,gy) = FDR_RIVERMOUTH
+    endif
+    !-----------------------------------------------------------
+    ! Calc. length
+    !-----------------------------------------------------------
     leng_mesh = 0.d0
     do jMesh = 1, nMesh
-      call add(leng_mesh, mesh_size(lst_y(iMesh)))
+      call add(leng_mesh, mesh_size(lst_gy(iMesh)))
     enddo  ! jMesh/
 
-    call logmsg('leng channel: '//str(nwk%node(lst_iNode_src(iiNode))%downleng)//&
-                ' isct: '//str(sum(lst_leng(:nMesh)))//&
-                ' mesh: '//str(leng_mesh))
+    !call logmsg('leng channel: '//str(nwk%node(lst_iNode_src(iiNode))%downleng)//&
+    !            ' isct: '//str(sum(lst_leng(:nMesh)))//&
+    !            ' mesh: '//str(leng_mesh))
 
-    call update_network_map(1_1)
+    do iMesh = 1, nMesh
+      isc(lst_gx(iMesh),lst_gy(iMesh)) = ISCT__NETWORK
+    enddo
     !-----------------------------------------------------------
   enddo  ! iiNode
+
+  deallocate(lst_iNode_src)
+  deallocate(lst_dist_src)
 
   call logext()
   !-------------------------------------------------------------
@@ -747,12 +829,35 @@ subroutine modify_flwdir_network(resl, id)
   !-------------------------------------------------------------
   call logent('Merging intersections of isolated channels')
 
+  ! Sort channels in the descending order of the length
+  n = 0
+  call realloc(lst_jCh, nwk%nCh)
+  call realloc(lst_leng, nwk%nCh)
   do jCh = 1, nwk%nCh
     ch => nwk%channel(jCh)
     if( .not. ch%is_isolated ) cycle
-    call logmsg('ch#'//str(jCh)//' leng '//str(ch%leng))
-    ci => ch%isct
+    call add(n)
+    lst_jCh(n) = jCh
+    lst_leng(n) = ch%leng
+  enddo  ! jCh
+  if( n > 0 )then
+    allocate(arg(n))
+    call argsort(lst_leng(:n), arg)
+    call sort(lst_jCh(:n), arg)
+    call reverse(lst_jCh(:n))
+    deallocate(arg)
+  endif
 
+  call realloc(lst_leng, nMesh)
+
+  do jjCh = 1, n
+    jCh = lst_jCh(jjCh)
+    ch => nwk%channel(jCh)
+    !call logmsg('ch#'//str(jCh)//' leng '//str(ch%leng))
+    ci => ch%isct
+    !-----------------------------------------------------------
+    ! Rasterize the channel
+    !-----------------------------------------------------------
     if( ch%node(1)%downleng > ch%node(2)%downleng )then
       is = 1
       ie = ci%n
@@ -767,27 +872,388 @@ subroutine modify_flwdir_network(resl, id)
     call update_list_isct()
 
     call make_continuous_mesh_line()
-
-    call modify_flow_direction(.false.)
-
-    do iMesh = 1, nMesh
-      if( nwkmap(lst_x(iMesh),lst_y(iMesh)) /= 0_1 )then
-        lst_x(iMesh) = 0
+    !-----------------------------------------------------------
+    ! Modify flwdir
+    !-----------------------------------------------------------
+    is_ok = .false.
+    do iMesh = 2, nMesh
+      if( isc(lst_gx(iMesh), lst_gy(iMesh)) == ISCT__NETWORK )then
+        is_ok = .true.
+        exit
       endif
-    enddo  ! iMesh/
+    enddo
+    if( .not. is_ok ) cycle
+
+    do iMesh = 1, nMesh-1
+      !if( isc(lst_gx(iMesh), lst_gy(iMesh)) == ISCT__NETWORK )then
+      if( isc(lst_gx(iMesh), lst_gy(iMesh)) > 0_1 )then
+        lst_gx(iMesh) = 0
+      else
+!if( (lst_gx(iMesh) == 63058 .and. lst_gy(iMesh) == 35215) .or. &
+!    (lst_gx(iMesh) == 63059 .and. lst_gy(iMesh) == 35215) )then
+!  call logmsg('fdr('//str((/lst_gx(iMesh),lst_gy(iMesh)/),DGT_GXY,',')//&
+!    ') '//str(fdr(lst_gx(iMesh),lst_gy(iMesh)))//' -> '//&
+!    str(get_fdr(lst_gx(iMesh), lst_gy(iMesh), lst_gx(iMesh+1), lst_gy(iMesh+1))))
+!endif
+        fdr(lst_gx(iMesh),lst_gy(iMesh)) &
+        = get_fdr(lst_gx(iMesh), lst_gy(iMesh), lst_gx(iMesh+1), lst_gy(iMesh+1))
+      endif
+    enddo
 
     iMesh = 0
     do jMesh = 1, nMesh
-      if( lst_x(jMesh) == 0 ) cycle
+      if( lst_gx(jMesh) == 0 ) cycle
       call add(iMesh)
-      lst_x(iMesh) = lst_x(jMesh)
-      lst_y(iMesh) = lst_y(jMesh)
+      lst_gx(iMesh) = lst_gx(jMesh)
+      lst_gy(iMesh) = lst_gy(jMesh)
       lst_leng(iMesh) = lst_leng(jMesh)
     enddo  ! jMesh/
     nMesh = iMesh
 
-    call update_network_map(2_1)
+    do iMesh = 1, nMesh
+      isc(lst_gx(iMesh),lst_gy(iMesh)) = ISCT__ISOLATED
+    enddo
   enddo  ! jCh/
+
+  call realloc(lst_jCh, 0)
+  call realloc(lst_leng, 0)
+
+  deallocate(mesh_size)
+
+  call logext()
+  !-------------------------------------------------------------
+  ! Make a mask of grids that reach ocean
+  !-------------------------------------------------------------
+  call logent('Making a mask of grids that reach ocean')
+
+  allocate(msk(nwk%gxs:nwk%gxe,nwk%gys:nwk%gye))
+  allocate(reach(nwk%gxs:nwk%gxe,nwk%gys:nwk%gye))
+
+  f = get_f_network_mesh(resl, 'mask', id)
+  call logmsg('Reading '//str(f))
+  call traperr( rbin(msk, f) )
+
+  ! Find source grids
+  !-------------------------------------------------------------
+  call logent('Finding source grids')
+
+  reach(:,:) = REACH__UNDEF
+  do igy = nwk%gys, nwk%gye
+  do igx = nwk%gxs, nwk%gxe
+    if( msk(igx,igy) <= 0_1 .and. isc(igx,igy) > 0_1 )then
+      call errend('msk <= 0 but isc > 0')
+    endif
+
+    if( msk(igx,igy) <= 0_1 ) cycle
+
+    if( fdr(igx,igy) <= 0_1 ) cycle
+    call get_nextxy(igx, igy, fdr(igx,igy), gxx, gyy)
+
+    reach(gxx,gyy) = REACH__SOURCE
+  enddo  ! igx
+  enddo  ! igy
+
+  call logext()
+
+  ! Mask grids that does not reach oceans
+  !-------------------------------------------------------------
+  call logent('Making a mask')
+
+  do igy = nwk%gys, nwk%gye
+  do igx = nwk%gxs, nwk%gxe
+    if( fdr(igx,igy) == FDR_RIVERMOUTH )then
+      reach(igx,igy) = REACH__RIVERMOUTH
+    elseif( fdr(igx,igy) == FDR_INLAND )then
+      reach(igx,igy) = REACH__INLAND
+    elseif( reach(igx,igy) == REACH__SOURCE )then
+      continue
+    elseif( msk(igx,igy) <= 0_1 )then
+      reach(igx,igy) = REACH__MISS
+    else
+      reach(igx,igy) = REACH__UNDEF
+    endif
+  enddo  ! igx
+  enddo  ! igy
+
+  allocate(passed(nwk%gxs:nwk%gxe,nwk%gys:nwk%gye))
+  passed = .false.
+
+  n = nwk%nx + nwk%ny
+  call realloc(lst_gx, n, clear=.true.)
+  call realloc(lst_gy, n, clear=.true.)
+
+  do igy = nwk%gys, nwk%gye
+  do igx = nwk%gxs, nwk%gxe
+    if( reach(igx,igy) == REACH__SOURCE .and. fdr(igx,igy) == FDR_MISS )then
+      !call logmsg('ocean '//slonlat(center_of_gx(igx),center_of_gy(igy)))
+      reach(igx,igy) = REACH__RIVERMOUTH
+    endif
+  enddo
+  enddo
+
+  do igy = nwk%gys, nwk%gye
+  do igx = nwk%gxs, nwk%gxe
+    if( reach(igx,igy) /= REACH__SOURCE ) cycle
+
+    !call logmsg('source('//str((/igx,igy/),DGT_GXY,',')//')')
+    !-----------------------------------------------------------
+    ! Judge the type of the destination
+    !-----------------------------------------------------------
+    call logent('Judging the type of the destination', opt='-p')
+
+    gx = igx
+    gy = igy
+    is_ok = .true.
+    n = 1
+    lst_gx(n) = gx
+    lst_gy(n) = gy
+    do
+      passed(gx,gy) = .true.
+
+      call get_nextxy(gx, gy, fdr(gx,gy), gxx, gyy)
+      gx = gxx
+      gy = gyy
+
+      if( n == size(lst_gx) )then
+        call realloc(lst_gx, n*2, clear=.false.)
+        call realloc(lst_gy, n*2, clear=.false.)
+      endif
+      call add(n)
+      lst_gx(n) = gx
+      lst_gy(n) = gy
+
+      if( passed(gx,gy) )then
+        is_ok = .false.
+        exit
+      endif
+      !---------------------------------------------------------
+      ! Case: River mouth
+      if( reach(gx,gy) == REACH__RIVERMOUTH )then
+        reach(igx,igy) = REACH__RIVERMOUTH
+        exit
+      !---------------------------------------------------------
+      ! Case: Inland outlet
+      elseif( reach(gx,gy) == REACH__INLAND )then
+        reach(igx,igy) = REACH__INLAND
+        exit
+      !---------------------------------------------------------
+      ! Case: Directly runoff to the ocean
+      elseif( msk(gx,gy) <= 0_1 )then
+        reach(igx,igy) = REACH__OCEAN
+        reach(gx,gy) = REACH__OCEAN
+        exit
+      !---------------------------------------------------------
+      ! Case: msk > 0 and fdr == miss
+      !   Modified to river mouth later
+      elseif( fdr(gx,gy) == FDR_MISS )then
+        reach(igx,igy) = REACH__RIVERMOUTH
+        reach(gx,gy) = REACH__RIVERMOUTH
+        exit
+      endif
+
+      selectcase( fdr(gx,gy) )
+      case( 1_1: )
+        continue
+      case( FDR_RIVERMOUTH, &
+            FDR_INLAND, &
+            FDR_MISS, &
+            FDR_UNDEF )
+        call errend(msg_unexpected_condition()//&
+          '\nfdr == '//str(fdr(gx,gy)))
+      case default
+        call errend(msg_invalid_value('fdr', fdr(gx,gy)))
+      endselect
+    enddo
+
+    do i = 1, n
+      passed(lst_gx(i), lst_gy(i)) = .false.
+    enddo
+
+    if( .not. is_ok )then
+      call erradd('Flow direction is cycling. source: ('//str((/igx,igy/),',')//')')
+      open(newunit=un, file='tmp/passed.txt', status='replace')
+      do i = 1, n
+        gx = lst_gx(i)
+        gy = lst_gy(i)
+        write(un,"(a)") str((/gx,gy/),DGT_GXY)//&
+          ' '//str((/center_of_gx(gx),center_of_gy(gy)/),'es20.13')//&
+          ' '//str(fdr(gx,gy),2)
+        if( passed(gx,gy) ) exit
+        passed(gx,gy) = .true.
+      enddo
+      close(un)
+      call errend()
+    endif
+
+    call logext()
+    !-----------------------------------------------------------
+    ! Update the mask
+    !-----------------------------------------------------------
+    call logent('Updating the mask', opt='-p')
+
+    selectcase( reach(igx,igy) )
+    case( REACH__RIVERMOUTH, &
+          REACH__INLAND, &
+          REACH__OCEAN )
+      gx = igx
+      gy = igy
+      do
+        call get_nextxy(gx, gy, fdr(gx,gy), gxx, gyy)
+        gx = gxx
+        gy = gyy
+        if( reach(gx,gy) > 0_1 ) exit
+        reach(gx,gy) = reach(igx,igy)
+      enddo
+    case( REACH__SOURCE, &
+          REACH__UNDEF )
+      call errend(msg_unexpected_condition()//&
+        '\n  reach == '//str(reach(gx,gy)))
+    case default
+      call errend(msg_invalid_value('reach', reach(gx,gy)))
+    endselect
+
+    call logext()
+    !-----------------------------------------------------------
+  enddo  ! igx
+  enddo  ! igy
+
+  deallocate(passed)
+  call realloc(lst_gx, 0)
+  call realloc(lst_gy, 0)
+
+  call logext()
+  !-------------------------------------------------------------
+
+  call logext()
+  !-------------------------------------------------------------
+  ! Connect flwdir to the network that reaches outlet
+  !-------------------------------------------------------------
+  call logent('Connecting flow to the network that reaches outlet')
+
+  do igy = nwk%gys, nwk%gye
+  do igx = nwk%gxs, nwk%gxe
+    if( msk(igx,igy) <= 0_1 ) cycle
+
+    selectcase( fdr(igx,igy) )
+    !-----------------------------------------------------------
+    ! Case: Ocean
+    case( FDR_MISS )
+      call logmsg('Modifying: '//&
+        '('//str((/igx,igy/),DGT_GXY,',')//')'//&
+        ' msk '//str(msk(igx,igy),2)//' isc '//str(isc(igx,igy),1)//&
+        ' -> ocean')
+      call logmsg('  Set to river mouth')
+
+      fdr(igx,igy) = FDR_RIVERMOUTH
+    !-----------------------------------------------------------
+    ! Case: Outlet
+    case( FDR_RIVERMOUTH, &
+          FDR_INLAND )
+      cycle
+    !-----------------------------------------------------------
+    ! Case: Downstream exists
+    case( 1_1: )
+      call get_nextxy(igx, igy, fdr(igx,igy), gxx, gyy)
+
+      if( msk(gxx,gyy) > 0_1 ) cycle
+
+      call logmsg('Modifying: '//&
+        '('//str((/igx,igy/),DGT_GXY,',')//')'//&
+        ' msk '//str(msk(igx,igy),2)//' isc '//str(isc(igx,igy),1)//&
+        ' -> ('//str((/gxx,gyy/),DGT_GXY,',')//')'//&
+        ' msk '//str(msk(gxx,gyy),2)//' isc '//str(isc(gxx,gyy),1))
+      call setlog('+x2')
+
+      if( msk(igx,igy) == STAT_NWKMESH__OUT .neqv. msk(gxx,gyy) == -9_1 )then
+        call errend('Inconsistency in the mask. `this` == out .neqv. `next` == ocean')
+      endif
+
+      angle_join_min = 360.d0
+      do jgy = igy-1, igy+1
+      do jgx = igx-1, igx+1
+        if( jgx == igx .and. jgy == igy ) cycle
+
+        if( reach(jgx,jgy) /= REACH__RIVERMOUTH ) cycle
+
+        selectcase( fdr(jgx,jgy) )
+        case( 1_1:, &
+              FDR_RIVERMOUTH, &
+              FDR_INLAND )
+
+          if( fdr(jgx,jgy) > 0_1 )then
+            call get_nextxy(jgx, jgy, fdr(jgx,jgy), gxx, gyy)
+
+            if( gxx == igx .and. gyy == igy )then
+              cycle
+            elseif( gxx <= 0 )then
+              call errend('Downstream is ocean although fdr > 0')
+            endif
+          endif
+
+          ! Angle of flwdir from (igx,igy) to (jgx,jgy)
+          angle_in = get_angle_fdr(get_fdr(igx, igy, jgx, jgy))
+
+          ! Calc. angle of flwdir of the target grid (jgx,jgy)
+          !   angle_target := (theta1 + theta2) / 2
+          !   theta1 := mean angle of the inflow to (jgx,jgy)
+          !   theta2 := angle of outflow from (jgx,jgy)
+          n = 0
+          angle_target = 0.d0
+          do kgy = jgy-1, jgy+1
+          do kgx = jgx-1, jgx+1
+            if( fdr(kgx,kgy) <= 0_1 ) cycle
+            call get_nextxy(kgx, kgy, fdr(kgx,kgy), gxx, gyy)
+            if( gxx /= jgx .or. gyy /= jgy ) cycle
+            call add(n)
+            call add(angle_target, get_angle_fdr(fdr(kgx,kgy)))
+          enddo
+          enddo
+          if( n == 0 ) cycle
+
+          call div(angle_target, n)
+
+          if( fdr(jgx,jgy) > 0_1 )then
+            angle_target = (angle_target + get_angle_fdr(fdr(jgx,jgy))) / 2
+          endif
+        case( FDR_MISS )
+          cycle
+        case default
+          call errend(msg_invalid_value('fdr', fdr(jgx,jgy)))
+        endselect
+
+        angle_join = londiff_deg(angle_in, angle_target)
+        if( angle_join < angle_join_min )then
+          angle_join_min = angle_join
+          gx_next = jgx
+          gy_next = jgy
+        endif
+
+        call logmsg('('//str((/jgx,jgy/),DGT_GXY,',')//') isc '//str(isc(jgx,jgy),1)//&
+          ' angle in '//str(angle_in,'f6.2')//' target '//str(angle_target,'f6.2')//&
+          ' join '//str(angle_join,'f6.2'))
+      enddo  ! jgx
+      enddo  ! jgy
+
+      if( angle_join_min == 360.d0 )then
+        call logwrn('Downstream grid was not obtained. Set to inland outlet.')
+        fdr(igx,igy) = FDR_INLAND
+      else
+        fdr(igx,igy) = get_fdr(igx, igy, gx_next, gy_next)
+      endif
+
+      call setlog('-x2')
+    !-----------------------------------------------------------
+    ! Case: ERROR (Undef)
+    case( FDR_UNDEF )
+      call errend(msg_unexpected_condition()//&
+        '\n fdr('//str((/igx,igy/),',')//') == undef')
+    !-----------------------------------------------------------
+    ! Case: ERROR
+    case default
+      call errend(msg_invalid_value('fdr('//str((/igx,igy/),',')//')', fdr(igx,igy)))
+    endselect
+  enddo  ! igx
+  enddo  ! igy
 
   call logext()
   !-------------------------------------------------------------
@@ -798,9 +1264,26 @@ subroutine modify_flwdir_network(resl, id)
   f = get_f_network_mesh(resl, 'dir_mod', id)
   call logmsg('Writing '//str(f))
   call traperr( mkdir(dirname(f)) )
-  call traperr( wbin(fdrmap, f, replace=.true.) )
+  call traperr( wbin(fdr, f, replace=.true.) )
 
   call logext()
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  deallocate(isc)
+  deallocate(msk)
+  deallocate(fdr)
+  deallocate(reach)
+
+  call realloc(lst_gx, 0)
+  call realloc(lst_gy, 0)
+  call realloc(lst_leng, 0)
+  call realloc(lst_counted, 0)
+  call realloc(lst_lon, 0)
+  call realloc(lst_lat, 0)
+  call realloc(lst_jCh, 0)
+  call realloc(lst_jNode, 0)
+  call realloc(arg, 0)
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
 !---------------------------------------------------------------
@@ -812,26 +1295,26 @@ subroutine update_list_isct()
   implicit none
 
   do iMesh = is, ie, chdir
-    if( size(lst_x) == nMesh )then
-      call realloc(lst_x, nMesh*2, clear=.false.)
-      call realloc(lst_y, nMesh*2, clear=.false.)
+    if( size(lst_gx) == nMesh )then
+      call realloc(lst_gx, nMesh*2, clear=.false.)
+      call realloc(lst_gy, nMesh*2, clear=.false.)
       call realloc(lst_leng, nMesh*2, clear=.false.)
     endif
     call add(nMesh)
-    lst_x(nMesh) = ci%x(iMesh)
-    lst_y(nMesh) = ci%y(iMesh)
+    lst_gx(nMesh) = ci%gx(iMesh)
+    lst_gy(nMesh) = ci%gy(iMesh)
     lst_leng(nMesh) = ci%leng(iMesh)
     if( nMesh > 1 )then
-      if( abs(lst_x(nMesh) - lst_x(nMesh-1)) > 1 .or. &
-          abs(lst_y(nMesh) - lst_y(nMesh-1)) > 1 )then
+      if( abs(lst_gx(nMesh) - lst_gx(nMesh-1)) > 1 .or. &
+          abs(lst_gy(nMesh) - lst_gy(nMesh-1)) > 1 )then
         call errend('Discontinuition was found in the intersection.'//&
           '\ncurrent: #'//str(nMesh-1)//&
-            '('//str((/lst_x(nMesh-1),lst_y(nMesh-1)/),DGT_GXY,',')//')'//&
+            '('//str((/lst_gx(nMesh-1),lst_gy(nMesh-1)/),DGT_GXY,',')//')'//&
           '\nnext : #'//str(iMesh)//&
-            '('//str((/ci%x(iMesh),ci%y(iMesh)/),DGT_GXY,',')//')'//&
+            '('//str((/ci%gx(iMesh),ci%gy(iMesh)/),DGT_GXY,',')//')'//&
           '\nchdir: '//str(chdir)//&
-          '\nisct x: '//str(ci%x,DGT_GXY)//&
-          '\n     y: '//str(ci%y,DGT_GXY))
+          '\nisct x: '//str(ci%gx,DGT_GXY)//&
+          '\n     y: '//str(ci%gy,DGT_GXY))
       endif
     endif
   enddo  ! iMesh
@@ -848,37 +1331,34 @@ subroutine make_continuous_mesh_line()
   !call logmsg('Meshes: '//str(nMesh)//' leng: '//str(sum(lst_leng(:nMesh))))
 
   is_updated = .true.
-  do while( is_updated )
-    is_updated = .false.
-    iMesh = 1
-    do jMesh = 2, nMesh
-      if( lst_x(jMesh) == lst_x(iMesh) .and. &
-          lst_y(jMesh) == lst_y(iMesh) )then
-        !call logmsg('integ mesh#'//str(jMesh,dgt(nMesh))//' to mesh#'//str(iMesh,dgt(nMesh)))
-        call add(lst_leng(iMesh), lst_leng(jMesh))
-        lst_x(jMesh) = 0
-        is_updated = .true.
-      else
-        iMesh = jMesh
-      endif
-    enddo  ! jMesh
-  enddo  ! while is_updated
+  iMesh = 1
+  do jMesh = 2, nMesh
+    if( lst_gx(jMesh) == lst_gx(iMesh) .and. &
+        lst_gy(jMesh) == lst_gy(iMesh) )then
+      !call logmsg('integ mesh#'//str(jMesh,dgt(nMesh))//' to mesh#'//str(iMesh,dgt(nMesh)))
+      call add(lst_leng(iMesh), lst_leng(jMesh))
+      lst_gx(jMesh) = 0
+      is_updated = .true.
+    else
+      iMesh = jMesh
+    endif
+  enddo  ! jMesh
 
   iMesh = 0
   do jMesh = 1, nMesh
-    if( lst_x(jMesh) == 0 ) cycle
+    if( lst_gx(jMesh) == 0 ) cycle
     call add(iMesh)
-    lst_x(iMesh) = lst_x(jMesh)
-    lst_y(iMesh) = lst_y(jMesh)
+    lst_gx(iMesh) = lst_gx(jMesh)
+    lst_gy(iMesh) = lst_gy(jMesh)
     lst_leng(iMesh) = lst_leng(jMesh)
   enddo
   nMesh = iMesh
 
   do iMesh = 2, nMesh
-    if( lst_x(iMesh) == lst_x(iMesh-1) .and. &
-        lst_y(iMesh) == lst_y(iMesh-1) )then
+    if( lst_gx(iMesh) == lst_gx(iMesh-1) .and. &
+        lst_gy(iMesh) == lst_gy(iMesh-1) )then
       call errend('mesh#'//str(iMesh)//&
-        'Same pair of (x,y): ('//str((/lst_x(iMesh),lst_y(iMesh)/),',')//')')
+        'Same pair of (x,y): ('//str((/lst_gx(iMesh),lst_gy(iMesh)/),',')//')')
     endif
   enddo
   !call logmsg('Meshes: '//str(nMesh)//' leng: '//str(sum(lst_leng(:nMesh))))
@@ -888,16 +1368,20 @@ subroutine make_continuous_mesh_line()
   call realloc(lst_counted, max(size(lst_counted), nMesh), clear=.true.)
 
   do iMesh = 1, nMesh
-    lst_counted(iMesh) = is_counted(lst_leng(iMesh), lst_y(iMesh))
+    lst_counted(iMesh) = is_counted(lst_leng(iMesh), lst_gy(iMesh))
   enddo  ! iMesh
 
   !call logmsg('Meshes where isct > thresh: '//str(count(lst_counted(:nMesh))))
-
-  ! Temporary set the end points as counted
+  !-------------------------------------------------------------
+  ! Temporarily set the end points as counted
+  !-------------------------------------------------------------
   lst_counted(1) = .true.
   lst_counted(nMesh) = .true.
-
+  !-------------------------------------------------------------
   ! Make the line of intersecting meshes continuous
+  !-------------------------------------------------------------
+  if( debug_this ) call logmsg('Making the line of intersecting meshes continuous')
+
   is_updated = .true.
   do while( is_updated )
     is_updated = .false.
@@ -909,13 +1393,13 @@ subroutine make_continuous_mesh_line()
         call add(jMesh)
       enddo
 
-      if( abs(lst_x(jMesh) - lst_x(iMesh)) > 1 .or. &
-          abs(lst_y(jMesh) - lst_y(iMesh)) > 1 )then
+      if( abs(lst_gx(jMesh) - lst_gx(iMesh)) > 1 .or. &
+          abs(lst_gy(jMesh) - lst_gy(iMesh)) > 1 )then
         kMesh = iMesh + maxloc(lst_leng(iMesh+1:jMesh-1),1)
         !call logmsg(&
-        !  str(iMesh,dgt(nMesh))//' ('//str((/lst_x(iMesh),lst_y(iMesh)/),DGT_GXY,',')//') - '//&
-        !  str(kMesh,dgt(nMesh))//' ('//str((/lst_x(kMesh),lst_y(kMesh)/),DGT_GXY,',')//') - '//&
-        !  str(jMesh,dgt(nMesh))//' ('//str((/lst_x(jMesh),lst_y(jMesh)/),DGT_GXY,',')//')')
+        !  str(iMesh,dgt(nMesh))//' ('//str((/lst_gx(iMesh),lst_gy(iMesh)/),DGT_GXY,',')//') - '//&
+        !  str(kMesh,dgt(nMesh))//' ('//str((/lst_gx(kMesh),lst_gy(kMesh)/),DGT_GXY,',')//') - '//&
+        !  str(jMesh,dgt(nMesh))//' ('//str((/lst_gx(jMesh),lst_gy(jMesh)/),DGT_GXY,',')//')')
         if( lst_counted(kMesh) )then
           call errend('Mesh#'//str(kMesh)//' is already counted.')
         endif
@@ -927,19 +1411,23 @@ subroutine make_continuous_mesh_line()
     enddo  ! jMesh
   enddo  ! while is_updated
 
+  if( debug_this ) call logmsg('done')
+  !-------------------------------------------------------------
   ! Restore the end points
-  lst_counted(1) = is_counted(lst_leng(1), lst_y(1))
-  lst_counted(nMesh) = is_counted(lst_leng(nMesh), lst_y(nMesh))
+  !-------------------------------------------------------------
+  lst_counted(1) = is_counted(lst_leng(1), lst_gy(1))
+  !lst_counted(nMesh) = is_counted(lst_leng(nMesh), lst_gy(nMesh))
 
   leng_mesh = sum(lst_leng(:nMesh), mask=lst_counted(:nMesh))
-
+  !-------------------------------------------------------------
   ! Remove uncounted elements
+  !-------------------------------------------------------------
   iMesh = 0
   do jMesh = 1, nMesh
     if( .not. lst_counted(jMesh) ) cycle
     call add(iMesh)
-    lst_x(iMesh) = lst_x(jMesh)
-    lst_y(iMesh) = lst_y(jMesh)
+    lst_gx(iMesh) = lst_gx(jMesh)
+    lst_gy(iMesh) = lst_gy(jMesh)
     lst_leng(iMesh) = lst_leng(jMesh)
     lst_counted(jMesh) = .false.
     lst_counted(iMesh) = .true.
@@ -947,11 +1435,12 @@ subroutine make_continuous_mesh_line()
   nMesh = iMesh
 
   call assert_mesh_leng_unchanged('remove uncounted elements')
-
+  !-------------------------------------------------------------
   ! Merge same mesh
+  !-------------------------------------------------------------
   iMesh = 1
   do jMesh = 2, nMesh
-    if( lst_x(jMesh) == lst_x(iMesh) .and. lst_y(jMesh) == lst_y(iMesh) )then
+    if( lst_gx(jMesh) == lst_gx(iMesh) .and. lst_gy(jMesh) == lst_gy(iMesh) )then
       call add(lst_leng(iMesh), lst_leng(jMesh))
       lst_counted(jMesh) = .false.
     else
@@ -961,26 +1450,29 @@ subroutine make_continuous_mesh_line()
   nMesh = iMesh
 
   call assert_mesh_leng_unchanged('merge same mesh')
-
+  !-------------------------------------------------------------
   ! Remove empty slots
+  !-------------------------------------------------------------
   iMesh = 0
   do jMesh = 1, nMesh
     if( .not. lst_counted(jMesh) ) cycle
     call add(iMesh)
-    lst_x(iMesh) = lst_x(jMesh)
-    lst_y(iMesh) = lst_y(jMesh)
+    lst_gx(iMesh) = lst_gx(jMesh)
+    lst_gy(iMesh) = lst_gy(jMesh)
     lst_leng(iMesh) = lst_leng(jMesh)
     lst_counted(iMesh) = .true.
   enddo  ! jMesh
   nMesh = iMesh
-
+  !-------------------------------------------------------------
+  ! Validate results
+  !-------------------------------------------------------------
   call assert_mesh_leng_unchanged('remove empty slots')
 
   do iMesh = 1, nMesh-1
-    if( abs(lst_x(iMesh+1) - lst_x(iMesh)) > 1 .or. &
-        abs(lst_y(iMesh+1) - lst_y(iMesh)) > 1 )then
-      call errend('mesh#'//str(iMesh)//' ('//str((/lst_x(iMesh),lst_y(iMesh)/),',')//')'//&
-                '\nmesh#'//str(iMesh+1)//' ('//str((/lst_x(iMesh+1),lst_y(iMesh+1)/),',')//')')
+    if( abs(lst_gx(iMesh+1) - lst_gx(iMesh)) > 1 .or. &
+        abs(lst_gy(iMesh+1) - lst_gy(iMesh)) > 1 )then
+      call errend('mesh#'//str(iMesh)//' ('//str((/lst_gx(iMesh),lst_gy(iMesh)/),',')//')'//&
+                '\nmesh#'//str(iMesh+1)//' ('//str((/lst_gx(iMesh+1),lst_gy(iMesh+1)/),',')//')')
     endif
   enddo
 end subroutine make_continuous_mesh_line
@@ -991,87 +1483,20 @@ subroutine assert_mesh_leng_unchanged(step)
   implicit none
   character(*), intent(in) :: step
 
-  if( abs(sum(lst_leng(:nMesh), mask=lst_counted(:nMesh)) - leng_mesh) / leng_mesh > 1d-6 )then
-    call errend('leng_mesh '//str(leng_mesh)//' -> '//&
-      str(sum(lst_leng(:nMesh), mask=lst_counted(:nMesh))), &
+  real(8) :: leng_mesh_new
+
+  leng_mesh_new = sum(lst_leng(:nMesh), mask=lst_counted(:nMesh))
+
+  if( leng_mesh == 0.d0 )then
+    if( leng_mesh_new > 0.d0 )then
+      call errend('leng_mesh '//str(leng_mesh)//' -> '//str(leng_mesh_new)//&
+        trim(step), PRCNAM, MODNAM)
+    endif
+  elseif( abs(leng_mesh_new - leng_mesh) / leng_mesh > 1d-6 )then
+    call errend('leng_mesh '//str(leng_mesh)//' -> '//str(leng_mesh_new)//&
       trim(step), PRCNAM, MODNAM)
   endif
 end subroutine assert_mesh_leng_unchanged
-!---------------------------------------------------------------
-!
-!---------------------------------------------------------------
-subroutine modify_flow_direction(&
-  is_end_outlet &
-)
-  implicit none
-  logical, intent(in) :: is_end_outlet
-
-  do iMesh = 1, nMesh-1
-    fdrmap(lst_x(iMesh),lst_y(iMesh)) &
-    = get_flwdir(lst_x(iMesh+1)-lst_x(iMesh), lst_y(iMesh+1)-lst_y(iMesh))
-  enddo  ! iMesh/
-
-  if( is_end_outlet )then
-    ix = lst_x(nMesh)
-    iy = lst_y(nMesh)
-    if( fdrmap(ix,iy) /= FDR_RIVERMOUTH )then
-      call logmsg('fdr('//str((/ix,iy/),',')//') -> river mouth')
-      fdrmap(ix,iy) = FDR_RIVERMOUTH
-    endif
-  endif
-
-  !if( fdrmap(ix,iy) > 0_1 )then
-  !  call logmsg('flwdir at the outlet ('//str((/ix,iy/),DGT_GXY,',')//'): '//str(fdrmap(ix,iy)))
-  !endif
-end subroutine modify_flow_direction
-!---------------------------------------------------------------
-!
-!---------------------------------------------------------------
-integer(1) function get_flwdir(xdir, ydir) result(res)
-  implicit none
-  character(CLEN_PROC), parameter :: PRCNAM = 'get_flwdir'
-  integer, intent(in) :: xdir, ydir
-
-  selectcase( xdir )
-  case( 0 )  ! none
-    selectcase( ydir )
-    case( 1 )
-      res = FDR_SOUTH
-    case( -1 )
-      res = FDR_NORTH
-    case default
-      call errend(msg_invalid_value('(xdir,ydir)','('//str((/xdir,ydir/),',')//')'), &
-                  '', PRCNAM, MODNAM)
-    endselect
-  case( 1 )  ! east
-    selectcase( ydir )
-    case( 0 )
-      res = FDR_EAST
-    case( 1 )
-      res = FDR_SOUTHEAST
-    case( -1 )
-      res = FDR_NORTHEAST
-    case default
-      call errend(msg_invalid_value('(xdir,ydir)','('//str((/xdir,ydir/),',')//')'), &
-                  '', PRCNAM, MODNAM)
-    endselect
-  case( -1 )  ! west
-    selectcase( ydir )
-    case( 0 )
-      res = FDR_WEST
-    case( 1 )
-      res = FDR_SOUTHWEST
-    case( -1 )
-      res = FDR_NORTHWEST
-    case default
-      call errend(msg_invalid_value('(xdir,ydir)','('//str((/xdir,ydir/),',')//')'), &
-                  '', PRCNAM, MODNAM)
-    endselect
-  case default
-    call errend(msg_invalid_value('xdir', xdir), &
-                '', PRCNAM, MODNAM)
-  endselect
-end function get_flwdir
 !---------------------------------------------------------------
 !
 !---------------------------------------------------------------
@@ -1082,19 +1507,6 @@ logical function is_counted(leng, iy) result(res)
 
   res = leng > mesh_size(iy) * THRESH_MESHSIZE_FRAC
 end function is_counted
-!---------------------------------------------------------------
-!
-!---------------------------------------------------------------
-subroutine update_network_map(i1)
-  implicit none
-  integer(1), intent(in) :: i1
-
-  do iMesh = 1, nMesh
-    nwkmap(lst_x(iMesh),lst_y(iMesh)) = i1
-  enddo
-end subroutine update_network_map
-!---------------------------------------------------------------
-!
 !---------------------------------------------------------------
 end subroutine modify_flwdir_network
 !===============================================================
@@ -1108,7 +1520,7 @@ end subroutine modify_flwdir_network
 !===============================================================
 !
 !===============================================================
-subroutine calcUpperArea(catmType, resl, id, modified)
+subroutine calcUpperArea(catmType, resl, modified, id)
   use c2_strnk_io, only: &
     get_f_lst_networks_channel
   use c2_jflw_const, &
@@ -1120,8 +1532,8 @@ subroutine calcUpperArea(catmType, resl, id, modified)
   character(CLEN_PROC), parameter :: PRCNAM = 'calcUpperArea'
   character(*), intent(in) :: catmType
   character(*), intent(in) :: resl
+  logical     , intent(in) :: modified
   character(*), intent(in) :: id
-  logical, intent(in) :: modified
 
   character(32) :: id_
   integer :: nCatm, jCatm
@@ -1129,6 +1541,7 @@ subroutine calcUpperArea(catmType, resl, id, modified)
   real(8), allocatable :: pixara(:)
   integer :: igy
 
+  character(4) :: c_mod
   character(CLEN_PATH) :: f
   integer :: un
   character :: c_
@@ -1151,6 +1564,12 @@ subroutine calcUpperArea(catmType, resl, id, modified)
   pixara(:) = area_sphere_rect(pixlat(0:NGY-1), pixlat(1:NGY)) * (GRIDSIZE_LON*d2r) * EARTH_R**2
 
   deallocate(pixlat)
+
+  if( modified )then
+    c_mod = '_mod'
+  else
+    c_mod = ''
+  endif
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
@@ -1167,11 +1586,11 @@ subroutine calcUpperArea(catmType, resl, id, modified)
       read(un,*) c_, nCatm
       do jCatm = 1, nCatm
         read(un,*) c_, id_
-        call calc_upper_area__network(resl, id_, modified, pixara)
+        call calc_upper_area__network(resl, c_mod, id_, pixara)
       enddo
       close(un)
     else
-      call calc_upper_area__network(resl, id, modified, pixara)
+      call calc_upper_area__network(resl, c_mod, id, pixara)
     endif
   !-------------------------------------------------------------
   ! Case: ERROR
@@ -1182,29 +1601,36 @@ end subroutine calcUpperArea
 !===============================================================
 !
 !===============================================================
-subroutine calc_upper_area__network(resl, id, modified, pixara)
+subroutine calc_upper_area__network(resl, c_mod, id, pixara)
   use c2_strnk_io, only: &
     read_network_mesh_domain, &
     get_f_network_mesh      
   use c2_jflw_const
-  use c2_jflw_grid, only: &
-    get_nextxy
+!  use c2_jflw_grid, only: &
+!    get_nextxy
+  use c2_jflw_grid
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'calc_upper_area__network'
   character(*), intent(in) :: resl
+  character(*), intent(in) :: c_mod
   character(*), intent(in) :: id
-  logical, intent(in) :: modified
-  real(8), intent(in) :: pixara(:)
+  real(8)     , intent(in) :: pixara(:)
 
-  integer(1), allocatable :: mskmap(:,:)
-  integer(1), allocatable :: fdrmap(:,:)
-  real(8)   , allocatable :: upamap(:,:)
-  real(8)   , allocatable :: addmap(:,:)
+  integer(1), allocatable :: msk(:,:)
+  integer(1), allocatable :: fdr(:,:)
+  real(8)   , allocatable :: upa(:,:), upaadd(:,:)
+  integer   , allocatable :: upg(:,:), upgadd(:,:)
+  integer, allocatable :: lst_gx(:), lst_gy(:)
+  integer, allocatable :: passed(:,:)
   integer :: nx, ny, gxs, gxe, gys, gye
-  integer :: igx, igy, gxx, gyy
+  integer :: igx, igy, gx, gy, gxx, gyy
+  integer :: gxs1, gxe1, gys1, gye1, gxs2, gxe2, gys2, gye2
   real(8) :: west, east, south, north
+  integer :: n, n_next, i
   logical :: is_updated
-  real(8) :: bsnara, upa_sum
+  integer :: iter
+  integer :: grdnum_true, grdnum
+  real(8) :: bsnara_true, bsnara
   real(8) :: err_norm
 
   character(CLEN_PATH) :: f
@@ -1221,14 +1647,13 @@ subroutine calc_upper_area__network(resl, id, modified, pixara)
     west, east, south, north &
   )
 
-  !allocate(mskmap(gxs-1:gxe+1,gys-1:gye+1))
-  !allocate(fdrmap(gxs-1:gxe+1,gys-1:gye+1))
-  !allocate(upamap(gxs-1:gxe+1,gys-1:gye+1))
-  !allocate(addmap(gxs-1:gxe+1,gys-1:gye+1))
-  allocate(mskmap(gxs:gxe,gys:gye))
-  allocate(fdrmap(gxs:gxe,gys:gye))
-  allocate(upamap(gxs:gxe,gys:gye))
-  allocate(addmap(gxs:gxe,gys:gye))
+  allocate(msk(gxs:gxe,gys:gye))
+  allocate(fdr(gxs:gxe,gys:gye))
+  allocate(upa(gxs:gxe,gys:gye))
+  allocate(upg(gxs:gxe,gys:gye))
+  allocate(upaadd(gxs:gxe,gys:gye))
+  allocate(upgadd(gxs:gxe,gys:gye))
+  allocate(passed(gxs:gxe,gys:gye))
   !-------------------------------------------------------------
   ! Read maps
   !-------------------------------------------------------------
@@ -1236,16 +1661,11 @@ subroutine calc_upper_area__network(resl, id, modified, pixara)
 
   f = get_f_network_mesh(resl, 'mask', id)
   call logmsg('Reading '//str(f))
-  mskmap(:,:) = 0_1
-  call traperr( rbin(mskmap(gxs:gxe,gys:gye), f) )
+  call traperr( rbin(msk, f) )
 
-  if( modified )then
-    f = get_f_network_mesh(resl, 'dir_mod', id)
-  else
-    f = get_f_network_mesh(resl, 'dir', id)
-  endif
+  f = get_f_network_mesh(resl, 'dir'//str(c_mod), id)
   call logmsg('Reading '//str(f))
-  call traperr( rbin(fdrmap(gxs:gxe,gys:gye), f) )
+  call traperr( rbin(fdr, f) )
 
   call logext()
   !-------------------------------------------------------------
@@ -1253,80 +1673,148 @@ subroutine calc_upper_area__network(resl, id, modified, pixara)
   !-------------------------------------------------------------
   call logent('Calculating upper area')
 
-  addmap(:,:) = 0.d0
+  n = count(msk > 0_1)
+  allocate(lst_gx(n))
+  allocate(lst_gy(n))
+
+  n = 0
+  upgadd(:,:) = 0
+  upaadd(:,:) = 0.d0
   do igy = gys, gye
   do igx = gxs, gxe
-    if( mskmap(igx,igy) <= 0_1 ) cycle
-    addmap(igx,igy) = pixara(igy)
+    if( msk(igx,igy) <= 0_1 ) cycle
+    upgadd(igx,igy) = 1
+    upaadd(igx,igy) = pixara(igy)
+    call add(n)
+    lst_gx(n) = igx
+    lst_gy(n) = igy
   enddo
   enddo
-  bsnara = sum(addmap)
+  grdnum_true = sum(upgadd)
+  bsnara_true = sum(upaadd)
 
-  upamap(:,:) = 0.d0
+  upa(:,:) = 0.d0
+  upg(:,:) = 0
   is_updated = .true.
+  iter = 0
+  passed(:,:) = 0
   do while( is_updated )
     is_updated = .false.
-    do igy = gys, gye
-    do igx = gxs, gxe
-      if( mskmap(igx,igy) < 0_1 ) cycle
+    call add(iter)
 
-      if( addmap(igx,igy) == 0.d0 ) cycle
+    n_next = 0
+    do i = 1, n
+      gx = lst_gx(i)
+      gy = lst_gy(i)
 
-      call get_nextxy(igx, igy, fdrmap(igx,igy), gxx, gyy)
-
-      call add(upamap(igx,igy), addmap(igx,igy))
-
-      if( gxx > 0 )then
-        call add(addmap(gxx,gyy), addmap(igx,igy))
-      endif
-
-      addmap(igx,igy) = 0.d0
+      if( upgadd(gx,gy) == 0 ) cycle
 
       is_updated = .true.
-    enddo  ! igx/
-    enddo  ! igy/
-  enddo  ! while is_updated/
+
+      call get_nextxy(gx, gy, fdr(gx,gy), gxx, gyy)
+
+      call add(upg(gx,gy), upgadd(gx,gy))
+      call add(upa(gx,gy), upaadd(gx,gy))
+
+      if( gxx > 0 )then
+        if( passed(gxx,gyy) /= iter )then
+          passed(gxx,gyy) = iter
+          call add(n_next)
+          lst_gx(n_next) = gxx
+          lst_gy(n_next) = gyy
+        endif
+        call add(upgadd(gxx,gyy), upgadd(gx,gy))
+        call add(upaadd(gxx,gyy), upaadd(gx,gy))
+      endif
+
+      upgadd(gx,gy) = 0
+      upaadd(gx,gy) = 0.d0
+    enddo  ! i
+
+    n = n_next
+  enddo  ! while is_updated
 
   ! Validate results
-  upa_sum = 0.d0
+  !-------------------------------------------------------------
+  call logent('Validating the results')
+
+  grdnum = 0
+  bsnara = 0.d0
   do igy = gys, gye
   do igx = gxs, gxe
-    if( mskmap(igx,igy) < 0_1 ) cycle
-    call get_nextxy(igx, igy, fdrmap(igx,igy), gxx, gyy)
-    if( gxx < 0 ) cycle
-    if( mskmap(gxx,gyy) < 0_1 )then
-      call add(upa_sum, upamap(igx,igy))
-    endif
-  enddo  ! igx/
-  enddo  ! igy/
+    selectcase( fdr(igx,igy) )
+    case( FDR_RIVERMOUTH, &
+          FDR_INLAND )
+      call add(grdnum, upg(igx,igy))
+      call add(bsnara, upa(igx,igy))
+    endselect
+  enddo
+  enddo
 
-  err_norm = (upa_sum - bsnara) / bsnara
-  if( err_norm > 1d-8 )then
-    call errend('basin area : '//str(bsnara)//&
-              '\nsum. of upa: '//str(upa_sum)//&
-              '\nnormalized error: '//str(err_norm))
+!  grdnum = 0
+!  bsnara = 0.d0
+!  do igy = gys, gye
+!  do igx = gxs, gxe
+!    if( msk(igx,igy) < 0_1 ) cycle
+!    if( fdr(igx,igy) <= 0_1 )then
+!      call add(bsnara, upa(igx,igy))
+!      call add(grdnum, upg(igx,igy))
+!    else
+!      call get_nextxy(igx, igy, fdr(igx,igy), gxx, gyy)
+!      if( msk(gxx,gyy) < 0_1 )then
+!      call logwrn('('//str((/igx,igy/),',')//') msk '//str(msk(igx,igy))//&
+!        ' fdr '//str(fdr(igx,igy))//&
+!        ' ('//str((/center_of_gx(igx),center_of_gy(igy)/),'es20.13',',')//')')
+!        call add(bsnara, upa(igx,igy))
+!        call add(grdnum, upg(igx,igy))
+!      endif
+!    endif
+!  enddo  ! igx
+!  enddo  ! igy
+
+  call logmsg('upg max: '//str(maxval(upg))//' grdnum: '//str(grdnum_true))
+  call logmsg('upa max: '//str(maxval(upa))//' bsnara: '//str(bsnara_true))
+
+  if( grdnum /= grdnum_true )then
+    call errend('The number of grids do not match.'//&
+      '\n  truth     : '//str(grdnum_true)//&
+      '\n  calculated: '//str(grdnum))
   endif
+
+  err_norm = abs(bsnara - bsnara_true) / bsnara_true
+  call logmsg('basin area truth: '//str(bsnara_true)//&
+            ', upa: '//str(bsnara)//&
+            ', normalized error: '//str(err_norm))
+  if( err_norm > 1d-8 )then
+    call errend('Error exceeded the threshold.')
+  endif
+
+  call logext()
   !-------------------------------------------------------------
-  deallocate(fdrmap)
-  deallocate(addmap)
-  deallocate(mskmap)
+  deallocate(msk)
+  deallocate(fdr)
+  deallocate(upgadd)
+  deallocate(upaadd)
+  deallocate(passed)
 
   call logext()
   !-------------------------------------------------------------
   ! Output
   !-------------------------------------------------------------
-  if( modified )then
-    f = get_f_network_mesh(resl, 'upa_mod', id)
-  else
-    f = get_f_network_mesh(resl, 'upa', id)
-  endif
+  f = get_f_network_mesh(resl, 'upa'//str(c_mod), id)
   call logmsg('Writing '//str(f))
   call traperr( mkdir(dirname(f)) )
-  call traperr( wbin(upamap(gxs:gxe,gys:gye), f, dtype=DTYPE_REAL, replace=.true.) )
+  call traperr( wbin(upa(gxs:gxe,gys:gye), f, dtype=DTYPE_REAL, replace=.true.) )
+
+  f = get_f_network_mesh(resl, 'upg'//str(c_mod), id)
+  call logmsg('Writing '//str(f))
+  call traperr( mkdir(dirname(f)) )
+  call traperr( wbin(upg(gxs:gxe,gys:gye), f, replace=.true.) )
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
-  deallocate(upamap)
+  deallocate(upg)
+  deallocate(upa)
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
 end subroutine calc_upper_area__network

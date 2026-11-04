@@ -11,8 +11,9 @@ program main
   use mod_mesh, only: &
     calcMeshIntersections, &
     makeHiresNetworkMask , &
+    scaleUp              , &
     scaleUpNetworkMask   , &
-    trimBasin          
+    trimCatm          
   use mod_topo, only: &
     modifyElv   , &
     modifyFlwDir, &
@@ -38,7 +39,7 @@ program main
 !    -3 scaleUpNetworkMask
 !  -b-1 makeRemappingTables
 !  -b-2 remap
-! 2     trimBasin
+! 2     trimCatm
 ! 3-1   modifyFlwDir
 !  -2   modifyElv
 !  -3   calcUpperArea
@@ -117,18 +118,18 @@ program main
     name_src = arg_char('name_src')
     resl_src = lower(arg_char('resl_src'))
     var = lower(arg_char('var'))
-    overwrite = arg_flag('--overwrite')
+    overwrite = arg_flag('-w')
 
     call remap(resl, name_src, resl_src, var, overwrite)
 
   ! Main 2
   !-------------------------------------------------------------
-  case( 'trimBasin' )
+  case( 'trimCatm' )
     call addarg('catmType', 's', 'Catchment type {basin,network,networkset}')
     call addarg('resl', 's', 'Mesh resolution')
-    call addarg('id', 's', 'Basin id')
-    call addarg('var', 's', 'Variable name')
-    call addarg('outfmt', 's', 'Output format {default,RRI}')
+    call addarg('id', 's', 'Catchment id')
+    call addarg('var', 's', 'Comma-separated variable names')
+    call addarg('-o', '--output-format', 'default', .false., 'Comma-separated list of output formats {default,RRI}')
     call addarg('-w', '--overwrite', .false., .false., 'Overwrite existing output files')
     call parsearg()
 
@@ -136,17 +137,17 @@ program main
     resl = lower(arg_char('resl'))
     id = arg_char('id')
     var = lower(arg_char('var'))
-    outfmt = lower(arg_char('outfmt'))
-    overwrite = arg_flag('--overwrite')
+    outfmt = lower(arg_char('-o'))
+    overwrite = arg_flag('-w')
 
-    call trimBasin(catmType, resl, id, var, outfmt, overwrite)
+    call trimCatm(catmType, resl, id, var, outfmt, overwrite)
 
   ! Main 3.a
   !-------------------------------------------------------------
   case( 'modifyElv' )
     call addarg('catmType', 's', 'Catchment type {basin,network,networkset}')
     call addarg('resl', 's', 'Mesh resolution')
-    call addarg('-id', '', '', .false., 'Basin id')
+    call addarg('-id', '', '', .false., 'Catchment id')
     call parsearg()
 
     catmType = lower(arg_char('catmType'))
@@ -174,16 +175,34 @@ program main
   case( 'calcUpperArea' )
     call addarg('catmType', 's', 'Catchment type {basin,network,networkset}')
     call addarg('resl', 's', 'Mesh resolution')
-    call addarg('-id', '', '', .false., 'Basin id')
     call addarg('-m', '--modified', .false., .false., 'Use modified topography')
+    call addarg('-id', '', '', .false., 'Catchment id')
     call parsearg()
 
     catmType = lower(arg_char('catmType'))
     resl = lower(arg_char('resl'))
-    id = arg_char('-id')
     modified = arg_flag('--modified')
+    id = arg_char('-id')
 
-    call calcUpperArea(catmType, resl, id, modified)
+    call calcUpperArea(catmType, resl, modified, id)
+
+  ! Main 5
+  !-------------------------------------------------------------
+  case( 'scaleUp' )
+    call addarg('catmType', 's', 'Catchment type {basin,network,networkset}')
+    call addarg('resl_in', 's', 'Input mesh resolution')
+    call addarg('resl_out', 's', 'Output mesh resolution')
+    call addarg('-m', '--modified', .false., .false., 'Use modified topography')
+    call addarg('-id', '', '', .false., 'Catchment id')
+    call parsearg()
+
+    catmType = lower(arg_char('catmType'))
+    resl_src = lower(arg_char('resl_in'))
+    resl = lower(arg_char('resl_out'))
+    modified = arg_flag('--modified')
+    id = arg_char('-id')
+
+    call scaleUp(catmType, resl_src, resl, modified, id)
 
   !
   !-------------------------------------------------------------
