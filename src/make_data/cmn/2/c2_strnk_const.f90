@@ -11,18 +11,17 @@ module c2_strnk_const
   ! Public module variables
   !-------------------------------------------------------------
   character(CLEN_PATH), parameter :: DIR_STRRANK = trim(DIR_DAT)//'/StrRank'
-  character(CLEN_PATH), parameter :: DIR_ORG     = trim(DIR_STRRANK)//'/dl'
-  character(CLEN_PATH), parameter :: DIR_PRD     = trim(DIR_STRRANK)//'/dat'
-  character(CLEN_PATH), parameter :: DIR_STR     = trim(DIR_PRD)//'/StrRank'
+  character(CLEN_PATH), parameter :: DIR_ORG     = trim(DIR_STRRANK)//'/original'
+  character(CLEN_PATH), parameter :: DIR_PRD     = trim(DIR_STRRANK)//'/products'
 
   ! Original data
   integer, parameter :: NREGION = 5
-  character(CLEN_VAR), parameter :: REGION_HOKKAIDO = 'Hokkaido'
-  character(CLEN_VAR), parameter :: REGION_HONSHU   = 'Honshu'
-  character(CLEN_VAR), parameter :: REGION_SHIKOKU  = 'Shikoku'
-  character(CLEN_VAR), parameter :: REGION_KYUSHU   = 'Kyushu'
-  character(CLEN_VAR), parameter :: REGION_OKINAWA  = 'Okinawa'
-  character(CLEN_VAR), parameter :: REGION_ALL      = 'all'
+  character(CLEN_VAR), parameter :: REGION__HOKKAIDO = 'Hokkaido'
+  character(CLEN_VAR), parameter :: REGION__HONSHU   = 'Honshu'
+  character(CLEN_VAR), parameter :: REGION__SHIKOKU  = 'Shikoku'
+  character(CLEN_VAR), parameter :: REGION__KYUSHU   = 'Kyushu'
+  character(CLEN_VAR), parameter :: REGION__OKINAWA  = 'Okinawa'
+  character(CLEN_VAR), parameter :: REGION__ALL      = 'all'
 
   integer, parameter :: CLEN_NODEID = 12
 

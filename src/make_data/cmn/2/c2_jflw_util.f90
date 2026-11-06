@@ -30,7 +30,7 @@ integer(1) function get_miss_int1(varname) result(res)
   !-------------------------------------------------------------
   selectcase( varname )
   case( 'dir' )
-    res = FDR_MISS
+    res = FDR__MISS
   case default
     call errend(msg_invalid_value('varname', varname))
   endselect

@@ -54,31 +54,31 @@ subroutine get_nextxy(x, y, fdr, xx, yy)
   character(CLEN_PROC), parameter :: PRCNAM = 'get_nextxy'
 
   selectcase( fdr )
-  case( FDR_WEST )
+  case( FDR__WEST )
     xx = x - 1
     yy = y
-  case( FDR_SOUTHWEST )
+  case( FDR__SOUTHWEST )
     xx = x - 1
     yy = y + 1
-  case( FDR_SOUTH )
+  case( FDR__SOUTH )
     xx = x
     yy = y + 1
-  case( FDR_SOUTHEAST )
+  case( FDR__SOUTHEAST )
     xx = x + 1
     yy = y + 1
-  case( FDR_EAST )
+  case( FDR__EAST )
     xx = x + 1
     yy = y
-  case( FDR_NORTHEAST )
+  case( FDR__NORTHEAST )
     xx = x + 1
     yy = y - 1
-  case( FDR_NORTH )
+  case( FDR__NORTH )
     xx = x
     yy = y - 1
-  case( FDR_NORTHWEST )
+  case( FDR__NORTHWEST )
     xx = x - 1
     yy = y - 1
-  case( FDR_RIVERMOUTH )
+  case( FDR__RIVERMOUTH )
     xx = 0
     yy = 0
   case default
