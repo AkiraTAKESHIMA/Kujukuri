@@ -1010,9 +1010,9 @@ function fileinfo(f) result(res)
           ENDIAN_BIG_SHORT )
       endian = ENDIAN_BIG_SHORT
     case default
-      call logerr(msg_invalid_value('f%endian', f%endian)//&
-                '\nid  : '//str(f%id)//&
-                '\npath: '//str(f%path), opt='-q')
+      call logerr(ERROR_CODE__VALUE, 'f%endian == '//str(f%endian)//&
+      '\nid  : '//str(f%id)//&
+      '\npath: '//str(f%path), opt='-q')
     endselect
     !-----------------------------------------------------------
     ! Check dtype
@@ -1028,9 +1028,9 @@ function fileinfo(f) result(res)
     case( DTYPE_UNDEF )
       continue
     case default
-      call logerr(msg_invalid_value('f%dtype', f%dtype)//&
-                '\nid  : '//str(f%id)//&
-                '\npath: '//str(f%path), opt='-q')
+      call logerr(ERROR_CODE__VALUE, 'f%dtype == '//str(f%dtype)//&
+      '\nid  : '//str(f%id)//&
+      '\npath: '//str(f%path), opt='-q')
     endselect
     !-----------------------------------------------------------
     ! Check rec
@@ -1040,17 +1040,17 @@ function fileinfo(f) result(res)
     elseif( f%rec == REC_UNDEF )then
       str_rec = 'rec:undef'
     else
-      call logerr(msg_invalid_value('f%rec', f%rec)//&
-                '\nid  : '//str(f%id)//&
-                '\npath: '//str(f%path), opt='-q')
+      call logerr(ERROR_CODE__VALUE, 'f%rec == '//str(f%rec)//&
+      '\nid  : '//str(f%id)//&
+      '\npath: '//str(f%path), opt='-q')
     endif
     !-----------------------------------------------------------
     ! Check length
     !-----------------------------------------------------------
     if( f%length < 0 )then
-      call logerr(msg_invalid_value('f%length', f%length)//&
-                '\nid  : '//str(f%id)//&
-                '\npath: '//str(f%path), opt='-q')
+      call logerr(ERROR_CODE__VALUE, 'f%length == '//str(f%length)//&
+      '\nid  : '//str(f%id)//&
+      '\npath: '//str(f%path), opt='-q')
     endif
     !-----------------------------------------------------------
     ! Generate the string of file information
@@ -1124,7 +1124,7 @@ integer(4) function init_opt_check_permission(key) result(info)
     opt_check_permission__allow_empty = OPT_DEFAULT_CHECK_PERMISSION__ALLOW_EMPTY
   case default
     info = 1
-    call errret(msg_invalid_value('key', key))
+    call errret(ERROR_CODE__VALUE, 'key == '//str(key))
     return
   endselect
   !-------------------------------------------------------------
@@ -1166,7 +1166,7 @@ integer(4) function check_permission__file(&
       action_ = action
     case default
       info = 1
-      call errret(msg_invalid_value('action', action))
+      call errret(ERROR_CODE__VALUE, 'action == '//str(action))
       return
     endselect
   else
@@ -1178,10 +1178,10 @@ integer(4) function check_permission__file(&
       action_ = f%action
     case default
       info = 1
-      call errret(msg_invalid_value()//&
-                '\n  action: '//str(action)//&
-                '\n  id: '//str(f%id)//&
-                '\n  path: '//str(f%path))
+      call errret(ERROR_CODE__VALUE, &
+        'f%action == '//str(f%action)//&
+      '\n  id: '//str(f%id)//&
+      '\n  path: '//str(f%path))
       return
     endselect
   endif
@@ -1210,9 +1210,9 @@ integer(4) function check_permission__file(&
   if( f%path == '' )then
     if( .not. allow_empty_ )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\nf%path == "" .and. .not. allow_empty'//&
-                '\n  id: '//str(f%id))
+      call errret(ERROR_CODE__CONDITION, &
+        'f%path == "" .and. .not. allow_empty'//&
+      '\n  id: '//str(f%id))
     endif
     call logret(PRCNAM, MODNAM)
     return
@@ -1225,23 +1225,23 @@ integer(4) function check_permission__file(&
     if( access(f%path,' ') == 0 )then
       if( access(f%path,'r') /= 0 )then
         info = 1
-        call errret(msg_unexpected_condition()//&
-                  '\nNo read permission for "'//str(f%path)//'".')
+        call errret(ERROR_CODE__CONDITION, &
+          'No read permission for "'//str(f%path)//'"')
         return
       endif
     else
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\nFile does not exist: "'//str(f%path)//'".'//&
-                '\n  id: '//str(id_))
+      call errret(ERROR_CODE__CONDITION, &
+        'File does not exist: "'//str(f%path)//'"'//&
+      '\n  id: '//str(id_))
       return
     endif
   case( action_write )
     if( access(f%path,' ') == 0 )then
       if( access(f%path,'w') /= 0 )then
         info = 1
-        call errret(msg_unexpected_condition()//&
-                  '\nNo write permission for "'//str(f%path)//'".')
+        call errret(ERROR_CODE__CONDITION, &
+          'No write permission for "'//str(f%path)//'"')
         return
       endif
     else
@@ -1253,8 +1253,8 @@ integer(4) function check_permission__file(&
     if( access(f%path,' ') == 0 )then
       if( access(f%path,'r') /= 0 .or. access(f%path,'w') /= 0 )then
         info = 1
-        call errret(msg_unexpected_condition()//&
-                  '\nNo readwrite permission for "'//str(f%path)//'".')
+        call errret(ERROR_CODE__CONDITION, &
+          '\nNo readwrite permission for "'//str(f%path)//'"')
         return
       endif
     else
@@ -1264,7 +1264,7 @@ integer(4) function check_permission__file(&
     endif
   case default
     info = 1
-    call errret(msg_invalid_value('action', action_))
+    call errret(ERROR_CODE__VALUE, 'action == '//str(action_))
     return
   endselect
   !-------------------------------------------------------------
@@ -1314,9 +1314,9 @@ integer(4) function check_permission__path(&
   if( path == '' )then
     if( .not. allow_empty_ )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\nPath is an empty string.'//&
-                '\n  id: '//str(id_))
+      call errret(ERROR_CODE__CONDITION, &
+        'path == "" while allow_empty == .false.'//&
+      '\n  id: '//str(id_))
       return
     endif
 
@@ -1330,17 +1330,17 @@ integer(4) function check_permission__path(&
     if( access(path, ' ') == 0 )then
       if( access(path, 'r') /= 0 )then
         info = 1
-        call errret(msg_unexpected_condition()//&
-                  '\nNo read permission for "'//str(path)//'".'//&
-                  '\n  id: '//str(id_))
+        call errret(ERROR_CODE__CONDITION, &
+          '\nNo read permission for "'//str(path)//'"'//&
+        '\n  id: '//str(id_))
         call finalize()
         return
       endif
     else
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\nFile does not exist: "'//str(path)//'".'//&
-                '\n  id: '//str(id_))
+      call errret(ERROR_CODE__CONDITION, &
+        'File does not exist: "'//str(path)//'"'//&
+      '\n  id: '//str(id_))
       call finalize()
       return
     endif
@@ -1348,9 +1348,9 @@ integer(4) function check_permission__path(&
     if( access(path, ' ') == 0 )then
       if( access(path, 'w') /= 0 )then
         info = 1
-        call errret(msg_unexpected_condition()//&
-                  '\nNo write permission for "'//str(path)//'".'//&
-                  '\n  id: '//str(id_))
+        call errret(ERROR_CODE__CONDITION, &
+          'No write permission for "'//str(path)//'"'//&
+        '\n  id: '//str(id_))
         call finalize()
         return
       endif
@@ -1359,10 +1359,10 @@ integer(4) function check_permission__path(&
       open(un, file=path, status='new', iostat=ios)
       if( ios /= 0 )then
         info = 1
-        call errret(msg_io_error()//&
-                  '\nFailed to make a new file: "'//str(path)//'".'&
-                  '\nCheck if the directory exists and you have a write permission.'//&
-                  '\n  id: '//str(id_))
+        call errret(ERROR_CODE__IO, &
+          'Failed to make a new file: "'//str(path)//'"'&
+        '\nCheck if the directory exists and you have a write permission.'//&
+        '\n  id: '//str(id_))
         call finalize()
         return
       endif
@@ -1372,26 +1372,25 @@ integer(4) function check_permission__path(&
     if( access(path, ' ') == 0 )then
       if( access(path, 'r') /= 0 .or. access(path, 'w') /= 0 )then
         info = 1
-        call errret(msg_unexpected_condition()//&
-                  '\nNo readwrite permission for "'//str(path)//'".'//&
-                  '\n  id: '//str(id_))
+        call errret(ERROR_CODE__CONDITION, &
+          'No readwrite permission for "'//str(path)//'"'//&
+        '\n  id: '//str(id_))
         call finalize()
         return
       endif
     else
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\nFile does not exist: "'//str(path)//'".'//&
-                '\n  id: '//str(id_))
+      call errret(ERROR_CODE__CONDITION, &
+        'File does not exist: "'//str(path)//'"'//&
+      '\n  id: '//str(id_))
       call finalize()
       return
     endif
   case default
     info = 1
-    call errret(msg_invalid_value()//&
-              '\n  action: '//str(action)//&
-              '\n  path  : '//str(path)//&
-              '\n  id    : '//str(id_))
+    call errret(ERROR_CODE__VALUE, 'action == '//str(action)//&
+    '\n  path  : '//str(path)//&
+    '\n  id    : '//str(id_))
     call finalize()
     return
   endselect
@@ -1447,9 +1446,9 @@ integer(4) function check_file_size(&
       call logret(); return
     else
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\nPath is an empty string.'//&
-                '\n  id: '//str(f%id))
+      call errret(ERROR_CODE__CONDITION, &
+        '$path == "" while not $allow_empty.'//&
+      '\n  id: '//str(f%id))
       return
     endif
   endif
@@ -1459,9 +1458,9 @@ integer(4) function check_file_size(&
       call logret(); return
     else
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\nFile does not exist: "'//str(f%path)//'".'//&
-                '\n  id: '//str(f%id))
+      call errret(ERROR_CODE__CONDITION, &
+        'File does not exist: "'//str(f%path)//'"'//&
+      '\n  id: '//str(f%id))
       return
     endif
   endif
@@ -1476,14 +1475,13 @@ integer(4) function check_file_size(&
     continue
   case( DTYPE_UNDEF )
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\nf%dtype == DTYPE_UNDEF'//&
-              '\n  id: '//str(f%id))
+    call errret(ERROR_CODE__VALUE, 'f%dtype == DTYPE_UNDEF'//&
+    '\n  id: '//str(f%id))
     return
   case default
     info = 1
-    call errret(msg_invalid_value('f%dtype', f%dtype)//&
-              '\n  id: '//str(f%id))
+    call errret(ERROR_CODE__VALUE, 'f%dtype == '//str(f%dtype)//&
+    '\n  id: '//str(f%id))
     return
   endselect
 
@@ -1494,15 +1492,15 @@ integer(4) function check_file_size(&
     continue
   case default
     info = 1
-    call errret(msg_invalid_value('f%rec', f%rec)//&
-              '\n  id: '//str(f%id))
+    call errret(ERROR_CODE__VALUE, 'f%rec == '//str(f%rec)//&
+    '\n  id: '//str(f%id))
     return
   endselect
 
   if( f%length <= 0_8 )then
     info = 1
-    call errret(msg_invalid_value('f%length', f%length)//&
-              '\n  id: '//str(f%id))
+    call errret(ERROR_CODE__VALUE, 'f%length == '//str(f%length)//&
+    '\n  id: '//str(f%id))
     return
   endif
   !-------------------------------------------------------------
@@ -1517,15 +1515,15 @@ integer(4) function check_file_size(&
       d = dgt(recl*f%rec)
 
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\nrecl * rec > fs'//&
-                '\nExpected file size exceeds the actual file size.'//&
-                '\n  id      : '//str(f%id)//&
-                '\n  recl    : '//str(recl,d)//' (recl = byte * length)'//&
-                '\n    dtype : '//str(f%dtype)//' (byte: '//str(byte_of_dtype(f%dtype))//')'//&
-                '\n    length: '//str(f%length,d)//&
-                '\n  rec     : '//str(f%rec,d)//&
-                '\n  fs      : '//str(fs,d))
+      call errret(ERROR_CODE__CONDITION, &
+        'recl * rec > fs'//&
+      '\nExpected file size exceeds the actual file size.'//&
+      '\n  id      : '//str(f%id)//&
+      '\n  recl    : '//str(recl,d)//' (recl = byte * length)'//&
+      '\n    dtype : '//str(f%dtype)//' (byte: '//str(byte_of_dtype(f%dtype))//')'//&
+      '\n    length: '//str(f%length,d)//&
+      '\n  rec     : '//str(f%rec,d)//&
+      '\n  fs      : '//str(fs,d))
       return
     endif
   endif
@@ -1535,14 +1533,14 @@ integer(4) function check_file_size(&
       d = dgt((/fs,recl/),dgt_opt_max)
 
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\nmod(fs, recl) /= 0'//&
-                '\nThe file size (fs) is not a multiple of record length (recl).'//&
-                '\n  id      : '//str(f%id)//&
-                '\n  fs      : '//str(fs,d)//&
-                '\n  recl    : '//str(recl,d)//' (recl = byte * length)'//&
-                '\n    dtype : '//str(f%dtype)//' (byte: '//str(byte_of_dtype(f%dtype))//')'//&
-                '\n    length: '//str(f%length,d))
+      call errret(ERROR_CODE__CONDITION, &
+        'mod(fs, recl) /= 0'//&
+      '\nThe file size (fs) is not a multiple of record length (recl).'//&
+      '\n  id      : '//str(f%id)//&
+      '\n  fs      : '//str(fs,d)//&
+      '\n  recl    : '//str(recl,d)//' (recl = byte * length)'//&
+      '\n    dtype : '//str(f%dtype)//' (byte: '//str(byte_of_dtype(f%dtype))//')'//&
+      '\n    length: '//str(f%length,d))
       return
     endif
   endif
@@ -1567,17 +1565,17 @@ integer(4) function try_make_empty_file__file(f) result(info)
   !-------------------------------------------------------------
   if( f%path == '' )then
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\nPath is an empty string.'//&
-              '\n  id: '//str(f%id))
+    call errret(ERROR_CODE__CONDITION, &
+      'path == ""'//&
+    '\n  id: '//str(f%id))
     return
   endif
 
   if( access(f%path,' ') == 0 )then
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\nFile already exists: '//str(f%path)//&
-              '\n  id: '//str(f%id))
+    call errret(ERROR_CODE__CONDITION, &
+      'File already exists: '//str(f%path)//&
+    '\n  id: '//str(f%id))
     return
   endif
 
@@ -1585,9 +1583,9 @@ integer(4) function try_make_empty_file__file(f) result(info)
   open(un, file=f%path, status='new', iostat=ios)
   if( ios /= 0 )then
     info = 1
-    call errret(msg_io_error()//&
-              '\nFailed to make an empty file: '//str(f%path)//&
-              '\n  id: '//str(f%id))
+    call errret(ERROR_CODE__IO, &
+      'Failed to make an empty file: '//str(f%path)//&
+    '\n  id: '//str(f%id))
     return
   endif
 
@@ -1633,32 +1631,33 @@ integer(4) function try_make_empty_file__dir(dir) result(info)
 
       inquire(file=f, opened=opened, exist=exist)
       if( .not. opened .and. .not. exist )then
-        call logwrn(msg_io_error()//&
-            '\nFailed to delete the temporal file: '//str(f)//&
-            '\nThe file does not already exist.')
+        call logwrn(ERROR_CODE__IO, &
+          'Failed to delete the temporal file: '//str(f)//&
+        '\nThe file does not already exist.')
         ios = 0
         exit
       elseif( opened .and. exist )then
         if( iTry < NTRY )then
-          call logwrn('Failed to remove the temporal file. Trying again...')
+          call logwrn(ERROR_CODE__IO, &
+            'Failed to remove the temporal file. Trying again...')
         else
           info = 1
-          call errret(msg_io_error()//&
-              '\nFailed to remove the temporal file: '//str(f))
+          call errret(ERROR_CODE__IO, &
+            'Failed to remove the temporal file: '//str(f))
           return
         endif
       elseif( .not. opened .and. exist )then
-        call logwrn(msg_io_error()//&
-            '\nFailed to remove the temporal file: '//str(f)//&
-            '\nThe file exists and has been closed now.')
+        call logwrn(ERROR_CODE__IO, &
+          'Failed to remove the temporal file: '//str(f)//&
+        '\nThe file exists and has been closed now.')
         exit
       elseif( opened .and. .not. exist )then
         info = 1
-        call logerr(msg_io_error()//&
-                  '\nUnknown I/O error.'//&
-                  '\n  file: '//str(f)//&
-                  '\n  opened: '//str(opened)//&
-                  '\n  exist: '//str(exist))
+        call logerr(ERROR_CODE__IO, &
+          'Unknown I/O error.'//&
+        '\n  file: '//str(f)//&
+        '\n  opened: '//str(opened)//&
+        '\n  exist: '//str(exist))
         return
       endif
     enddo
@@ -1667,8 +1666,8 @@ integer(4) function try_make_empty_file__dir(dir) result(info)
 
     if( i == imax )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\nReached the upper limit of $i.')
+      call errret(ERROR_CODE__CONDITION, &
+        'Reached the upper limit of $i.')
       return
     endif
   enddo
@@ -1716,7 +1715,7 @@ integer(4) function init_opt_mkdir(key) result(info)
     opt_mkdir__hut = opt_default_mkdir__hut
   case default
     info = 1
-    call errret(msg_invalid_value('key', key))
+    call errret(ERROR_CODE__VALUE, 'key == '//str(key))
     return
   endselect
   !-------------------------------------------------------------
@@ -1811,8 +1810,7 @@ integer(4) function mkdir(dir, output, hut) result(info)
 
     if( i_oldest == 0 )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\n$i_oldest == 0')
+      call errret(ERROR_CODE__CONDITION, 'i_oldest == 0')
       call finalize()
       return
     endif
@@ -1821,8 +1819,7 @@ integer(4) function mkdir(dir, output, hut) result(info)
     hist(i_oldest)%order = n
   case default
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\n$n == '//str(n))
+    call errret(ERROR_CODE__CONDITION, 'n == '//str(n))
     call finalize()
     return
   endselect
@@ -1924,8 +1921,7 @@ integer(4) function make_empty_file(path, remove) result(info)
   !-------------------------------------------------------------
   if( path == '' )then
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\nPath is an empty string.')
+    call errret(ERROR_CODE__ARGUMENT, 'path == ""')
     return
   endif
 
@@ -1939,16 +1935,17 @@ integer(4) function make_empty_file(path, remove) result(info)
 
         inquire(file=path, opened=opened, exist=exist)
         if( .not. opened .and. .not. exist )then
-          call logwrn('Deletion received iostat of failure but the file has been removed.')
+          call logwrn(ERROR_CODE__IO, &
+            'Deletion received iostat of failure but the file has been removed.')
           ios = 0
           exit
         elseif( opened .neqv. exist )then
           info = 1
-          call logerr(msg_io_error()//&
-                    '\nUnknown I/O error.'//&
-                    '\n  file: '//str(path)//&
-                    '\n  opened: '//str(opened)//&
-                    '\n  exist: '//str(exist))
+          call logerr(ERROR_CODE__IO, &
+            'Unknown I/O error.'//&
+          '\n  file: '//str(path)//&
+          '\n  opened: '//str(opened)//&
+          '\n  exist: '//str(exist))
           return
         endif
 
@@ -1957,8 +1954,8 @@ integer(4) function make_empty_file(path, remove) result(info)
 
       if( ios /= 0 )then
         info = 1
-        call errret(msg_io_error()//&
-                  '\nFailed to remove the temporal file: '//str(path))
+        call errret(ERROR_CODE__IO, &
+          'Failed to remove the temporal file: '//str(path))
         return
       endif
     else
@@ -1966,8 +1963,8 @@ integer(4) function make_empty_file(path, remove) result(info)
     endif
   else
     info = 1
-    call errret(msg_io_error()//&
-              '\nFailed to make an empty file: '//str(path))
+    call errret(ERROR_CODE__IO, &
+      'Failed to make an empty file: '//str(path))
     return
   endif
   !-------------------------------------------------------------

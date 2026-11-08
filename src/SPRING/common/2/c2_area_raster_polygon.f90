@@ -113,7 +113,7 @@ integer(4) function initialize(sr, tp, make_rt) result(info)
   !-------------------------------------------------------------
   if( is_initialized )then
     info = 1
-    call errret('The module has already been initialized.')
+    call errret(ERROR_CODE__CONDITION, 'The module has already been initialized.')
     return
   endif
 
@@ -188,7 +188,7 @@ integer(4) function finalize() result(info)
   !-------------------------------------------------------------
   if( .not. is_initialized )then
     info = 1
-    call errret('The module has not been initialized.')
+    call errret(ERROR_CODE__CONDITION, 'The module has not been initialized.')
     return
   endif
 
@@ -310,7 +310,7 @@ integer(4) function finalize_zone() result(info)
   !-------------------------------------------------------------
   if( .not. is_initialized_zone )then
     info = 1
-    call errret('The zone has already been initialized.')
+    call errret(ERROR_CODE__CONDITION, 'The zone has already been initialized.')
     return
   endif
   is_initialized_zone = .false.
@@ -419,12 +419,11 @@ integer(4) function calc_iarea(&
     endif
   case( REGION_TYPE_UNDEF )
     info = 1
-    call errret(str(msg_unexpected_condition())//&
-              '\ns_region_type == '//str_region_type_long(s_region_type))
+    call errret(ERROR_CODE__VALUE, 's_region_type == '//str_region_type_long(s_region_type))
     return
   case default
     info = 1
-    call errret(msg_invalid_value('s_region_type', s_region_type))
+    call errret(ERROR_CODE__VALUE, 's_region_type == '//str(s_region_type))
     return
   endselect
   !-------------------------------------------------------------
@@ -453,7 +452,7 @@ integer(4) function calc_iarea(&
     tdhf_buf = sdhf + 1_8
   case default
     info = 1
-    call errret(msg_invalid_value('tp%pos', tp%pos))
+    call errret(ERROR_CODE__VALUE, 'tp%pos == '//str(tp%pos))
     return
   endselect
 
@@ -548,7 +547,7 @@ integer(4) function calc_iarea_core(iarea, tp) result(info)
             tp%a(n), tp%b(n), tp%c(n), tp%arcpos(n), &
             tp%convex(n), tp%lontop(n), tp%lattop(n)) /= 0 )then
         info = 1
-        call errret('@ n = '//str(n))
+        call errret(msg='n = '//str(n))
         return
       endif
     !-----------------------------------------------------------
@@ -558,14 +557,14 @@ integer(4) function calc_iarea_core(iarea, tp) result(info)
             iarea, tp%lon(n), tp%lon(nn), tp%lat(n), &
             tp%arcpos(n)) /= 0 )then
         info = 1
-        call errret('@ n = '//str(n))
+        call errret(msg='n = '//str(n))
         return
       endif
     !-----------------------------------------------------------
     ! Case: ERROR
     case default
       info = 1
-      call errret(msg_invalid_value('tp%arctyp('//str(n)//')', tp%arctyp(n)))
+      call errret(ERROR_CODE__VALUE, 'tp%arctyp('//str(n)//') == '//str(tp%arctyp(n)))
       return
     endselect
   enddo  ! n/
@@ -588,9 +587,9 @@ integer(4) function calc_iarea_core(iarea, tp) result(info)
     case( POLYGON_POSITION_NORMAL )
       if( tp%n_pole == 0 )then
         info = 1
-        call errret(msg_unexpected_condition()//&
-                  '\nSouth bound is -90 deg but vertex is not on the south pole.'//&
-                  '\n  idx: '//str(tp%idx))
+        call errret(ERROR_CODE__CONDITION, &
+          'South bound is -90 deg but vertex is not on the south pole.'//&
+        '\n  idx: '//str(tp%idx))
         return
       endif
 
@@ -605,9 +604,9 @@ integer(4) function calc_iarea_core(iarea, tp) result(info)
     case( POLYGON_POSITION_LON0 )
       if( tp%n_pole == 0 )then
         info = 1
-        call errret(msg_unexpected_condition()//&
-                  '\nSouth bound is -90 deg but vertex is not on the south pole.'//&
-                  '\n  idx: '//str(tp%idx))
+        call errret(ERROR_CODE__CONDITION, &
+          'South bound is -90 deg but vertex is not on the south pole.'//&
+        '\n  idx: '//str(tp%idx))
         return
       endif
 
@@ -619,7 +618,7 @@ integer(4) function calc_iarea_core(iarea, tp) result(info)
       endif
     case default
       info = 1
-      call errret(msg_invalid_value('tp%pos', tp%pos))
+      call errret(ERROR_CODE__VALUE, 'tp%pos == '//str(tp%pos))
       return
     endselect
   endif
@@ -681,10 +680,9 @@ integer(4) function update_area_normal(&
       dh_top = int((lontop - swest) / dlon) + sdhi
     endif
   case( CONVEX_UNDEF )
-    call errend(str(msg_unexpected_condition())//&
-              '\nconvex == '//str_convex_long(convex))
+    call errend(ERROR_CODE__VALUE, 'convex == '//str_convex_long(convex))
   case default
-    call errend(msg_invalid_value('convex', convex))
+    call errend(ERROR_CODE__VALUE, 'convex == '//str_convex_long(convex))
   endselect
 
   if( debug )then
@@ -702,8 +700,7 @@ integer(4) function update_area_normal(&
         sgn_lon, wlon, wlat, elon, elat, &
         nZones, ttdhi_zone, ttdhf_zone) /= 0 )then
     info = 1
-    call errret('', PRCNAM, MODNAM)
-    if( debug ) call logret(PRCNAM, MODNAM)
+    call errret(mod=MODNAM, prc=PRCNAM)
     return
   endif
 
@@ -760,8 +757,7 @@ integer(4) function update_area_normal(&
           wlon, wlat, elon, elat, clons(ttdhi_buf:ttdhf_buf-1_8), &
           clats(ttdhi_buf:ttdhf_buf-1_8)) /= 0 )then
       info = 1
-      call errret('', PRCNAM, MODNAM)
-      if( debug ) call logret(PRCNAM, MODNAM)
+      call errret(mod=MODNAM, prc=PRCNAM)
       return
     endif
 
@@ -787,8 +783,7 @@ integer(4) function update_area_normal(&
         if( update_area_normal_monotonous(&
               iarea, a_, b_, c_, sgn_lon, idh) /= 0 )then
           info = 1
-          call errret('', PRCNAM, MODNAM)
-          if( debug ) call logret(PRCNAM, MODNAM)
+          call errret(mod=MODNAM, prc=PRCNAM)
           return
         endif
       enddo
@@ -797,16 +792,14 @@ integer(4) function update_area_normal(&
         if( update_area_normal_convex_upward(&
               iarea, a_, b_, c_, sgn_lon, lontop, lattop, dh_top) /= 0 )then
           info = 1
-          call errret('', PRCNAM, MODNAM)
-          if( debug ) call logret(PRCNAM, MODNAM)
+          call errret(mod=MODNAM, prc=PRCNAM)
           return
         endif
       else
         if( update_area_normal_convex_downward(&
               iarea, a_, b_, c_, sgn_lon, lontop, lattop, dh_top) /= 0 )then
           info = 1
-          call errret('', PRCNAM, MODNAM)
-          if( debug ) call logret(PRCNAM, MODNAM)
+          call errret(mod=MODNAM, prc=PRCNAM)
           return
         endif
       endif
@@ -815,8 +808,7 @@ integer(4) function update_area_normal(&
         if( update_area_normal_monotonous(&
               iarea, a_, b_, c_, sgn_lon, idh) /= 0 )then
           info = 1
-          call errret('', PRCNAM, MODNAM)
-          if( debug ) call logret(PRCNAM, MODNAM)
+          call errret(mod=MODNAM, prc=PRCNAM)
           return
         endif
       enddo
@@ -825,8 +817,7 @@ integer(4) function update_area_normal(&
         if( update_area_normal_monotonous(&
               iarea, a_, b_, c_, sgn_lon, idh) /= 0 )then
           info = 1
-          call errret('', PRCNAM, MODNAM)
-          if( debug ) call logret(PRCNAM, MODNAM)
+          call errret(mod=MODNAM, prc=PRCNAM)
           return
         endif
       enddo
@@ -910,24 +901,21 @@ integer(4) function update_area_normal_monotonous(&
     if( update_area_normal_monotonous_same(&
           iarea, sgn_lon, dh, dv_west) /= 0 )then
       info = 1
-      call errret('', PRCNAM, MODNAM)
-      if( debug ) call logret(PRCNAM, MODNAM)
+      call errret(mod=MODNAM, prc=PRCNAM)
       return
     endif
   elseif( dv_west < dv_east )then
     if( update_area_normal_monotonous_upward(&
           iarea, a, b, c, sgn_lon, dh, dv_west, dv_east) /= 0 )then
       info = 1
-      call errret('', PRCNAM, MODNAM)
-      if( debug ) call logret(PRCNAM, MODNAM)
+      call errret(mod=MODNAM, prc=PRCNAM)
       return
     endif
   else
     if( update_area_normal_monotonous_downward(&
           iarea, a, b, c, sgn_lon, dh, dv_west, dv_east) /= 0 )then
       info = 1
-      call errret('', PRCNAM, MODNAM)
-      if( debug ) call logret(PRCNAM, MODNAM)
+      call errret(mod=MODNAM, prc=PRCNAM)
       return
     endif
   endif
@@ -1062,8 +1050,7 @@ integer(4) function update_area_normal_monotonous_upward(&
         a, b, c, +1, &
         sin_dlats(dv_west), clons(dh-1_8), clons(dh), p2lon) /= 0 )then
     info = 1
-    call errret('', PRCNAM, MODNAM)
-    if( debug ) call logret(PRCNAM, MODNAM)
+    call errret(mod=MODNAM, prc=PRCNAM)
     return
   endif
 
@@ -1091,8 +1078,7 @@ integer(4) function update_area_normal_monotonous_upward(&
           a, b, c, +1, &
           sin_dlats(idv), clons(dh-1_8), clons(dh), p2lon) /= 0 )then
       info = 1
-      call errret('', PRCNAM, MODNAM)
-      if( debug ) call logret(PRCNAM, MODNAM)
+      call errret(mod=MODNAM, prc=PRCNAM)
       return
     endif
 
@@ -1186,8 +1172,7 @@ integer(4) function update_area_normal_monotonous_downward(&
         a, b, c, -1, &
         sin_dlats(dv_west-1_8), clons(dh-1_8), clons(dh), p2lon) /= 0 )then
     info = 1
-    call errret('', PRCNAM, MODNAM)
-    if( debug ) call logret(PRCNAM, MODNAM)
+    call errret(mod=MODNAM, prc=PRCNAM)
     return
   endif
 
@@ -1218,8 +1203,7 @@ integer(4) function update_area_normal_monotonous_downward(&
           a, b, c, -1, &
           sin_dlats(idv-1_8), clons(dh-1_8), clons(dh), p2lon) /= 0 )then
       info = 1
-      call errret('', PRCNAM, MODNAM)
-      if( debug ) call logret(PRCNAM, MODNAM)
+      call errret(mod=MODNAM, prc=PRCNAM)
       return
     endif
 
@@ -1339,8 +1323,7 @@ integer(4) function update_area_normal_convex_upward(&
     if( update_area_normal_monotonous_same(&
           iarea, sgn_lon, dh, dv_top) /= 0 )then
       info = 1
-      call errret('', PRCNAM, MODNAM)
-      if( debug ) call logret(PRCNAM, MODNAM)
+      call errret(mod=MODNAM, prc=PRCNAM)
       return
     endif
   !-------------------------------------------------------------
@@ -1349,8 +1332,7 @@ integer(4) function update_area_normal_convex_upward(&
     if( update_area_normal_monotonous_upward(&
           iarea, a, b, c, sgn_lon, dh, dv_west, dv_top) /= 0 )then
       info = 1
-      call errret('', PRCNAM, MODNAM)
-      if( debug ) call logret(PRCNAM, MODNAM)
+      call errret(mod=MODNAM, prc=PRCNAM)
       return
     endif
   !-------------------------------------------------------------
@@ -1359,8 +1341,7 @@ integer(4) function update_area_normal_convex_upward(&
     if( update_area_normal_monotonous_downward(&
           iarea, a, b, c, sgn_lon, dh, dv_top, dv_east) /= 0 )then
       info = 1
-      call errret('', PRCNAM, MODNAM)
-      if( debug ) call logret(PRCNAM, MODNAM)
+      call errret(mod=MODNAM, prc=PRCNAM)
       return
     endif
   !-------------------------------------------------------------
@@ -1379,8 +1360,7 @@ integer(4) function update_area_normal_convex_upward(&
     if( update_area_normal_monotonous_upward(&
           iarea, a, b, c, sgn_lon, dh, dv_west, dv_top) /= 0 )then
       info = 1
-      call errret('', PRCNAM, MODNAM)
-      if( debug ) call logret(PRCNAM, MODNAM)
+      call errret(mod=MODNAM, prc=PRCNAM)
       return
     endif
 
@@ -1400,8 +1380,7 @@ integer(4) function update_area_normal_convex_upward(&
     if( update_area_normal_monotonous_downward(&
           iarea, a, b, c, sgn_lon, dh, dv_top, dv_east) /= 0 )then
       info = 1
-      call errret('', PRCNAM, MODNAM)
-      if( debug ) call logret(PRCNAM, MODNAM)
+      call errret(mod=MODNAM, prc=PRCNAM)
       return
     endif
 
@@ -1412,17 +1391,16 @@ integer(4) function update_area_normal_convex_upward(&
   ! Case: ERROR
   else
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\nNot matched to any of the following cases:'//&
-              '\n  [1] dv_top == dv_west .and. dv_top == dv_east'//&
-              '\n  [2] dv_top >  dv_west .and. dv_top >  dv_east'//&
-              '\n  [3] dv_top >  dv_west .and. dv_top == dv_east'//&
-              '\n  [4] dv_top == dv_west .and. dv_top >  dv_east'//&
-              '\n  dv_top : '//str(dv_top)//&
-              '\n  dv_west: '//str(dv_west)//&
-              '\n  dv_east: '//str(dv_east), &
-               PRCNAM, MODNAM)
-    if( debug ) call logret(PRCNAM, MODNAM)
+    call errret(ERROR_CODE__CONDITION, &
+      'Not matched to any of the following cases:'//&
+    '\n  [1] dv_top == dv_west and dv_top == dv_east'//&
+    '\n  [2] dv_top >  dv_west and dv_top >  dv_east'//&
+    '\n  [3] dv_top >  dv_west and dv_top == dv_east'//&
+    '\n  [4] dv_top == dv_west and dv_top >  dv_east'//&
+    '\n  dv_top : '//str(dv_top)//&
+    '\n  dv_west: '//str(dv_west)//&
+    '\n  dv_east: '//str(dv_east), &
+     MODNAM, PRCNAM)
     return
   endif
   !-------------------------------------------------------------
@@ -1435,13 +1413,13 @@ subroutine check_dv_west()
   character(CLEN_PROC), parameter :: PRCNAM = 'check_dv_west'
 
   if( .not. (dlats(dv_west-1) <= clats(dh-1) .and. clats(dh-1) < dlats(dv_west)) )then
-    call errend(msg_unexpected_condition()//&
-              '\n.not. (dlats(dv_west-1) <= clats(dh-1) .and. clats(dh-1) < dlats(dv_west))'//&
-              '\n  clats(dh-1)     : '//str(clats(dh-1)*r2d,'f20.13')//&
-              '\n  dlats(dv_west-1): '//str(dlats(dv_west-1)*r2d,'f20.13')//&
-              '\n  dlats(dv_west)  : '//str(dlats(dv_west)*r2d,'f20.13')//&
-              '\n  dv_west: '//str(dv_west)//&
-              '\n  dh-1   : '//str(dh-1))
+    call errend(ERROR_CODE__CONDITION, &
+      'not (dlats(dv_west-1) <= clats(dh-1) and clats(dh-1) < dlats(dv_west))'//&
+    '\n  clats(dh-1)     : '//str(clats(dh-1)*r2d,'f20.13')//&
+    '\n  dlats(dv_west-1): '//str(dlats(dv_west-1)*r2d,'f20.13')//&
+    '\n  dlats(dv_west)  : '//str(dlats(dv_west)*r2d,'f20.13')//&
+    '\n  dv_west: '//str(dv_west)//&
+    '\n  dh-1   : '//str(dh-1))
   endif
 end subroutine check_dv_west
 !---------------------------------------------------------------
@@ -1450,13 +1428,13 @@ subroutine check_dv_east()
   character(CLEN_PROC), parameter :: PRCNAM = 'check_dv_east'
 
   if( .not. (dlats(dv_east-1) <= clats(dh) .and. clats(dh) < dlats(dv_east)) )then
-    call errend(msg_unexpected_condition()//&
-              '\n.not. (dlats(dv_east-1) <= clats(dh) .and. clats(dh) < dlats(dv_east))'//&
-              '\n  clats(dh)       : '//str(clats(dh)*r2d,'f20.13')//&
-              '\n  dlats(dv_east-1): '//str(dlats(dv_east-1)*r2d,'f20.13')//&
-              '\n  dlats(dv_east)  : '//str(dlats(dv_east)*r2d,'f20.13')//&
-              '\n  dv_east: '//str(dv_east)//&
-              '\n  dh     : '//str(dh))
+    call errend(ERROR_CODE__CONDITION, &
+      'not (dlats(dv_east-1) <= clats(dh) and clats(dh) < dlats(dv_east))'//&
+    '\n  clats(dh)       : '//str(clats(dh)*r2d,'f20.13')//&
+    '\n  dlats(dv_east-1): '//str(dlats(dv_east-1)*r2d,'f20.13')//&
+    '\n  dlats(dv_east)  : '//str(dlats(dv_east)*r2d,'f20.13')//&
+    '\n  dv_east: '//str(dv_east)//&
+    '\n  dh     : '//str(dh))
   endif
 end subroutine check_dv_east
 !---------------------------------------------------------------
@@ -1465,13 +1443,13 @@ subroutine check_dv_top()
   character(CLEN_PROC), parameter :: PRCNAM = 'check_dv_top'
 
   if( .not. (dlats(dv_top-1) < lattop .and. lattop <= dlats(dv_top)) )then
-    call errend(msg_unexpected_condition()//&
-              '\n.not. (dlats(dv_top-1) < lattop .and. lattop <= dlats(dv_top))'//&
-              '\n  lattop         : '//str(lattop*r2d,'f20.13')//&
-              '\n  dlats(dv_top-1): '//str(dlats(dv_top-1)*r2d,'f20.13')//&
-              '\n  dlats(dv_top)  : '//str(dlats(dv_top)*r2d,'f20.13')//&
-              '\n  dv_top: '//str(dv_top)//&
-              '\n  dh    : '//str(dh))
+    call errend(ERROR_CODE__CONDITION, &
+      'not (dlats(dv_top-1) < lattop and lattop <= dlats(dv_top))'//&
+    '\n  lattop         : '//str(lattop*r2d,'f20.13')//&
+    '\n  dlats(dv_top-1): '//str(dlats(dv_top-1)*r2d,'f20.13')//&
+    '\n  dlats(dv_top)  : '//str(dlats(dv_top)*r2d,'f20.13')//&
+    '\n  dv_top: '//str(dv_top)//&
+    '\n  dh    : '//str(dh))
   endif
 end subroutine check_dv_top
 !---------------------------------------------------------------
@@ -1546,8 +1524,7 @@ integer(4) function update_area_normal_convex_downward(&
     if( update_area_normal_monotonous_same(&
           iarea, sgn_lon, dh, dv_top) /= 0 )then
       info = 1
-      call errret('', PRCNAM, MODNAM)
-      if( debug ) call logret(PRCNAM, MODNAM)
+      call errret(mod=MODNAM, prc=PRCNAM)
       return
     endif
   !-------------------------------------------------------------
@@ -1556,8 +1533,7 @@ integer(4) function update_area_normal_convex_downward(&
     if( update_area_normal_monotonous_downward(&
           iarea, a, b, c, sgn_lon, dh, dv_west, dv_top) /= 0 )then
       info = 1
-      call errret('', PRCNAM, MODNAM)
-      if( debug ) call logret(PRCNAM, MODNAM)
+      call errret(mod=MODNAM, prc=PRCNAM)
       return
     endif
   !-------------------------------------------------------------
@@ -1566,8 +1542,7 @@ integer(4) function update_area_normal_convex_downward(&
     if( update_area_normal_monotonous_upward(&
           iarea, a, b, c, sgn_lon, dh, dv_top, dv_east) /= 0 )then
       info = 1
-      call errret('', PRCNAM, MODNAM)
-      if( debug ) call logret(PRCNAM, MODNAM)
+      call errret(mod=MODNAM, prc=PRCNAM)
       return
     endif
   !-------------------------------------------------------------
@@ -1586,8 +1561,7 @@ integer(4) function update_area_normal_convex_downward(&
     if( update_area_normal_monotonous_downward(&
           iarea, a, b, c, sgn_lon, dh, dv_west, dv_top) /= 0 )then
       info = 1
-      call errret('', PRCNAM, MODNAM)
-      if( debug ) call logret(PRCNAM, MODNAM)
+      call errret(mod=MODNAM, prc=PRCNAM)
       return
     endif
 
@@ -1607,8 +1581,7 @@ integer(4) function update_area_normal_convex_downward(&
     if( update_area_normal_monotonous_upward(&
           iarea, a, b, c, sgn_lon, dh, dv_top, dv_east) /= 0 )then
       info = 1
-      call errret('', PRCNAM, MODNAM)
-      if( debug ) call logret(PRCNAM, MODNAM)
+      call errret(mod=MODNAM, prc=PRCNAM)
       return
     endif
 
@@ -1619,15 +1592,15 @@ integer(4) function update_area_normal_convex_downward(&
   ! Case: ERROR
   else
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\nNot matched to any of the following cases:'//&
-              '\n  [1] dv_top < dv_west .and. dv_top < dv_east'//&
-              '\n  [2] dv_top < dv_west .and. dv_top == dv_east'//&
-              '\n  [3] dv_top == dv_west .and. dv_top < dv_east'//&
-              '\n  dv_top : '//str(dv_top)//&
-              '\n  dv_west: '//str(dv_west)//&
-              '\n  dv_east: '//str(dv_east), &
-               PRCNAM, MODNAM)
+    call errret(ERROR_CODE__CONDITION, &
+      'Not matched to any of the following cases:'//&
+    '\n  [1] dv_top < dv_west .and. dv_top < dv_east'//&
+    '\n  [2] dv_top < dv_west .and. dv_top == dv_east'//&
+    '\n  [3] dv_top == dv_west .and. dv_top < dv_east'//&
+    '\n  dv_top : '//str(dv_top)//&
+    '\n  dv_west: '//str(dv_west)//&
+    '\n  dv_east: '//str(dv_east), &
+     MODNAM, PRCNAM)
     if( debug ) call logret(PRCNAM, MODNAM)
     return
   endif
@@ -1641,13 +1614,13 @@ subroutine check_dv_west()
   character(CLEN_PROC), parameter :: PRCNAM = 'check_dv_west'
 
   if( .not. (dlats(dv_west-1) < clats(dh-1) .and. clats(dh-1) <= dlats(dv_west)) )then
-    call errend(msg_unexpected_condition()//&
-              '\n.not. (dlats(dv_west-1) < clats(dh-1) .and. clats(dh-1) <= dlats(dv_west))'//&
-              '\n  clats(dh-1)     : '//str(clats(dh-1)*r2d,'f20.13')//&
-              '\n  dlats(dv_west-1): '//str(dlats(dv_west-1)*r2d,'f20.13')//&
-              '\n  dlats(dv_west)  : '//str(dlats(dv_west)*r2d,'f20.13')//&
-              '\n  dh     : '//str(dh)//&
-              '\n  dv_west: '//str(dv_west))
+    call errend(ERROR_CODE__CONDITION, &
+      'not (dlats(dv_west-1) < clats(dh-1) and clats(dh-1) <= dlats(dv_west))'//&
+    '\n  clats(dh-1)     : '//str(clats(dh-1)*r2d,'f20.13')//&
+    '\n  dlats(dv_west-1): '//str(dlats(dv_west-1)*r2d,'f20.13')//&
+    '\n  dlats(dv_west)  : '//str(dlats(dv_west)*r2d,'f20.13')//&
+    '\n  dh     : '//str(dh)//&
+    '\n  dv_west: '//str(dv_west))
   endif
 end subroutine check_dv_west
 !---------------------------------------------------------------
@@ -1656,13 +1629,13 @@ subroutine check_dv_east()
   character(CLEN_PROC), parameter :: PRCNAM = 'check_dv_east'
 
   if( .not. (dlats(dv_east-1) < clats(dh) .and. clats(dh) <= dlats(dv_east)) )then
-    call errend(msg_unexpected_condition()//&
-              '\n.not. (dlats(dv_east-1) < clats(dh) .and. clats(dh) <= dlats(dv_east))'//&
-              '\n  clats(dh)       : '//str(clats(dh)*r2d,'f20.13')//&
-              '\n  dlats(dv_east-1): '//str(dlats(dv_east-1)*r2d,'f20.13')//&
-              '\n  dlats(dv_east)  : '//str(dlats(dv_east)*r2d,'f20.13')//&
-              '\n  dh     : '//str(dh)//&
-              '\n  dv_east: '//str(dv_east))
+    call errend(ERROR_CODE__CONDITION, &
+      'not (dlats(dv_east-1) < clats(dh) and clats(dh) <= dlats(dv_east))'//&
+    '\n  clats(dh)       : '//str(clats(dh)*r2d,'f20.13')//&
+    '\n  dlats(dv_east-1): '//str(dlats(dv_east-1)*r2d,'f20.13')//&
+    '\n  dlats(dv_east)  : '//str(dlats(dv_east)*r2d,'f20.13')//&
+    '\n  dh     : '//str(dh)//&
+    '\n  dv_east: '//str(dv_east))
   endif
 end subroutine check_dv_east
 !---------------------------------------------------------------
@@ -1671,13 +1644,13 @@ subroutine check_dv_top()
   character(CLEN_PROC), parameter :: PRCNAM = 'check_dv_top'
 
   if( .not. (dlats(dv_top-1) <= lattop .and. lattop < dlats(dv_top)) )then
-    call errend(msg_unexpected_condition()//&
-              '\n.not. (dlats(dv_top-1) <= lattop .and. lattop < dlats(dv_top))'//&
-              '\n  lattop         : '//str(lattop*r2d,'f20.13')//&
-              '\n  dlats(dv_top-1): '//str(dlats(dv_top-1)*r2d,'f20.13')//&
-              '\n  dlats(dv_top)  : '//str(dlats(dv_top)*r2d,'f20.13')//&
-              '\n  dh    : '//str(dh)//&
-              '\n  dv_top: '//str(dv_top))
+    call errend(ERROR_CODE__CONDITION, &
+      'not (dlats(dv_top-1) <= lattop and lattop < dlats(dv_top))'//&
+    '\n  lattop         : '//str(lattop*r2d,'f20.13')//&
+    '\n  dlats(dv_top-1): '//str(dlats(dv_top-1)*r2d,'f20.13')//&
+    '\n  dlats(dv_top)  : '//str(dlats(dv_top)*r2d,'f20.13')//&
+    '\n  dh    : '//str(dh)//&
+    '\n  dv_top: '//str(dv_top))
   endif
 end subroutine check_dv_top
 !---------------------------------------------------------------
@@ -1720,8 +1693,7 @@ integer(4) function update_area_parallel(&
         sgn_lon, wlon, wlat, elon, elat, &
         nZones, ttdhi_zone, ttdhf_zone) /= 0 )then
     info = 1
-    call errret('', PRCNAM, MODNAM)
-    if( debug ) call logret(PRCNAM, MODNAM)
+    call errret(mod=MODNAM, prc=PRCNAM)
     return
   endif
 
@@ -1839,10 +1811,10 @@ integer(4) function calc_arc_sign_range(&
       if( (lon1 == rad_0deg   .and. lon2 == rad_360deg) .or. &
           (lon1 == rad_360deg .and. lon2 == rad_0deg  ) )then
         if( abs(lat1) /= rad_90deg .or. abs(lat2) /= rad_90deg )then
-          call errend(msg_unexpected_condition()//&
-                    '\nabs(lat1) /= 90 .or. abs(lat2) /= 90 (deg)'//&
-                    '\n  lat1: '//str(lat1*r2d,'f12.7')//' (deg)'//&
-                    '\n  lat2: '//str(lat2*r2d,'f12.7')//' (deg)')
+          call errend(ERROR_CODE__CONDITION, &
+            'abs(lat1) /= 90 or abs(lat2) /= 90 (deg)'//&
+          '\n  lat1: '//str(lat1*r2d,'f12.7')//' (deg)'//&
+          '\n  lat2: '//str(lat2*r2d,'f12.7')//' (deg)')
         endif
         sgn_lon = int(sign(1.d0,lon2-lon1))
         wlon = rad_0deg
@@ -1874,8 +1846,7 @@ integer(4) function calc_arc_sign_range(&
         elon = lon2
         elat = lat2
       else
-        call errend(msg_unexpected_condition()//&
-                  '\nNot matched to any cases.')
+        call errend(ERROR_CODE__CONDITION, 'Not matched to any cases.')
       endif
     else
       if( lon1 < lon2 )then
@@ -1937,7 +1908,7 @@ integer(4) function calc_arc_sign_range(&
   !-------------------------------------------------------------
   ! Case: ERROR
   case default
-    call errend(msg_invalid_value('arcpos', arcpos))
+    call errend(ERROR_CODE__VALUE, 'arcpos == '//str(arcpos))
   endselect
   !-------------------------------------------------------------
   if( debug ) call logret(PRCNAM, MODNAM)

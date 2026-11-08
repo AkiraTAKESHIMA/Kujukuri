@@ -17,7 +17,7 @@ program main
   type(lsm_)     :: lsm
   type(opt_ext_) :: opt_ext
 
-  call logbgn('program main', '', '+tr')
+  call logbgn('', 'program main', '+tr')
   !-------------------------------------------------------------
   call read_settings(&
          rt_in_agcm_to_ogcm_ocean, &
@@ -31,5 +31,5 @@ program main
 
   call finalize()
   !-------------------------------------------------------------
-  call logret('program main', '')
+  call logret('', 'program main')
 end program main

@@ -39,7 +39,7 @@ subroutine checkval_method_rivwat(s, id)
         METHOD_RIVWAT__WEIGHTED_DIST )
     continue
   case default
-    call errend(msg_invalid_value(id_, s))
+    call errend(ERROR_CODE__VALUE, id_//str(s))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)

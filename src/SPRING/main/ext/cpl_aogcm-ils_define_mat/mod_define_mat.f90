@@ -448,12 +448,12 @@ subroutine define_mat(rt_in, rt_out, agcm, rm, lsm)
     if( lsm%grdara_noriv(lij) == 0.d0 )then
       lsm%grdara_noriv(lij) = lsm%ara_miss
     elseif( lsm%grdara_noriv(lij) < 0.d0 )then
-      call errend(msg_unexpected_condition()//&
-                '\n  lsm%grdara_noriv < 0.0'//&
-                '\n  lij: '//str(lij)//&
-                '\n  lsm%grdara_noriv_real: '//str(lsm%grdara_noriv_real(lij))//&
-                '\n  lsm%grdara_noriv_virt: '//str(lsm%grdara_noriv_virt(lij))//&
-                '\n  lsm%grdara_noriv     : '//str(lsm%grdara_noriv(lij)))
+      call errend(ERROR_CODE__CONDITION, &
+        'lsm%grdara_noriv < 0.0'//&
+      '\n  lij: '//str(lij)//&
+      '\n  lsm%grdara_noriv_real: '//str(lsm%grdara_noriv_real(lij))//&
+      '\n  lsm%grdara_noriv_virt: '//str(lsm%grdara_noriv_virt(lij))//&
+      '\n  lsm%grdara_noriv     : '//str(lsm%grdara_noriv(lij)))
     endif
   enddo
 
@@ -544,13 +544,11 @@ subroutine define_mat(rt_in, rt_out, agcm, rm, lsm)
     endif
 
     if( uwa == 0.d0 )then
-      call errend(msg_unexpected_condition()//&
-                '\n  uwa == 0.0')
+      call errend(ERROR_CODE__CONDITION, 'uwa == 0.0')
     endif
 
     if( ara == 0.d0 )then
-      call errend(msg_unexpected_condition()//&
-                '\n  ara == 0.0')
+      call errend(ERROR_CODE__CONDITION, 'ara == 0.0')
     endif
 
     lsm%grdwgt_noriv(lij) = ara / uwa
@@ -1350,7 +1348,7 @@ subroutine calc_grdara_from_rt(&
   case( MESH__TARGET )
     rtm_grid => rtm%tidx
   case default
-    call errend(msg_invalid_value('mesh_which', mesh_which))
+    call errend(ERROR_CODE__VALUE, 'mesh_which == '//str(mesh_which))
   endselect
   !-------------------------------------------------------------
   ! Calc. grdara
@@ -1365,8 +1363,7 @@ subroutine calc_grdara_from_rt(&
     idx = rtm_grid(ij)
     call search(idx, grdidx, arg, loc)
     if( loc == 0_8 )then
-      call errend(msg_unexpected_condition()//&
-                '\n  Index '//str(idx)//' was not found.')
+      call errend(ERROR_CODE__CONDITION, 'Index '//str(idx)//' was not found.')
     endif
     call add(grdara(arg(loc)), rtm%area(ij))
   enddo
@@ -1421,12 +1418,12 @@ subroutine calc_lndara_noriv_virt(&
   do ij = 1_8, nij
     if( lndara_all(ij) == 0.d0 )then
       if( lndara_river(ij) > 0.d0 .or. lndara_noriv_real(ij) > 0.d0 )then
-        call errend(msg_unexpected_condition()//&
-                  '\n  lndara_all == 0.0 .and. (lndara_river > 0.0 .or. lndara_noriv_real > 0.0)'//&
-                  '\n  ij: '//str(ij)//&
-                  '\n  lndara_all       : '//str(lndara_all(ij),'es20.13')//&
-                  '\n  lndara_river     : '//str(lndara_river(ij),'es20.13')//&
-                  '\n  lndara_noriv_real: '//str(lndara_noriv_real(ij),'es20.13'))
+        call errend(ERROR_CODE__CONDITION, &
+          'lndara_all == 0.0 .and. (lndara_river > 0.0 .or. lndara_noriv_real > 0.0)'//&
+        '\n  ij: '//str(ij)//&
+        '\n  lndara_all       : '//str(lndara_all(ij),'es20.13')//&
+        '\n  lndara_river     : '//str(lndara_river(ij),'es20.13')//&
+        '\n  lndara_noriv_real: '//str(lndara_noriv_real(ij),'es20.13'))
       endif
     else
       if( lndara_all(ij) < lndara_river(ij) + lndara_noriv_real(ij) )then
@@ -1434,15 +1431,15 @@ subroutine calc_lndara_noriv_virt(&
           = ((lndara_river(ij) + lndara_noriv_real(ij)) - lndara_all(ij)) &
             / lndara_all(ij)
         if( lndfrc_excess > opt_thresh_lndfrc_excess )then
-          call errend(msg_unexpected_condition()//&
-                    '\n  lndfrc_excess > threshold'//&
-                    '\n  ij: '//str(ij)//&
-                    '\n  lndara_all       : '//str(lndara_all(ij),'es20.13')//&
-                    '\n  lndara_river     : '//str(lndara_river(ij),'es20.13')//&
-                    '\n  lndara_noriv_real: '//str(lndara_noriv_real(ij),'es20.13')//&
-                    '\n  lndara_real      : '//str(lndara_river(ij)+lndara_noriv_real(ij),'es20.13')//&
-                    '\n  lndfrc_excess    : '//str(lndfrc_excess,'es20.13')//&
-                    '\n  threshold        : '//str(opt_thresh_lndfrc_excess,'es20.13'))
+          call errend(ERROR_CODE__CONDITION, &
+            'lndfrc_excess > threshold'//&
+          '\n  ij: '//str(ij)//&
+          '\n  lndara_all       : '//str(lndara_all(ij),'es20.13')//&
+          '\n  lndara_river     : '//str(lndara_river(ij),'es20.13')//&
+          '\n  lndara_noriv_real: '//str(lndara_noriv_real(ij),'es20.13')//&
+          '\n  lndara_real      : '//str(lndara_river(ij)+lndara_noriv_real(ij),'es20.13')//&
+          '\n  lndfrc_excess    : '//str(lndfrc_excess,'es20.13')//&
+          '\n  threshold        : '//str(opt_thresh_lndfrc_excess,'es20.13'))
         endif
       endif
     endif
@@ -1578,9 +1575,8 @@ subroutine make_rt_lsm_noriv_virt_to_agcm(&
 
     call search(aidx, rtmi_ro_a%tidx, loc)
     if( loc == 0 )then
-      call errend(msg_unexpected_condition()//&
-                '\n  loc == 0'//&
-                '\n  aidx: '//str(aidx))
+      call errend(ERROR_CODE__CONDITION, 'loc == 0'//&
+      '\n  aidx: '//str(aidx))
     endif
 
     ijs_ro_a = loc
@@ -1605,9 +1601,9 @@ subroutine make_rt_lsm_noriv_virt_to_agcm(&
 
     if( (lndara_noriv_virt(aij) - ocnara_real_sum) / grdara(aij) &
           > opt_thresh_lndfrc_noriv_virt_excess )then
-      call errend(msg_unexpected_condition()//&
-                '\n  (lndara_noriv_virt - ocnara_real_sum) / grdara '//&
-                  '> opt_thresh_lndfrc_noriv_virt_excess')
+      call errend(ERROR_CODE__CONDITION, &
+        '(lndara_noriv_virt - ocnara_real_sum) / grdara '//&
+        '> opt_thresh_lndfrc_noriv_virt_excess')
     endif
 
     if( rtmo_lnv_a%nij+(ije_ro_a-ijs_ro_a+1_8) > rtmo_lnv_a%ijsize )then
@@ -1786,12 +1782,11 @@ subroutine make_rt_lsm_ocean_to_agcm(&
 
     call search(aidx, rtmi_ro_a%tidx, loc)
     if( loc == 0 )then
-      call errend(msg_unexpected_condition()//&
-                '\n  loc == 0'//&
-                '\n  aidx: '//str(aidx)//&
-                '\n  grdara     : '//str(grdara(aij))//&
-                '\n  lndara_ogcm: '//str(lndara_ogcm(aij))//&
-                '\n  abs((ldara_ogcm-grdara)-1): '//str(abs(lndara_ogcm(aij)/grdara(aij)-1)))
+      call errend(ERROR_CODE__CONDITION, 'loc == 0'//&
+      '\n  aidx: '//str(aidx)//&
+      '\n  grdara     : '//str(grdara(aij))//&
+      '\n  lndara_ogcm: '//str(lndara_ogcm(aij))//&
+      '\n  abs((ldara_ogcm-grdara)-1): '//str(abs(lndara_ogcm(aij)/grdara(aij)-1)))
     endif
 
     ijs_ro_a = loc
@@ -2097,8 +2092,7 @@ subroutine modify_idx_lsm_rt(rt_grid, grdidx, idx_miss)
   do ij = 1_8, rt_nij
     lij = rt_grid(ij)
     if( grdidx(lij) == idx_miss )then
-      call errend(msg_unexpected_condition()//&
-                '\n  grdidx == idx_miss')
+      call errend(ERROR_CODE__CONDITION, 'grdidx == idx_miss')
     endif
     rt_grid(ij) = grdidx(lij)
   enddo
@@ -2166,8 +2160,8 @@ subroutine make_rstidx_lsm(&
         rm_idx_prev = rm_idx
         call search(rm_idx, rm_grdidx, arg, loc)
         if( loc == 0_8 )then
-          call errend(msg_unexpected_condition()//&
-                    '\n  Index of RM '//str(rm_idx)//' was not found.')
+          call errend(ERROR_CODE__CONDITION, &
+            'Index of RM '//str(rm_idx)//' was not found.')
         endif
         stat(arg(loc)) = 0
       endif
@@ -2179,13 +2173,13 @@ subroutine make_rstidx_lsm(&
   do ij = 1_8, nij
     if( rm_grdidx(ij) == rm_idx_miss )then
       if( stat(ij) == 0 )then
-        call errend(msg_unexpected_condition()//&
-                  '\n  rm_idx == rm_idx_miss .and. stat == 0')
+        call errend(ERROR_CODE__CONDITION, &
+          'rm_idx == rm_idx_miss .and. stat == 0')
       endif
     else
       if( stat(ij) == 1 )then
-        call errend(msg_unexpected_condition()//&
-                  '\n  rm_idx /= rm_idx_miss .and. stat == 1')
+        call errend(ERROR_CODE__CONDITION, &
+          'rm_idx /= rm_idx_miss .and. stat == 1')
       endif
     endif
   enddo
@@ -2258,8 +2252,8 @@ subroutine make_rstidx_bnd_lsm(&
         rm_idx_prev = rm_idx
         call search(rm_idx, rm_grdidx, arg, loc)
         if( loc == 0_8 )then
-          call errend(msg_unexpected_condition()//&
-                    '\n  Index of RM '//str(rm_idx)//' was not found.')
+          call errend(ERROR_CODE__CONDITION, &
+            'Index of RM '//str(rm_idx)//' was not found.')
         endif
         stat(arg(loc)) = 0
       endif
@@ -2275,13 +2269,13 @@ subroutine make_rstidx_bnd_lsm(&
   do ij = 1_8, nij
     if( rm_grdidx(ij) == rm_idx_miss )then
       if( stat(ij) == 0 )then
-        call errend(msg_unexpected_condition()//&
-                  '\n  rm_idx == rm_idx_miss .and. stat == 0')
+        call errend(ERROR_CODE__CONDITION, &
+          'rm_idx == rm_idx_miss .and. stat == 0')
       endif
     else
       if( stat(ij) == 1 )then
-        call errend(msg_unexpected_condition()//&
-                  '\n  rm_idx /= rm_idx_miss .and. stat == 1')
+        call errend(ERROR_CODE__CONDITION, &
+          'rm_idx /= rm_idx_miss .and. stat == 1')
       endif
     endif
   enddo

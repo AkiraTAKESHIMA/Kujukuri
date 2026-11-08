@@ -1,7 +1,6 @@
 module lib_time_base
-  use lib_const, only: &
-    CLEN_VAR, &
-    SEC_DAY
+  use lib_const
+  use lib_base
   implicit none
   private
   !------------------------------------------------------------
@@ -41,7 +40,7 @@ module lib_time_base
   !------------------------------------------------------------
   integer, parameter :: year_base = 1900
 
-  character(CLEN_VAR), parameter :: modname = 'lib_time_base'
+  character(CLEN_VAR), parameter :: MODNAM = 'lib_time_base'
 !--------------------------------------------------------------
 contains
 !==============================================================
@@ -231,6 +230,7 @@ end function float_datetime__all
 !==============================================================
 real(8) function float_datetime__fmt(fmt) result(res)
   implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'float_datetime__fmt'
   character(*), intent(in) :: fmt
 
   character(len_trim(fmt)) :: s
@@ -239,8 +239,8 @@ real(8) function float_datetime__fmt(fmt) result(res)
   s = str_datetime__fmt(fmt)
   read(s,*,iostat=ios) res
   if( ios /= 0 )then
-    write(0,*) '*** Error @ float_datetime_fmt__MOD__'//trim(modname)
-    write(0,*) 'Failed to convert formatted datetime to float.'
+    write(STDERR,"(a)") errmsg_io(strprc(MODNAM, PRCNAM))//&
+      'Failed to read "'//trim(s)//'" as float.'
     stop
   endif
 end function float_datetime__fmt

@@ -161,9 +161,9 @@ integer(4) function make_rt(&
   ! Case: ERROR
   case default
     info = 1
-    call errret(msg_invalid_value()//&
-              '\n  s%typ: '//str(s%typ)//&
-              '\n  t%typ: '//str(t%typ))
+    call errret(ERROR_CODE__VALUE, &
+    '\n  s%typ: '//str(s%typ)//&
+    '\n  t%typ: '//str(t%typ))
     return
   endselect
   !-------------------------------------------------------------
@@ -216,8 +216,8 @@ integer(4) function make_rt(&
   !-------------------------------------------------------------
   if( .not. is_report_file_opened() )then
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\nReport file is not opened.')
+    call errret(ERROR_CODE__CONDITION, &
+      'Report file has not been not opened.')
     return
   endif
   call report('------ Remapping table ------')

@@ -77,7 +77,7 @@ subroutine merge_rt(input, output, opt)
   if( opt%sys%memory_ulim == 0.d0 )then
     nmax_ulim = 0_8
   else
-    call errend(str(msg_not_implemented()))
+    call errend(ERROR_CODE__NOIMPLEMENTATION)
   endif
   !-------------------------------------------------------------
   !
@@ -220,7 +220,7 @@ subroutine merge_rt(input, output, opt)
     !-----------------------------------------------------------
     !
     case default
-      call errend(msg_invalid_value('rtm%mesh_coef', rtm%mesh_coef))
+      call errend(ERROR_CODE__VALUE, 'rtm%mesh_coef == '//str(rtm%mesh_coef))
     endselect
 
     call logext()
@@ -265,7 +265,7 @@ subroutine merge_rt(input, output, opt)
   !-------------------------------------------------------------
   ! Case: Memory is limited
   else
-    call errend(msg_not_implemented())
+    call errend(ERROR_CODE__NOIMPLEMENTATION)
   endif
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)

@@ -34,8 +34,8 @@ logical function is_wsCode_temporal__char(wsCode) result(res)
   character(*), intent(in) :: wsCode
 
   if( len_trim(wsCode) /= DGT_WSCODE )then
-    call errend(msg_unexpected_condition()//&
-        '\n  len_trim(wsCode) /= DGT_WSCODE')
+    call errend(ERROR_CODE__CONDITION, &
+      'len_trim(wsCode) /= DGT_WSCODE')
   endif
 
   res = wsCode(4:6) == '000'

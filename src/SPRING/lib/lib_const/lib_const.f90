@@ -27,7 +27,48 @@ module lib_const
   !=============================================================
   ! Max. depth of procedures
   !=============================================================
-  integer, parameter :: procdepth = 20
+  integer, parameter :: PROCDEPTH = 20
+  !=============================================================
+  !
+  !=============================================================
+  integer, parameter :: ERROR_CODE__BASE = 1
+  integer, parameter :: ERROR_CODE__VALUE = 2
+  integer, parameter :: ERROR_CODE__CONDITION = 3
+  integer, parameter :: ERROR_CODE__CALL = 4
+  integer, parameter :: ERROR_CODE__ARGUMENT = 5
+  integer, parameter :: ERROR_CODE__IO = 6
+  integer, parameter :: ERROR_CODE__SYNTAX = 7
+  integer, parameter :: ERROR_CODE__ARRAYINDEX = 8
+  integer, parameter :: ERROR_CODE__INTERNAL = 9
+  integer, parameter :: ERROR_CODE__NOIMPLEMENTATION = 10
+  integer, parameter :: ERROR_CODE__CHILDPROCESS = 11
+  integer, parameter :: ERROR_CODE__UNKNOWN = 0
+
+  character(CLEN_MSG), parameter :: ERROR_TYPE__BASE = 'Error'
+  character(CLEN_MSG), parameter :: ERROR_TYPE__VALUE = 'ValueError'
+  character(CLEN_MSG), parameter :: ERROR_TYPE__CONDITION = 'ConditionError'
+  character(CLEN_MSG), parameter :: ERROR_TYPE__CALL = 'CallError'
+  character(CLEN_MSG), parameter :: ERROR_TYPE__ARGUMENT = 'ArgumentError'
+  character(CLEN_MSG), parameter :: ERROR_TYPE__IO = 'IOError'
+  character(CLEN_MSG), parameter :: ERROR_TYPE__SYNTAX = 'SyntaxError'
+  character(CLEN_MSG), parameter :: ERROR_TYPE__ARRAYINDEX = 'ArrayIndexError'
+  character(CLEN_MSG), parameter :: ERROR_TYPE__INTERNAL = 'InternalError'
+  character(CLEN_MSG), parameter :: ERROR_TYPE__NOIMPLEMENTATION = 'NoImplementationError'
+  character(CLEN_MSG), parameter :: ERROR_TYPE__CHILDPROCESS = 'ChildProcessError'
+  character(CLEN_MSG), parameter :: ERROR_TYPE__UNKNOWN = 'UnknownError'
+
+  character(CLEN_MSG), parameter :: WARNING_TYPE__BASE = 'Warning'
+  character(CLEN_MSG), parameter :: WARNING_TYPE__VALUE = 'ValueWarning'
+  character(CLEN_MSG), parameter :: WARNING_TYPE__CONDITION = 'ConditionWarning'
+  character(CLEN_MSG), parameter :: WARNING_TYPE__CALL = 'CallWarning'
+  character(CLEN_MSG), parameter :: WARNING_TYPE__ARGUMENT = 'ArgumentWarning'
+  character(CLEN_MSG), parameter :: WARNING_TYPE__IO = 'IOWarning'
+  character(CLEN_MSG), parameter :: WARNING_TYPE__SYNTAX = 'SyntaxWarning'
+  character(CLEN_MSG), parameter :: WARNING_TYPE__ARRAYINDEX = 'ArrayIndexWarning'
+  character(CLEN_MSG), parameter :: WARNING_TYPE__INTERNAL = 'InternalWarning'
+  character(CLEN_MSG), parameter :: WARNING_TYPE__NOIMPLEMENTATION = 'NoImplementationWarning'
+  character(CLEN_MSG), parameter :: WARNING_TYPE__CHILDPROCESS = 'ChildProcessWarning'
+  character(CLEN_MSG), parameter :: WARNING_TYPE__UNKNOWN = 'UnknownWarning'
   !=============================================================
   ! Data attributes
   !=============================================================

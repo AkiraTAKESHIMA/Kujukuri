@@ -110,8 +110,8 @@ subroutine read_settings(cmn, cmf, mat, opt)
     !-----------------------------------------------------------
     ! Case: ERROR
     case default
-      call errend(msg_invalid_value('block_name', block_name)//&
-                '\nCheck name of the block.')
+      call errend(ERROR_CODE__VALUE, 'block_name == '//str(block_name)//&
+      '\nCheck name of the block.')
     endselect
   enddo
 
@@ -581,9 +581,9 @@ subroutine read_settings_cmf(cmn, cmf)
     if( keynum('fin_list_catmxy') == 1 )then
       cmn%is_raster_input = .true.
     else
-      call errend(msg_unexpected_condition()//&
-                '\nData are tiled but no input of the list of raster data catmxy, '//&
-                  'which is given by "fin_list_catmxy".')
+      call errend(ERROR_CODE__CONDITION, &
+        'Data are tiled but no input of the list of raster data catmxy, '//&
+        'which is given by "fin_list_catmxy".')
     endif
   endif
 
@@ -644,16 +644,16 @@ subroutine check_keynum_relations()
   ! Case: Not tiled
   if( .not. cmn%is_tiled )then
     if( keynum('fin_catmxy') == 0 )then
-      call errend(msg_invalid_input()//&
-                '\n"fin_catmxy" must be given if not tiled.')
+      call errend(ERROR_CODE__CONDITION, &
+        '"fin_catmxy" must be given if not tiled.')
     endif
     if( keynum('fin_list_catmxy') == 1 )then
-      call errend(msg_invalid_input()//&
-                '\n"fin_list_catmxy" is used for tiled data.')
+      call errend(ERROR_CODE__CONDITION, &
+        '"fin_list_catmxy" is used for tiled data.')
     elseif( keynum('dtype_catmxy') == 1 .or. keynum('endian_catmxy') == 1 )then
-      call errend(msg_invalid_input()//&
-                '\n"dtype_catmxy" and "endian_catmxy" are used for tiled data'//&
-                 ' with "fin_list_catmxy".')
+      call errend(ERROR_CODE__CONDITION, &
+        '"dtype_catmxy" and "endian_catmxy" are used for tiled data'//&
+        ' with "fin_list_catmxy".')
     endif
 
     if( keynum('dirout_rstidx_river'       ) == 1 .or. &
@@ -662,35 +662,34 @@ subroutine check_keynum_relations()
         keynum('dirout_rstidx_river_inland') == 1 .or. &
         keynum('dirout_rstidx_noriv'       ) == 1 .or. &
         keynum('dirout_rstidx_ocean'       ) == 1 )then
-      call errend(msg_invalid_input()//&
-                '\n"dirout_rstidx_*" is used for tiled data'//&
-                  ' (*="river", "river_end", "river_mouth",'//&
-                  ' "river_inland" or "river_noriv").')
+      call errend(ERROR_CODE__CONDITION, &
+        '"dirout_rstidx_*" is used for tiled data (*="river", "river_end", "river_mouth",'//&
+        ' "river_inland" or "river_noriv").')
     elseif( keynum('dtype_rstidx') == 1 .or. keynum('endian_rstidx') == 1 )then
-      call errend(msg_invalid_input()//&
-                '\n"dtype_rstidx" and "endian_rstidx" are used for tiled data'//&
-                  ' with "dirout_rstidx_*" (*="river", "river_end", "river_mouth",'//&
-                  ' "river_inland" or "river_noriv").')
+      call errend(ERROR_CODE__CONDITION, &
+        '"dtype_rstidx" and "endian_rstidx" are used for tiled data'//&
+        ' with "dirout_rstidx_*" (*="river", "river_end", "river_mouth",'//&
+        ' "river_inland" or "river_noriv").')
     endif
 
     if( keynum('dirout_rstbsn') == 1 )then
-      call errend(msg_invalid_input()//&
-                 '\n"dirout_rstbsn" is used for tiled data.')
+      call errend(ERROR_CODE__CONDITION, &
+        '"dirout_rstbsn" is used for tiled data.')
     elseif( keynum('dtype_rstbsn') == 1 .or. keynum('endian_rstbsn') == 1 )then
-      call errend(msg_invalid_input()//&
-                '\n"dtype_rstbsn" and "endian_rstbsn" are used for tiled data'//&
-                  ' with "dirout_rstbsn_*".')
+      call errend(ERROR_CODE__CONDITION, &
+        '"dtype_rstbsn" and "endian_rstbsn" are used for tiled data'//&
+        ' with "dirout_rstbsn_*".')
     endif
   !-------------------------------------------------------------
   ! Case: Tiled
   else
     if( keynum('fin_list_catmxy') == 0 )then
-      call errend(msg_invalid_input()//&
-                '\n"fin_list_catmxy" must be given if tiled.')
+      call errend(ERROR_CODE__CONDITION, &
+        '"fin_list_catmxy" must be given if tiled.')
     endif
     if( keynum('fin_catmxy') == 1 )then
-      call errend(msg_invalid_input()//&
-                '\n"fin_catmxy" is used for untiled data.')
+      call errend(ERROR_CODE__CONDITION, &
+        '"fin_catmxy" is used for untiled data.')
     endif
 
     if( keynum('fout_rstidx_river'       ) == 1 .or. &
@@ -699,15 +698,14 @@ subroutine check_keynum_relations()
         keynum('fout_rstidx_river_inland') == 1 .or. &
         keynum('fout_rstidx_noriv'       ) == 1 .or. &
         keynum('fout_rstidx_ocean'       ) == 1 )then
-      call errend(msg_invalid_input()//&
-                '\n"fout_rstidx_*" is used for untiled data'//&
-                  ' (*="river", "river_end", "river_mouth",'//&
-                  ' "river_inland" or "river_noriv").')
+      call errend(ERROR_CODE__CONDITION, &
+        '"fout_rstidx_*" is used for untiled data (*="river", "river_end", "river_mouth",'//&
+        ' "river_inland" or "river_noriv").')
     endif
 
     if( keynum('fout_rstbsn') == 1 )then
-      call errend(msg_invalid_input()//&
-                 '\n"fout_rstbsn" is used for untiled data.')
+      call errend(ERROR_CODE__CONDITION, &
+         '"fout_rstbsn" is used for untiled data.')
     endif
   endif
   !-------------------------------------------------------------
@@ -715,11 +713,13 @@ subroutine check_keynum_relations()
   !-------------------------------------------------------------
   if( .not. cmn%is_tiled )then
     if( keynum('fin_basin') == 0 .and. keynum('fout_rstbsn') == 1 )then
-        call errend('"fin_basin" must be given when "fout_rstbsn" is given.')
+        call errend(ERROR_CODE__CONDITION, &
+          '"fin_basin" must be given when "fout_rstbsn" is given.')
     endif
   else
     if( keynum('fin_basin') == 0 .and. keynum('dirout_rstbsn') == 1 )then
-      call errend('"fin_basin" must be given when "dirout_rstbsn" is given.')
+      call errend(ERROR_CODE__CONDITION, &
+        '"fin_basin" must be given when "dirout_rstbsn" is given.')
     endif
   endif
   !-------------------------------------------------------------
@@ -730,8 +730,8 @@ subroutine check_keynum_relations()
     if( keynum('fin_catmxy') == 0 .and. &
         (keynum('fout_grdidx_noriv') == 1 .or. &
          keynum('fout_grdidx_ocean') == 1) )then
-      call errend('"fin_catmxy" must be given when '//&
-                '"fout_grdidx_noriv" or "fout_grdidx_ocean" is given.')
+      call errend(ERROR_CODE__CONDITION, &
+        '"fin_catmxy" must be given when "fout_grdidx_noriv" or "fout_grdidx_ocean" is given.')
     endif
 
     if( keynum('fin_catmxy') == 0 .and. &
@@ -742,15 +742,15 @@ subroutine check_keynum_relations()
          keynum('fout_rstidx_noriv'       ) == 1 .or. &
          keynum('fout_rstidx_ocean'       ) == 1 .or. &
          keynum('fout_rstbsn'             ) == 1) )then
-      call errend('"fin_catmxy" must be given when '//&
-                'any of the following keys for output raster data is given:'//&
-              '\n  "fout_rstidx_river",'//&
-              '\n  "fout_rstidx_river_end",'//&
-              '\n  "fout_rstidx_river_mouth",'//&
-              '\n  "fout_rstidx_river_inland",'//&
-              '\n  "fout_rstidx_noriv",'//&
-              '\n  "fout_rstidx_ocean" or'//&
-              '\n  "fout_rstbsn".')
+      call errend(ERROR_CODE__CONDITION, &
+        '"fin_catmxy" must be given when any of the following keys for output raster data is given:'//&
+      '\n  "fout_rstidx_river",'//&
+      '\n  "fout_rstidx_river_end",'//&
+      '\n  "fout_rstidx_river_mouth",'//&
+      '\n  "fout_rstidx_river_inland",'//&
+      '\n  "fout_rstidx_noriv",'//&
+      '\n  "fout_rstidx_ocean" or'//&
+      '\n  "fout_rstbsn".')
     endif
   !-------------------------------------------------------------
   ! Case: Tiled
@@ -758,9 +758,9 @@ subroutine check_keynum_relations()
     if( keynum('fin_list_catmxy') == 0 .and. &
         (keynum('fout_grdidx_noriv') == 1 .or. &
          keynum('fout_grdidx_ocean') == 1) )then
-      call errend('"fin_list_catmxy" must be given when'//&
-                ' "key_fout_grdidx_noriv" or'//&
-                ' "key_fout_grdidx_ocean" is given.')
+      call errend(ERROR_CODE__CONDITION, &
+        '"fin_list_catmxy" must be given when "key_fout_grdidx_noriv" or'//&
+        ' "key_fout_grdidx_ocean" is given.')
     endif
 
     if( keynum('fin_list_catmxy') == 0 .and. &
@@ -771,15 +771,16 @@ subroutine check_keynum_relations()
          keynum('dirout_rstidx_noriv'       ) == 1 .or. &
          keynum('dirout_rstidx_ocean'       ) == 1 .or. &
          keynum('dirout_rstbsn'             ) == 1) )then
-      call errend('"fin_list_catmxy" must be given when '//&
-                'any of following output raster data is given:'//&
-              '\n  "dirout_rstidx_river"'//&
-              '\n  "dirout_rstidx_river_end"'//&
-              '\n  "dirout_rstidx_river_mouth"'//&
-              '\n  "dirout_rstidx_river_inland"'//&
-              '\n  "dirout_rstidx_noriv"'//&
-              '\n  "dirout_rstidx_ocean"'//&
-              '\n  "dirout_rstbsn"')
+      call errend(ERROR_CODE__CONDITION, &
+        '"fin_list_catmxy" must be given when '//&
+        'any of following output raster data is given:'//&
+      '\n  "dirout_rstidx_river"'//&
+      '\n  "dirout_rstidx_river_end"'//&
+      '\n  "dirout_rstidx_river_mouth"'//&
+      '\n  "dirout_rstidx_river_inland"'//&
+      '\n  "dirout_rstidx_noriv"'//&
+      '\n  "dirout_rstidx_ocean"'//&
+      '\n  "dirout_rstbsn"')
     endif
   endif
   !--------------------------------------------------------------
@@ -789,9 +790,10 @@ subroutine check_keynum_relations()
       (keynum('fout_grdidx_river_end'   ) == 1 .or. &
        keynum('fout_grdidx_river_mouth' ) == 1 .or. &
        keynum('fout_grdidx_river_inland') == 1) )then
-    call errend('"fout_grdidx_river" must be given when any of '//&
-              '"fout_grdidx_river_end", "fout_grdidx_river_mouth" or '//&
-              '"fout_grdidx_river_inland" is given.')
+    call errend(ERROR_CODE__CONDITION, &
+      '"fout_grdidx_river" must be given when any of '//&
+      '"fout_grdidx_river_end", "fout_grdidx_river_mouth" or '//&
+      '"fout_grdidx_river_inland" is given.')
   endif
 
   if( .not. cmn%is_tiled )then
@@ -799,25 +801,27 @@ subroutine check_keynum_relations()
         (keynum('fout_rstidx_river_end'   ) == 1 .or. &
          keynum('fout_rstidx_river_mouth' ) == 1 .or. &
          keynum('fout_rstidx_river_inland') == 1) )then
-      call errend('"fout_rstidx_river" must be given when any of '//&
-                '"fout_rstidx_river_end", "fout_rstidx_river_mouth" or '//&
-                '"fout_rstidx_river_inland" is given.')
+      call errend(ERROR_CODE__CONDITION, &
+        '"fout_rstidx_river" must be given when any of '//&
+        '"fout_rstidx_river_end", "fout_rstidx_river_mouth" or '//&
+        '"fout_rstidx_river_inland" is given.')
     endif
   else
     if( keynum('dirout_rstidx_river') == 0 .and. &
         (keynum('dirout_rstidx_river_end'   ) == 1 .or. &
          keynum('dirout_rstidx_river_mouth' ) == 1 .or. &
          keynum('dirout_rstidx_river_inland') == 1) )then
-      call errend('"dirout_rstidx_river" must be given when any of '//&
-                '"dirout_rstidx_river_end", "dirout_rstidx_river_mouth" or '//&
-                '"dirout_rstidx_river_inland" is given.')
+      call errend(ERROR_CODE__CONDITION, &
+        '"dirout_rstidx_river" must be given when any of '//&
+        '"dirout_rstidx_river_end", "dirout_rstidx_river_mouth" or '//&
+        '"dirout_rstidx_river_inland" is given.')
     endif
   endif
 
   if( keynum('fout_rstidx_ocean') == 1 .and. &
       keynum('fout_grdidx_ocean') == 0 )then
-    call errend('"fout_grdidx_ocean" must be given when '//&
-              '"fout_rstidx_ocean" is given.')
+    call errend(ERROR_CODE__CONDITION, &
+      '"fout_grdidx_ocean" must be given when "fout_rstidx_ocean" is given.')
   endif
   !--------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -1217,15 +1221,14 @@ subroutine check_keynum_relations()
         keynum('dirout_rstidx_river_mouth' ) == 1 .or. &
         keynum('dirout_rstidx_river_inland') == 1 .or. &
         keynum('dirout_rstidx_noriv'       ) == 1 )then
-      call errend(msg_invalid_input()//&
-                '\n"dirout_rstidx_*" are used for tiled data'//&
-                  ' (*="river", "river_end", "river_mouth",'//&
-                  ' "river_inland" or "river_noriv").')
+      call errend(ERROR_CODE__CONDITION, &
+        '"dirout_rstidx_*" are used for tiled data (*="river", "river_end", "river_mouth",'//&
+        ' "river_inland" or "river_noriv").')
     elseif( keynum('dtype_rstidx') == 1 .or. keynum('endian_rstidx') == 1 )then
-      call errend(msg_invalid_input()//&
-                '\n"dtype_rstidx" and "endian_rstidx" are used for tiled data'//&
-                  ' with "dirout_rstidx_*" (*="river", "river_end", "river_mouth",'//&
-                  ' "river_inland" or "river_noriv").')
+      call errend(ERROR_CODE__CONDITION, &
+        '"dtype_rstidx" and "endian_rstidx" are used for tiled data'//&
+        ' with "dirout_rstidx_*" (*="river", "river_end", "river_mouth",'//&
+        ' "river_inland" or "river_noriv").')
     endif
 
     if( keynum('dirout_rstidx_bnd_river'       ) == 1 .or. &
@@ -1233,27 +1236,25 @@ subroutine check_keynum_relations()
         keynum('dirout_rstidx_bnd_river_mouth' ) == 1 .or. &
         keynum('dirout_rstidx_bnd_river_inland') == 1 .or. &
         keynum('dirout_rstidx_bnd_noriv'       ) == 1 )then
-      call errend(msg_invalid_input()//&
-                '\n"dirout_rstidx_bnd_*" are used for tiled data'//&
-                  ' (*="river", "river_end", "river_mouth",'//&
-                  ' "river_inland" or "river_noriv").')
+      call errend(ERROR_CODE__CONDITION, &
+        '"dirout_rstidx_bnd_*" are used for tiled data (*="river", "river_end", "river_mouth",'//&
+        ' "river_inland" or "river_noriv").')
     elseif( keynum('dtype_rstidx_bnd') == 1 .or. keynum('endian_rstidx_bnd') == 1 )then
-      call errend(msg_invalid_input()//&
-                '\n"dtype_rstidx_bnd" and "endian_rstidx_bnd" are used for tiled data'//&
-                  ' with "dirout_rstidx_bnd_*" (*="river", "river_end", "river_mouth",'//&
-                  ' "river_inland" or "river_noriv").')
+      call errend(ERROR_CODE__CONDITION, &
+        '"dtype_rstidx_bnd" and "endian_rstidx_bnd" are used for tiled data'//&
+        ' with "dirout_rstidx_bnd_*" (*="river", "river_end", "river_mouth",'//&
+        ' "river_inland" or "river_noriv").')
     endif
 
 
     if( keynum('dirout_rstidx_mkbnd_river') == 1 .or. &
         keynum('dirout_rstidx_mkbnd_noriv') == 1 )then
-      call errend(msg_invalid_input()//&
-                '\n"dirout_rstidx_mkbnd_*" are used for tiled data'//&
-                  ' (*="river" or "noriv").')
+      call errend(ERROR_CODE__CONDITION, &
+        '"dirout_rstidx_mkbnd_*" are used for tiled data (*="river" or "noriv").')
     elseif( keynum('dtype_rstidx_mkbnd') == 1 .or. keynum('endian_rstidx_mkbnd') == 1 )then
-      call errend(msg_invalid_input()//&
-                '\n"dtype_rstidx_mkbnd" and "endian_rstidx_mkbnd" are used for tiled data'//&
-                  ' with "dirout_rstidx_*" (*="river" or "noriv").')
+      call errend(ERROR_CODE__CONDITION, &
+        '"dtype_rstidx_mkbnd" and "endian_rstidx_mkbnd" are used for tiled data'//&
+        ' with "dirout_rstidx_*" (*="river" or "noriv").')
     endif
   !--------------------------------------------------------------
   ! Case: Tiled
@@ -1263,10 +1264,9 @@ subroutine check_keynum_relations()
         keynum('fout_rstidx_river_mouth' ) == 1 .or. &
         keynum('fout_rstidx_river_inland') == 1 .or. &
         keynum('fout_rstidx_noriv'       ) == 1 )then
-      call errend(msg_invalid_input()//&
-                '\n"fout_rstidx_*" are used for tiled data'//&
-                  ' (*="river", "river_end", "river_mouth",'//&
-                  ' "river_inland" or "river_noriv").')
+      call errend(ERROR_CODE__CONDITION, &
+        '"fout_rstidx_*" are used for tiled data (*="river", "river_end", "river_mouth",'//&
+        ' "river_inland" or "river_noriv").')
     endif
 
     if( keynum('fout_rstidx_bnd_river'       ) == 1 .or. &
@@ -1274,17 +1274,15 @@ subroutine check_keynum_relations()
         keynum('fout_rstidx_bnd_river_mouth' ) == 1 .or. &
         keynum('fout_rstidx_bnd_river_inland') == 1 .or. &
         keynum('fout_rstidx_bnd_noriv'       ) == 1 )then
-      call errend(msg_invalid_input()//&
-                '\n"fout_rstidx_bnd_*" are used for tiled data'//&
-                  ' (*="river", "river_end", "river_mouth",'//&
-                  ' "river_inland" or "river_noriv").')
+      call errend(ERROR_CODE__CONDITION, &
+        '"fout_rstidx_bnd_*" are used for tiled data (*="river", "river_end", "river_mouth",'//&
+        ' "river_inland" or "river_noriv").')
     endif
 
     if( keynum('fout_rstidx_mkbnd_river') == 1 .or. &
         keynum('fout_rstidx_mkbnd_noriv') == 1 )then
-      call errend(msg_invalid_input()//&
-                '\n"fout_rstidx_mkbnd_*" are used for tiled data'//&
-                  ' (*="river" or "noriv").')
+      call errend(ERROR_CODE__CONDITION, &
+        '"fout_rstidx_mkbnd_*" are used for tiled data (*="river" or "noriv").')
     endif
   endif
   !--------------------------------------------------------------
@@ -1304,13 +1302,12 @@ subroutine check_keynum_relations()
          keynum('fout_rstidx_bnd_noriv'       ) == 1 .or. &
          keynum('fout_rstidx_mkbnd_river'     ) == 1 .or. &
          keynum('fout_rstidx_mkbnd_noriv'     ) == 1) )then
-      call errend('Catchment raster data "fin_catmxy" must be given'//&
-                ' when any of the following output raster data is given:'//&
-              '\n  "fout_rstidx_*" (*="river", "river_end", "river_mouth",'//&
-                ' "river_inland" or "noriv")'//&
-              '\n  "fout_rstidx_bnd_*" (*="river", "river_end", "river_mouth",'//&
-                ' "river_inland" or "noriv")'//&
-              '\n  "fout_rstidx_mkbnd_*" (*="river" or "noriv")')
+      call errend(ERROR_CODE__CONDITION, &
+        'Catchment raster data "fin_catmxy" must be given'//&
+        ' when any of the following output raster data is given:'//&
+      '\n  "fout_rstidx_*" (*="river", "river_end", "river_mouth", "river_inland" or "noriv")'//&
+      '\n  "fout_rstidx_bnd_*" (*="river", "river_end", "river_mouth", "river_inland" or "noriv")'//&
+      '\n  "fout_rstidx_mkbnd_*" (*="river" or "noriv")')
 
     endif
   else
@@ -1327,13 +1324,14 @@ subroutine check_keynum_relations()
          keynum('dirout_rstidx_bnd_noriv'       ) == 1 .or. &
          keynum('dirout_rstidx_mkbnd_river'     ) == 1 .or. &
          keynum('dirout_rstidx_mkbnd_noriv'     ) == 1) )then
-      call errend('List of the tiled catchment raster data "fin_list_catmxy" must be given'//&
-                ' when any of the following output directories for raster data is given:'//&
-              '\n  "dirout_rstidx_*" (*="river", "river_end", "river_mouth",'//&
-                ' "river_inland" or "noriv")'//&
-              '\n  "dirout_rstidx_bnd_*" (*="river", "river_end", "river_mouth",'//&
-                ' "river_inland" or "noriv")'//&
-              '\n  "dirout_rstidx_mkbnd_*" (*="river" or "noriv")')
+      call errend(ERROR_CODE__CONDITION, &
+        'List of the tiled catchment raster data "fin_list_catmxy" must be given'//&
+        ' when any of the following output directories for raster data is given:'//&
+      '\n  "dirout_rstidx_*" (*="river", "river_end", "river_mouth",'//&
+        ' "river_inland" or "noriv")'//&
+      '\n  "dirout_rstidx_bnd_*" (*="river", "river_end", "river_mouth",'//&
+        ' "river_inland" or "noriv")'//&
+      '\n  "dirout_rstidx_mkbnd_*" (*="river" or "noriv")')
 
     endif
   endif
@@ -1971,21 +1969,21 @@ subroutine check_input(cmf, mat)
   !-------------------------------------------------------------
   if( mat%f_grdidx_river%path /= '' )then
     if( cmf%f_grdidx_river%path == '' )then
-      call errend(msg_unexpected_condition()//&
-                '\n  mat%f_grdidx_river%path /= "" .and. cmf%f_grdidx_river%path == ""'//&
-                '\n"f_grdidx_river" in the block "'//str(BLOCK_NAME_CMF)//&
-                  '" must be given when "f_grdidx_river" in the block "'//&
-                  str(BLOCK_NAME_MAT)//'" is given.')
+      call errend(ERROR_CODE__CONDITION, &
+        'mat%f_grdidx_river%path /= "" .and. cmf%f_grdidx_river%path == ""'//&
+      '\n"f_grdidx_river" in the block "'//str(BLOCK_NAME_CMF)//&
+        '" must be given when "f_grdidx_river" in the block "'//&
+         str(BLOCK_NAME_MAT)//'" is given.')
     endif
   endif
 
   if( mat%f_grdidx_noriv%path /= '' )then
     if( cmf%f_grdidx_noriv%path == '' )then
-      call errend(msg_unexpected_condition()//&
-                '\n  mat%f_grdidx_noriv%path /= "" .and. cmf%f_grdidx_noriv%path == ""'//&
-                '\n"f_grdidx_noriv" in the block "'//str(BLOCK_NAME_CMF)//&
-                  '" must be given when "f_grdidx_noriv" in the block "'//&
-                  str(BLOCK_NAME_MAT)//'" is given.')
+      call errend(ERROR_CODE__CONDITION, &
+        'mat%f_grdidx_noriv%path /= "" .and. cmf%f_grdidx_noriv%path == ""'//&
+      '\n"f_grdidx_noriv" in the block "'//str(BLOCK_NAME_CMF)//&
+        '" must be given when "f_grdidx_noriv" in the block "'//&
+         str(BLOCK_NAME_MAT)//'" is given.')
     endif
   endif
   !-------------------------------------------------------------

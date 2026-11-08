@@ -52,14 +52,12 @@ subroutine open_file_grid_im(path, action, un)
     status = status_old
     position = position_rewind
   case default
-    call errend(msg_invalid_value('action', action))
+    call errend(ERROR_CODE__VALUE, 'action == '//str(action))
   endselect
 
   if( un_grid_im /= 0 )then
-    call errend(msg_unexpected_condition()//&
-              '\n  un_grid_im /= 0'//&
-              '\nFile is already opened.'//&
-              '\npath: '//str(path))
+    call errend(ERROR_CODE__CONDITION, 'un_grid_im /= 0; File is already opened.'//&
+    '\n  path: '//str(path))
   endif
 
   un = unit_number()
@@ -83,9 +81,7 @@ subroutine close_file_grid_im()
   !
   !-------------------------------------------------------------
   if( un_grid_im == 0 )then
-    call errend(msg_unexpected_condition()//&
-              '\n  un_grid_im == 0'//&
-              '\nFile is not opened.')
+    call errend(ERROR_CODE__CONDITION, 'un_grid_im == 0; File is not opened.')
   endif
 
   call logmsg('Close '//str(un_grid_im))

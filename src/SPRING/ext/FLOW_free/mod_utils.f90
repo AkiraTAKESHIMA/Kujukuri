@@ -57,7 +57,7 @@ subroutine read_conf_earth(earth, un)
     n_f    = 0
     n_e2   = 0
   case default
-    call errend(msg_invalid_value('earth%geosys', earth%geosys))
+    call errend(ERROR_CODE__VALUE, 'earth%geosys == '//str(earth%geosys))
   endselect
 
   call traperr( set_values_opt_earth(&

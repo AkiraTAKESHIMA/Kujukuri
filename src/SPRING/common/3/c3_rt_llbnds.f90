@@ -40,9 +40,9 @@ integer(4) function calc_relations_llbnds__latlon_latlon(&
   call logbgn(PRCNAM, MODNAM)
   !-------------------------------------------------------------
   if( calc_relations_llbnds_core(&
-        sl%hrel, sl%vrel, sl%nam     , tl%nam      ,          &
-        sl%lon , sl%lat , sl%lonwidth, sl%is_cyclic, sl%lon0, &
-        tl%lon , tl%lat , tl%lonwidth, tl%is_cyclic, tl%lon0  &
+        sl%hrel, sl%vrel, sl%nam     , tl%nam      ,         &
+        sl%lon , sl%lat , sl%lonwidth,                       &
+        tl%lon , tl%lat , tl%lonwidth, tl%is_cyclic, tl%lon0 &
       ) /= 0 )then
     info = 1; call errret(); return
   endif
@@ -62,9 +62,9 @@ integer(4) function calc_relations_llbnds__latlon_raster(sl, tr) result(info)
   call logbgn(PRCNAM, MODNAM)
   !-------------------------------------------------------------
   if( calc_relations_llbnds_core(&
-        sl%hrel, sl%vrel, sl%nam     , tr%nam      ,          &
-        sl%lon , sl%lat , sl%lonwidth, sl%is_cyclic, sl%lon0, &
-        tr%lon , tr%lat , tr%lonwidth, tr%is_cyclic, tr%lon0  &
+        sl%hrel, sl%vrel, sl%nam     , tr%nam      ,         &
+        sl%lon , sl%lat , sl%lonwidth,                       &
+        tr%lon , tr%lat , tr%lonwidth, tr%is_cyclic, tr%lon0 &
       ) /= 0 )then
     info = 1; call errret(); return
   endif
@@ -84,9 +84,9 @@ integer(4) function calc_relations_llbnds__raster_latlon(sr, tl) result(info)
   call logbgn(PRCNAM, MODNAM)
   !-------------------------------------------------------------
   if( calc_relations_llbnds_core(&
-        sr%hrel, sr%vrel, sr%nam     , tl%nam      ,          &
-        sr%lon , sr%lat , sr%lonwidth, sr%is_cyclic, sr%lon0, &
-        tl%lon , tl%lat , tl%lonwidth, tl%is_cyclic, tl%lon0  &
+        sr%hrel, sr%vrel, sr%nam     , tl%nam      ,         &
+        sr%lon , sr%lat , sr%lonwidth,                       &
+        tl%lon , tl%lat , tl%lonwidth, tl%is_cyclic, tl%lon0 &
       ) /= 0 )then
     info = 1; call errret(); return
   endif
@@ -106,9 +106,9 @@ integer(4) function calc_relations_llbnds__raster_raster(sr, tr) result(info)
   call logbgn(PRCNAM, MODNAM)
   !-------------------------------------------------------------
   if( calc_relations_llbnds_core(&
-        sr%hrel, sr%vrel, sr%nam     , tr%nam      ,          &
-        sr%lon , sr%lat , sr%lonwidth, sr%is_cyclic, sr%lon0, &
-        tr%lon , tr%lat , tr%lonwidth, tr%is_cyclic, tr%lon0  &
+        sr%hrel, sr%vrel, sr%nam     , tr%nam      ,         &
+        sr%lon , sr%lat , sr%lonwidth,                       &
+        tr%lon , tr%lat , tr%lonwidth, tr%is_cyclic, tr%lon0 &
       ) /= 0 )then
     info = 1; call errret(); return
   endif
@@ -127,9 +127,9 @@ end function calc_relations_llbnds__raster_raster
 !
 !===============================================================
 integer(4) function calc_relations_llbnds_core(&
-    shrel, svrel, snam     , tnam   ,        &
-    slon , slat , slonwidth, scyclic, slon0, &
-    tlon , tlat , tlonwidth, tcyclic, tlon0  &
+    shrel, svrel, snam     , tnam   ,       &
+    slon , slat , slonwidth,                &
+    tlon , tlat , tlonwidth, tcyclic, tlon0 &
 ) result(info)
   use c1_opt_ctrl, only: &
         get_opt_earth
@@ -140,8 +140,6 @@ integer(4) function calc_relations_llbnds_core(&
   character(*)    , intent(in) :: snam, tnam
   real(8)         , pointer    :: slon(:), slat(:) ! in
   real(8)         , pointer    :: slonwidth(:) ! in
-  logical         , intent(in) :: scyclic
-  logical         , pointer    :: slon0(:) ! in
   real(8)         , pointer    :: tlon(:), tlat(:) ! in
   real(8)         , pointer    :: tlonwidth(:) ! in
   logical         , intent(in) :: tcyclic
@@ -157,7 +155,7 @@ integer(4) function calc_relations_llbnds_core(&
   integer :: ir
   integer :: stat1, stat2
   integer :: counter
-  logical :: s_intersects_lon0, t_intersects_lon0
+  logical :: t_intersects_lon0
   logical :: is_out_of_range
   real(8) :: lonwidth_sum, latwidth_sum
   real(8) :: lapara_1rad_sum
@@ -216,29 +214,13 @@ integer(4) function calc_relations_llbnds_core(&
     t_intersects_lon0 = .true.
   else
     !t_intersects_lon0 = any(tlon0(:)) .or. any(tlon(:) == rad_0deg)
-    !t_intersects_lon0 = any(tlon0(:))
-    t_intersects_lon0 = any(tlon0(:)) .or. any(tlon(thi:thf-1) == rad_0deg)
+    t_intersects_lon0 = any(tlon0(:))
   endif
 
-  if( scyclic )then
-    s_intersects_lon0 = .true.
-  else
-    s_intersects_lon0 = any(slon0(:)) .or. any(slon(shi:shf-1) == rad_0deg)
-  endif
-
-  if( size(slon) > 4 )then
-    call logmsg('s: '//str(slon(shi-1:shi)*r2d,'f12.7',', ')//&
-          ', ..., '//str(slon(shf-1:shf)*r2d,'f12.7',', '))
-  else
-    call logmsg('s: '//str(slon*r2d,'f12.7',', '))
-  endif
-  call logmsg('s_intersects_lon0: '//str(t_intersects_lon0))
-  if( size(tlon) > 4 )then
-    call logmsg('t: '//str(tlon(thi-1:thi)*r2d,'f12.7',', ')//&
-          ', ..., '//str(tlon(thf-1:thf)*r2d,'f12.7',', '))
-  else
-    call logmsg('t: '//str(tlon*r2d,'f12.7',', '))
-  endif
+  call logmsg('s: '//str(slon(shi-1:shi)*r2d,'f12.7',', ')//&
+        ', ..., '//str(slon(shf-1:shf)*r2d,'f12.7',', '))
+  call logmsg('t: '//str(tlon(thi-1:thi)*r2d,'f12.7',', ')//&
+        ', ..., '//str(tlon(thf-1:thf)*r2d,'f12.7',', '))
   call logmsg('t_intersects_lon0: '//str(t_intersects_lon0))
 
   ! West
@@ -280,9 +262,9 @@ integer(4) function calc_relations_llbnds_core(&
         counter = counter + 1
         if( counter > 1 )then
           info = 1
-          call errret(msg_internal_error()//&
-                    '\nRelations of the grid lines were not calculated correctly.'//&
-                    '\n  ish: '//str(ish)//' ('//str(slon(ish-1:ish)*r2d,'f12.7',' ~ ')//')')
+          call errret(ERROR_CODE__INTERNAL, &
+            'Relations of the grid lines were not calculated correctly.'//&
+          '\n  ish: '//str(ish)//' ('//str(slon(ish-1:ish)*r2d,'f12.7',' ~ ')//')')
           return
         endif
       endif
@@ -325,8 +307,8 @@ integer(4) function calc_relations_llbnds_core(&
         counter = counter + 1
         if( counter > 1 )then
           info = 1
-          call errret(msg_internal_error()//&
-                    '\nRelations of the grid lines were not calculated correctly.')
+          call errret(ERROR_CODE__INTERNAL, &
+            'Relations of the grid lines were not calculated correctly.')
           return
         endif
       endif
@@ -349,18 +331,10 @@ integer(4) function calc_relations_llbnds_core(&
   svrel(:)%vf = 0
   svrel(:)%mv = 0
 
-  if( size(slat) > 4 )then
-    call logmsg('s: '//str(slat(svi-1:svi)*r2d,'f12.7',', ')//&
-          ', ..., '//str(slat(svf-1:svf)*r2d,'f12.7',', '))
-  else
-    call logmsg('s: '//str(slat*r2d,'f12.7',', '))
-  endif
-  if( size(tlat) > 4 )then
-    call logmsg('t: '//str(tlat(tvi-1:tvi)*r2d,'f12.7',', ')//&
-          ', ..., '//str(tlat(tvf-1:tvf)*r2d,'f12.7',', '))
-  else
-    call logmsg('t: '//str(tlat*r2d,'f12.7',', '))
-  endif
+  call logmsg('s: '//str(slat(svi-1:svi)*r2d,'f12.7',', ')//&
+        ', ..., '//str(slat(svf-1:svf)*r2d,'f12.7',', '))
+  call logmsg('t: '//str(tlat(tvi-1:tvi)*r2d,'f12.7',', ')//&
+        ', ..., '//str(tlat(tvf-1:tvf)*r2d,'f12.7',', '))
 
   ! South
   !-------------------------------------------------------------
@@ -418,16 +392,6 @@ integer(4) function calc_relations_llbnds_core(&
     endif
   enddo
 
-  do isv = svi, svf
-    svr => svrel(isv)
-
-    if( svr%vi == 0 .and. svr%vf > 0 )then
-      svr%vi = tvi
-    elseif( svr%vf == 0 .and. svr%vi > 0 )then
-      svr%vf = tvf
-    endif
-  enddo
-
   call logext()
   !-------------------------------------------------------------
   ! Calc. longitudes of boundaries of intersection
@@ -439,62 +403,22 @@ integer(4) function calc_relations_llbnds_core(&
   do ish = shi, shf
     shr => shrel(ish)
     !-----------------------------------------------------------
-    ! Put in the indices of overlapping grids
+    ! Put indices of overlapping grids in
     !-----------------------------------------------------------
     thwest = shr%hi(1)
     theast = shr%hf(1)
     !-----------------------------------------------------------
-    ! Case: s has only one column
-    ! Judge if t mesh is inside s (-> shr%nr = 1) 
-    !   or outside s (-> shr%nr = 0)
-    if( size(slon) == 2 )then
-      shr%nr = 0
-
-      if( .not. tcyclic )then
-        if( t_intersects_lon0 )then
-          if( s_intersects_lon0 )then
-            shr%nr = 1
-          endif
-        else
-          if( s_intersects_lon0 )then
-            ! swest <= twest < teast <= 360 == 0 < seast
-            if( slon(ish-1) <= tlon(thi-1) )then
-              shr%nr = 1
-
-            ! swest < 360 == 0 <= twest < teast <= seast
-            elseif( tlon(thf) <= slon(ish) )then
-              shr%nr = 1
-            endif
-          else
-            ! 0 <= swest <= twest < teast <= seast <= 360
-            if( slon(ish-1) <= tlon(thi-1) .and. tlon(thf) <= slon(ish) )then
-              shr%nr = 1
-            endif
-          endif
-        endif
-      endif
-
-      if( shr%nr == 0 )then
-        cycle
-      else
-        thwest = thi
-        theast = thf
-        shr%hi(1) = thi
-        shr%hf(1) = thf
-        mth = thf - thi + 1
-      endif
-    !-------------------------------------------------------------
-    ! Case: Both grid lines do not intersect with t
-    elseif( thwest == 0 .and. theast == 0 )then
+    ! Case: Not intersect with grid t
+    if( thwest == 0 .and. theast == 0 )then
       shr%nr = 0
       cycle
     !-----------------------------------------------------------
-    ! Case: t does not intersect with lon0-line
+    ! Case: Not intersect with lon-line
     elseif( thwest <= theast )then
       shr%nr = 1
       mth = theast - thwest + 1
     !-----------------------------------------------------------
-    ! Case: t intersects with lon0-line
+    ! Case: Intersect with lon0-line
     else
       mth = (thf-thwest+1_8) + theast
       shr%nr    = 2
@@ -519,17 +443,15 @@ integer(4) function calc_relations_llbnds_core(&
     allocate(shr%east(mth))
     allocate(shr%lonwidth(mth))
     !-----------------------------------------------------------
-    ! Put in the coords. of grid lines
+    ! Put coords. of grid lines in
     !-----------------------------------------------------------
-    ! Case: t does not intersect with lon0-line or t is inside s
+    ! Case: Not intersect with lon0-line.
     if( shr%nr == 1 )then
       shr%west(1)       = eastern(slon(ish-1), tlon(thwest-1))
       shr%west(2:mth)   = tlon(thwest:theast-1)
 
       shr%east(1:mth-1) = tlon(thwest:theast-1)
       shr%east(mth)     = western(slon(ish), tlon(theast))
-    !-----------------------------------------------------------
-    ! Case: t intersects with lon0-line
     else
       iith = 0
       do ir = 1, shr%nr
@@ -576,18 +498,13 @@ integer(4) function calc_relations_llbnds_core(&
   do isv = svi, svf
     svr => svrel(isv)
 
-    !-----------------------------------------------------------
-    ! Case: s has only one row
-    if( size(slat) == 2 )then
-      if( slat(svi-1) <= tlat(tvi-1) .and. tlat(tvf) <= slat(svf) )then
-        svr%vi = tvi
-        svr%vf = tvf
-      endif
-    !-----------------------------------------------------------
-    ! Case: s does not intersect with t
-    elseif( svr%vi == 0 .and. svr%vf == 0 )then
+    ! Out of range
+    if( svr%vi == 0 .and. svr%vf == 0 )then
       cycle
-
+    elseif( svr%vi == 0 )then
+      svr%vi = tvi
+    elseif( svr%vf == 0 )then
+      svr%vf = tvf
     endif
 
     svr%mv = svr%vf - svr%vi + 1
@@ -649,7 +566,7 @@ integer(4) function calc_relations_llbnds_core(&
     enddo
   case default
     info = 1
-    call errret(msg_invalid_value('earth%shptyp', earth%shptyp))
+    call errret(ERROR_CODE__VALUE, 'earth%shptyp == '//str(earth%shptyp))
     return
   endselect
 
@@ -682,10 +599,11 @@ integer(4) function check_consistency() result(info)
     if( shr%west(1) /= shr_prev%east(shr_prev%mh) .and. &
         abs(shr%west(1) - shr_prev%east(shr_prev%mh)) /= rad_360deg )then
       info = 1
-      call errret('Incontinuity of longitudes. \n'//&
-                  'shrel('//str(ish-1)//')%east('//str(shr_prev%mh)//'): '//&
-                  str(shr_prev%east(shr_prev%nr),'f7.3')//', \n'//&
-                  'shrel('//str(ish)//')%west(1): '//str(shr%west(1),'f7.3'))
+      call errret(ERROR_CODE__CONDITION, &
+        'Incontinuity of longitudes.'//&
+      '\nshrel('//str(ish-1)//')%east('//str(shr_prev%mh)//'): '//&
+         str(shr_prev%east(shr_prev%nr),'f7.3')//','//&
+      '\nshrel('//str(ish)//')%west(1): '//str(shr%west(1),'f7.3'))
       return
     endif
     !---------------------------------------------------------
@@ -696,10 +614,11 @@ integer(4) function check_consistency() result(info)
       if( abs(sum(shr%lonwidth(:))-londiff_rad(slon(ish),slon(ish-1))) &
              > londiff_rad(slon(ish),slon(ish-1)) * thresh_lonwidth_rerr )then
         info = 1
-        call errret('Relative error of sum(shrel('//str(ish)//')%lonwidth(:)) '//&
-                    'to the actual width of the cell exceeded the threshhold. \n'//&
-                    'sum(%lonwidth(:)): '//str(sum(shr%lonwidth(:)),'f12.8')//&
-                    ', cell width: '//str(londiff_rad(slon(ish),slon(ish-1)),'f12.8'))
+        call errret(ERROR_CODE__CONDITION, &
+          'Relative error of sum(shrel('//str(ish)//')%lonwidth(:)) '//&
+          'to the actual width of the cell exceeded the threshhold.'//&
+        '\nsum(%lonwidth(:)): '//str(sum(shr%lonwidth(:)),'f12.8')//&
+          ', cell width: '//str(londiff_rad(slon(ish),slon(ish-1)),'f12.8'))
         return
       endif
     endif
@@ -755,22 +674,22 @@ integer(4) function check_info(nam, print_this) result(info)
       if( tvsouth /= 0 )then
         if( slat(isv-1) < tlat(tvsouth-1) .or. slat(isv-1) > tlat(tvsouth) )then
           info = 1
-          call errret('slat('//str(isv-1)//'): '//str(slat(isv-1)*r2d)//&
-                      ', tv: '//str(tvsouth)//&
-                      ' ('//str(tlat(tvsouth-1:tvsouth)*r2d,'',' ~ ')//')\n'//&
-                      't_south - s: '//str((tlat(tvsouth-1)-slat(isv-1))*r2d)//'\n'//&
-                      's - t_north: '//str((slat(isv-1)-tlat(tvsouth))*r2d))
+          call errret(ERROR_CODE__CONDITION, &
+            'slat('//str(isv-1)//'): '//str(slat(isv-1)*r2d)//', tv: '//str(tvsouth)//&
+            ' ('//str(tlat(tvsouth-1:tvsouth)*r2d,'',' ~ ')//')'//&
+          '\nt_south - s: '//str((tlat(tvsouth-1)-slat(isv-1))*r2d)//&
+          '\ns - t_north: '//str((slat(isv-1)-tlat(tvsouth))*r2d))
           return
         endif
       endif
       if( tvnorth /= 0 )then
         if( slat(isv) < tlat(tvnorth-1) .or. slat(isv) > tlat(tvnorth) )then
           info = 1
-          call errret('slat('//str(isv)//'): '//str(slat(isv)*r2d)//&
-                      ', tv: '//str(tvnorth)//&
-                      ' ('//str(tlat(tvnorth-1:tvnorth),'',' ~ ')//')\n'//&
-                      't_south - s: '//str((tlat(tvnorth-1)-slat(isv))*r2d)//'\n'//&
-                      's - t_north: '//str((slat(isv)-tlat(tvnorth))*r2d))
+          call errret(ERROR_CODE__CONDITION, &
+            'slat('//str(isv)//'): '//str(slat(isv)*r2d)//', tv: '//str(tvnorth)//&
+            ' ('//str(tlat(tvnorth-1:tvnorth),'',' ~ ')//')'//&
+          '\nt_south - s: '//str((tlat(tvnorth-1)-slat(isv))*r2d)//&
+          '\ns - t_north: '//str((slat(isv)-tlat(tvnorth))*r2d))
           return
         endif
       endif
@@ -813,11 +732,12 @@ integer(4) function check_info(nam, print_this) result(info)
         !    abs(slon(ish-1)-tlon(thwest-1)) /= rad_360deg .and. &
         !    abs(slon(ish-1)-tlon(thwest)) /= rad_360deg  )then
           info = 1
-          call errret('Contradiction in shrel(:)%xi.\n'//&
-                      'Western grid line is out of the other cell.\n'//&
-                      'slon('//str(ish-1)//'): '//str(slon(ish-1)*r2d)//&
-                      ', tlon('//str(thwest-1)//'): '//str(tlon(thwest-1)*r2d)//&
-                      ', tlon('//str(thwest)//'): '//str(tlon(thwest)*r2d))
+          call errret(ERROR_CODE__CONDITION, &
+            'Contradiction in shrel(:)%xi.'//&
+          '\nWestern grid line is out of the other cell.'//&
+          '\nslon('//str(ish-1)//'): '//str(slon(ish-1)*r2d)//&
+            ', tlon('//str(thwest-1)//'): '//str(tlon(thwest-1)*r2d)//&
+            ', tlon('//str(thwest)//'): '//str(tlon(thwest)*r2d))
           return
         endif
       endif
@@ -831,11 +751,12 @@ integer(4) function check_info(nam, print_this) result(info)
         !    abs(slon(ish)-tlon(theast-1)) /= rad_360deg .and. &
         !    abs(slon(ish)-tlon(theast)) /= rad_360deg )then
           info = 1
-          call errret('Contradiction in shrel(:)%xf.\n'//&
-                      'Eastern grid line is out of the other cell.\n'//&
-                      'slon('//str(ish)//'): '//str(slon(ish)*r2d)//&
-                      ', tlon('//str(theast-1)//'): '//str(tlon(theast-1)*r2d)//&
-                      ', tlon('//str(theast)//'): '//str(tlon(theast)*r2d))
+          call errret(ERROR_CODE__CONDITION, &
+            'Contradiction in shrel(:)%xf.'//&
+          '\nEastern grid line is out of the other cell.'//&
+          '\nslon('//str(ish)//'): '//str(slon(ish)*r2d)//&
+            ', tlon('//str(theast-1)//'): '//str(tlon(theast-1)*r2d)//&
+            ', tlon('//str(theast)//'): '//str(tlon(theast)*r2d))
           return
         endif
       endif

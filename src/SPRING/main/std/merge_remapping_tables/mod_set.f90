@@ -129,8 +129,8 @@ subroutine read_settings(input, output, opt)
     !-----------------------------------------------------------
     ! Case: ERROR
     case default
-      call errend(msg_invalid_value('blockName', blockName)//&
-                '\nCheck the names of the blocks.')
+      call errend(ERROR_CODE__VALUE, 'blockName == '//str(blockName)//&
+      '\nCheck the names of the blocks.')
     endselect
   enddo
 
@@ -200,11 +200,11 @@ subroutine update_counter(n, blockName)
         BLOCKNAME__OUTPUT, &
         BLOCKNAME__OPT    )
     if( n > 2 )then
-      call errend(msg_invalid_input(line_number())//&
-                '\nBlock "'//str(blockName)//'" appeared more than once.')
+      call errend(ERROR_CODE__SYNTAX, &
+        'Block "'//str(blockName)//'" appeared more than once.')
     endif
   case default
-    call errend(msg_invalid_value('blockName', blockName))
+    call errend(ERROR_CODE__VALUE, 'blockName == '//str(blockName))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -473,9 +473,8 @@ subroutine read_settings_input(input)
         input_opt_idx_dup_stop )
     continue
   case default
-    call errend(str(msg_invalid_value())//&
-            '\n  input%opt_idx_dup: '//str(input%opt_idx_dup)//&
-            '\nCheck the value of "opt_idx_duplication".')
+    call errend(ERROR_CODE__VALUE, 'input%opt_idx_dup == '//str(input%opt_idx_dup)//&
+    '\nCheck the value of "opt_idx_duplication".')
   endselect
 
   call logext()
@@ -499,10 +498,10 @@ subroutine update_num_rt(n)
       n /= num_f_rt_tidx .or. &
       n /= num_f_rt_area .or. &
       n /= num_f_rt_coef )then
-    call errend(str(msg_invalid_input())//&
-            '\n  Any of "f_rt_sidx", "f_rt_tidx", "f_rt_area" or "f_rt_coef" is missing'//&
-              ' in the group of regridding tables starts with "length_rt"'//&
-              ' @ line '//str(line_number_prev_length_rt)//'.')
+    call errend(ERROR_CODE__CONDITION, &
+      'Any of "f_rt_sidx", "f_rt_tidx", "f_rt_area" or "f_rt_coef" is missing'//&
+      ' in the group of regridding tables starts with "length_rt"'//&
+      ' @ line '//str(line_number_prev_length_rt)//'.')
   endif
 
   line_number_prev_length_rt = line_number()
@@ -522,10 +521,9 @@ subroutine update_num_f_rt(n, n_rt)
   n = n + 1
 
   if( n /= n_rt )then
-    call errend(str(msg_invalid_input())//&
-            '\n  @ line '//str(line_number())//&
-            '\n  "'//str(key())//'" appeared too many times in the group of remapping tables,'//&
-              ' which start with "length_rt".')
+    call errend(ERROR_CODE__SYNTAX, '@ line '//str(line_number())//&
+    '\n"'//str(key())//'" appeared too many times in the group of remapping tables,'//&
+      ' which start with "length_rt".')
   endif
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -543,25 +541,25 @@ subroutine check_keynum_relations()
       input%nFiles_rt /= num_f_rt_tidx .or. &
       input%nFiles_rt /= num_f_rt_area .or. &
       input%nFiles_rt /= num_f_rt_coef )then
-    call errend(msg_invalid_input()//&
-              '\n  The number of inputs of "f_rt_sidx", "f_rt_tidx", '//&
-                '"f_rt_area" or "f_rt_coef" mismatch with that of "length_rt".'//&
-              '\n"length_rt": '//str(input%nFiles_rt)//&
-              '\n"f_rt_sidx": '//str(num_f_rt_sidx)//&
-              '\n"f_rt_tidx": '//str(num_f_rt_tidx)//&
-              '\n"f_rt_area": '//str(num_f_rt_area)//&
-              '\n"f_rt_coef": '//str(num_f_rt_coef))
+    call errend(ERROR_CODE__CONDITION, &
+      'The number of inputs of "f_rt_sidx", "f_rt_tidx", '//&
+      '"f_rt_area" or "f_rt_coef" mismatch with that of "length_rt".'//&
+    '\n"length_rt": '//str(input%nFiles_rt)//&
+    '\n"f_rt_sidx": '//str(num_f_rt_sidx)//&
+    '\n"f_rt_tidx": '//str(num_f_rt_tidx)//&
+    '\n"f_rt_area": '//str(num_f_rt_area)//&
+    '\n"f_rt_coef": '//str(num_f_rt_coef))
   endif
 
   if( input%nFiles_grid /= num_f_grdidx .or. &
       input%nFiles_grid /= num_f_grdara )then
-    call errend(msg_invalid_input()//&
-              '\n  The number of inputs of "f_grdidx" or "f_grdara"'//&
-                ' mismatch with that of the groups of grid data,'//&
-                ' which start with "length_grid".'//&
-              '\n"length_grid": '//str(input%nFiles_grid)//&
-              '\n"f_grdidx"   : '//str(num_f_grdidx)//&
-              '\n"f_grdara"   : '//str(num_f_grdara))
+    call errend(ERROR_CODE__CONDITION, &
+      'The number of inputs of "f_grdidx" or "f_grdara"'//&
+      ' mismatch with that of the groups of grid data,'//&
+      ' which start with "length_grid".'//&
+    '\n"length_grid": '//str(input%nFiles_grid)//&
+    '\n"f_grdidx"   : '//str(num_f_grdidx)//&
+    '\n"f_grdara"   : '//str(num_f_grdara))
   endif
   !--------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -724,8 +722,8 @@ subroutine read_settings_output(output)
         MESH__NONE )
     continue
   case default
-    call errend(msg_invalid_value('rtm%mesh_coef', rtm%mesh_coef)//&
-              '\nCheck the value of "mesh_coef".')
+    call errend(ERROR_CODE__VALUE, 'rtm%mesh_coef == '//str(rtm%mesh_coef)//&
+      '\nCheck the value of "mesh_coef".')
   endselect
 
   selectcase( rtm%mesh_sort )
@@ -734,9 +732,8 @@ subroutine read_settings_output(output)
         MESH__NONE )
     continue
   case default
-    call errend(str(msg_invalid_value())//&
-            '\n  rtm%mesh_sort: '//str(rtm%mesh_sort)//&
-            '\nCheck the value of "mesh_sort".')
+    call errend(ERROR_CODE__VALUE, 'rtm%mesh_sort == '//str(rtm%mesh_sort)//&
+    '\nCheck the value of "mesh_sort".')
   endselect
 
   call logext()
@@ -759,10 +756,9 @@ subroutine check_keynum_relations()
   !--------------------------------------------------------------
   if( keynum(KEY_OPT_COEF_SUM_MODIFY) == 1 .and. &
       keynum(KEY_OPT_COEF_SUM_MODIFY_ULIM) == 1 )then
-    call errend(str(msg_invalid_input())//&
-            '\n"'//str(KEY_OPT_COEF_SUM_MODIFY)//'" and "'//&
-              str(KEY_OPT_COEF_SUM_MODIFY_ULIM)//&
-              '" must not be given at the same time.')
+    call errend(ERROR_CODE__CONDITION, &
+      '"'//str(KEY_OPT_COEF_SUM_MODIFY)//'" and "'//str(KEY_OPT_COEF_SUM_MODIFY_ULIM)//&
+      '" must not be given at the same time.')
   endif
   !--------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -901,32 +897,31 @@ subroutine check_input(input, output)
         MESH__TARGET )
     if( output%rt%main%opt_coef%is_sum_modify_enabled )then
       if( input%nFiles_grid > 0 )then
-        call logwrn(msg_unexpected_condition()//&
-                  '\n  "'//str(KEY_OPT_COEF_SUM_MODIFY)//'" is active and grid data are input.'//&
-                  '\nInterpolation coefficients are computed using intersection area data '//&
-                    'of the remapping tables and modified so that the summuation of the '//&
-                    'coefficients of each grid (specified by the key "mesh_coef" in the block "'//&
-                    str(BLOCKNAME__OUTPUT)//'" and is "target" by default) is equal to the '//&
-                    'value specified by the key "'//str(KEY_OPT_COEF_SUM_MODIFY)//'". '//&
-                    'Inputs of grid area data and index data are ignored because they '//&
-                    'are not used with the current settings.')
+        call logwrn(ERROR_CODE__CONDITION, &
+          '"'//str(KEY_OPT_COEF_SUM_MODIFY)//'" is active and grid data are input.'//&
+        '\nInterpolation coefficients are computed using intersection area data '//&
+          'of the remapping tables and modified so that the summuation of the '//&
+          'coefficients of each grid (specified by the key "mesh_coef" in the block "'//&
+          str(BLOCKNAME__OUTPUT)//'" and is "target" by default) is equal to the '//&
+          'value specified by the key "'//str(KEY_OPT_COEF_SUM_MODIFY)//'". '//&
+          'Inputs of grid area data and index data are ignored because they '//&
+          'are not used with the current settings.')
       endif
     else
       if( input%nFiles_grid == 0 )then
-        call errend(msg_unexpected_condition()//&
-                  '\n  "'//str(KEY_OPT_COEF_SUM_MODIFY)//&
-                    '" is inactive and grid data are not input.'//&
-                  '\nInterpolation coefficients are computed using intersection area '//&
-                    'data of the remapping tables and grid area data, but now grid area data '//&
-                    'are missing. Specify the files of grid area data and correspondant '//&
-                    'grid index data by the keys "fin_grdara" and "fin_grdidx", respectively, '//&
-                    'in the block "'//str(BLOCKNAME__INPUT)//'".')
+        call errend(ERROR_CODE__CONDITION, &
+          '"'//str(KEY_OPT_COEF_SUM_MODIFY)//'" is inactive and grid data are not input.'//&
+        '\nInterpolation coefficients are computed using intersection area '//&
+          'data of the remapping tables and grid area data, but now grid area data '//&
+          'are missing. Specify the files of grid area data and correspondant '//&
+          'grid index data by the keys "fin_grdara" and "fin_grdidx", respectively, '//&
+          'in the block "'//str(BLOCKNAME__INPUT)//'".')
       endif
     endif
   case( MESH__NONE )
     continue
   case default
-    call errend(msg_invalid_value('output%rt%main%mesh_coef', output%rt%main%mesh_coef))
+    call errend(ERROR_CODE__VALUE, 'output%rt%main%mesh_coef == '//str(output%rt%main%mesh_coef))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -1092,8 +1087,7 @@ subroutine echo_settings_input(input)
   case( input_opt_idx_dup_sum )
     msg = 'calc. sum. of area'
   case default
-    call errend(str(msg_invalid_value())//&
-            '\n  input%opt_idx_dup: '//str(input%opt_idx_dup))
+    call errend(ERROR_CODE__VALUE, 'input%opt_idx_dup == '//str(input%opt_idx_dup))
   endselect
 
   call logmsg('Option for duplicated index in grid data: '//str(msg))

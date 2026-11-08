@@ -167,9 +167,9 @@ logical(4) function log4_char(c, varname) result(res)
   read(c,*,iostat=ios) res
 
   if( ios /= 0 )then
-    call errend(msg_io_error()//&
-              '\nFailed to read "'//str(c)//'" as an logical(4).'//&
-              '\n  Variable name: '//str(varname_))
+    call errend(ERROR_CODE__IO, &
+      'Failed to read "'//str(c)//'" as an logical(4).'//&
+    '\n  Variable name: '//str(varname_))
   endif
 
   deallocate(varname_)
@@ -202,9 +202,9 @@ integer(1) function int1_char(c, varname) result(res)
   read(c,*,iostat=ios) res
 
   if( ios /= 0 )then
-    call errend(msg_io_error()//&
-              '\nFailed to read "'//str(c)//'" as an integer(1).'//&
-              '\n  Variable name: '//str(varname_))
+    call errend(ERROR_CODE__IO, &
+      'Failed to read "'//str(c)//'" as an integer(1).'//&
+    '\n  Variable name: '//str(varname_))
   endif
 
   deallocate(varname_)
@@ -237,9 +237,9 @@ integer(2) function int2_char(c, varname) result(res)
   read(c,*,iostat=ios) res
 
   if( ios /= 0 )then
-    call errend(msg_io_error()//&
-              '\nFailed to read "'//str(c)//'" as an integer(2).'//&
-              '\n  Variable name: '//str(varname_))
+    call errend(ERROR_CODE__IO, &
+      'Failed to read "'//str(c)//'" as an integer(2).'//&
+    '\n  Variable name: '//str(varname_))
   endif
 
   deallocate(varname_)
@@ -272,9 +272,9 @@ integer(4) function int4_char(c, varname) result(res)
   read(c,*,iostat=ios) res
 
   if( ios /= 0 )then
-    call errend(msg_io_error()//&
-              '\nFailed to read "'//str(c)//'" as an integer(4).'//&
-              '\n  Variable name: '//str(varname_))
+    call errend(ERROR_CODE__IO, &
+      'Failed to read "'//str(c)//'" as an integer(4).'//&
+    '\n  Variable name: '//str(varname_))
   endif
 
   deallocate(varname_)
@@ -307,9 +307,9 @@ integer(8) function int8_char(c, varname) result(res)
   read(c,*,iostat=ios) res
 
   if( ios /= 0 )then
-    call errend(msg_io_error()//&
-              '\nFailed to read "'//str(c)//'" as an integer(8).'//&
-              '\n  Variable name: '//str(varname_))
+    call errend(ERROR_CODE__IO, &
+      'Failed to read "'//str(c)//'" as an integer(8).'//&
+    '\n  Variable name: '//str(varname_))
   endif
 
   deallocate(varname_)
@@ -343,9 +343,9 @@ real(4) function real_char(c, varname) result(res)
   read(c,*,iostat=ios) res
 
   if( ios /= 0 )then
-    call errend(msg_io_error()//&
-              '\nFailed to read "'//str(c)//'" as an real(4).'//&
-              '\n  Variable name: '//str(varname_))
+    call errend(ERROR_CODE__IO, &
+      'Failed to read "'//str(c)//'" as an real(4).'//&
+    '\n  Variable name: '//str(varname_))
   endif
 
   deallocate(varname_)
@@ -379,9 +379,9 @@ real(8) function dble_char(c, varname) result(res)
   read(c,*,iostat=ios) res
 
   if( ios /= 0 )then
-    call errend(msg_io_error()//&
-              '\nFailed to read "'//str(c)//'" as an real(8).'//&
-              '\n  Variable name: '//str(varname_))
+    call errend(ERROR_CODE__IO, &
+      'Failed to read "'//str(c)//'" as an real(8).'//&
+    '\n  Variable name: '//str(varname_))
   endif
 
   deallocate(varname_)
@@ -409,9 +409,9 @@ integer(4) function c2v__char(c, v) result(info)
   info = 0
   if( len(v) < len(c) )then
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\n  len(v) < len(c)', &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__CONDITION, &
+      'len(v) < len(c)', &
+      MODNAM, PRCNAM)
     return
   endif
 
@@ -430,9 +430,9 @@ integer(4) function c2v__log4(c, v) result(info)
   read(c, *, iostat=info) v
 
   if( info /= 0 )then
-    call errret(msg_io_error()//&
-              '\nFailed to convert "'//str(c)//'" to logical(4).', &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__IO, &
+      'Failed to convert "'//str(c)//'" to logical(4).', &
+      MODNAM, PRCNAM)
   endif
 end function c2v__log4
 !===============================================================
@@ -448,9 +448,9 @@ integer(4) function c2v__int1(c, v) result(info)
   read(c, *, iostat=info) v
 
   if( info /= 0 )then
-    call errret(msg_io_error()//&
-              '\nFailed to convert "'//str(c)//'" to integer(1).', &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__IO, &
+      'Failed to convert "'//str(c)//'" to integer(1).', &
+      MODNAM, PRCNAM)
   endif
 end function c2v__int1
 !==============================================================
@@ -466,9 +466,9 @@ integer(4) function c2v__int2(c, v) result(info)
   read(c, *, iostat=info) v
 
   if( info /= 0 )then
-    call errret(msg_io_error()//&
-              '\nFailed to convert "'//str(c)//'" to integer(2).', &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__IO, &
+      'Failed to convert "'//str(c)//'" to integer(2).', &
+      MODNAM, PRCNAM)
   endif
 end function c2v__int2
 !==============================================================
@@ -484,9 +484,9 @@ integer(4) function c2v__int4(c, v) result(info)
   read(c, *, iostat=info) v
 
   if( info /= 0 )then
-    call errret(msg_io_error()//&
-              '\nFailed to convert "'//str(c)//'" to integer(4).', &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__IO, &
+      'Failed to convert "'//str(c)//'" to integer(4).', &
+      MODNAM, PRCNAM)
   endif
 end function c2v__int4
 !==============================================================
@@ -502,9 +502,9 @@ integer(4) function c2v__int8(c, v) result(info)
   read(c, *, iostat=info) v
 
   if( info /= 0 )then
-    call errret(msg_io_error()//&
-              '\nFailed to convert "'//str(c)//'" to integer(8).', &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__IO, &
+      'Failed to convert "'//str(c)//'" to integer(8).', &
+      MODNAM, PRCNAM)
   endif
 end function c2v__int8
 !==============================================================
@@ -526,14 +526,14 @@ integer(4) function c2v__real(c, v, fmt) result(info)
 
   if( info /= 0 )then
     if( present(fmt) )then
-      call errret(msg_io_error()//&
-                '\nFailed to convert "'//str(c)//'" to real(4) '//&
-                 'in the format of "'//str(fmt)//'".', &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__IO, &
+        'Failed to convert "'//str(c)//'" to real(4) '//&
+        'in the format of "'//str(fmt)//'".', &
+        MODNAM, PRCNAM)
     else
-      call errret(msg_io_error()//&
-                '\nFailed to convert "'//str(c)//'" to real(4).', &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__IO, &
+        'Failed to convert "'//str(c)//'" to real(4).', &
+        MODNAM, PRCNAM)
     endif
   endif
 end function c2v__real
@@ -556,14 +556,14 @@ integer(4) function c2v__dble(c, v, fmt) result(info)
 
   if( info /= 0 )then
     if( present(fmt) )then
-      call errret(msg_io_error()//&
-                '\nFailed to convert "'//str(c)//'" to real(4) '//&
-                 'in the format of "'//str(fmt)//'".', &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__IO, &
+        'Failed to convert "'//str(c)//'" to real(4) '//&
+        'in the format of "'//str(fmt)//'".', &
+        MODNAM, PRCNAM)
     else
-      call errret(msg_io_error()//&
-                '\nFailed to convert "'//str(c)//'" to real(4).', &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__IO, &
+        'Failed to convert "'//str(c)//'" to real(4).', &
+        MODNAM, PRCNAM)
     endif
   endif
 end function c2v__dble
@@ -630,9 +630,9 @@ integer(4) function remove_quoted(c, quote) result(info)
       ic = index(c(ic0_singleQuote+1:),"'")
       if( ic == 0 )then
         info = 1
-        call errret(msg_unexpected_condition()//&
-                  '\nThe single quote was not closed. String:'//&
-                  '\n'//str(c))
+        call errret(ERROR_CODE__CONDITION, &
+          'The single quote was not closed. String:'//&
+        '\n'//str(c))
         return
       endif
 
@@ -644,9 +644,9 @@ integer(4) function remove_quoted(c, quote) result(info)
       ic = index(c(ic0_doubleQuote+1:),'"')
       if( ic == 0 )then
         info = 1
-        call errret(msg_unexpected_condition()//&
-                  '\nThe double quote was not closed. String:'//&
-                  '\n'//str(c))
+        call errret(ERROR_CODE__CONDITION, &
+          'The double quote was not closed. String:'//&
+        '\n'//str(c))
         return
       endif
 
@@ -751,7 +751,7 @@ integer(4) function search_word(&
     case( QUOTE_NONE )
     case default
       info = 1
-      call errret(msg_invalid_value('quoteIgnored', quoteIgnored))
+      call errret(ERROR_CODE__VALUE, 'quoteIgnored == '//str(quoteIgnored))
       return
     endselect
   else
@@ -781,9 +781,9 @@ integer(4) function search_word(&
       iic_singleQuote = index(c(ic0+1:),"'")
       if( iic_doubleQuote == 0 )then
         info = 1
-        call errret(msg_unexpected_condition()//&
-                  '\nSingle quote was not closed. String: '//&
-                  '\n'//str(c))
+        call errret(ERROR_CODE__CONDITION, &
+          'Single quote was not closed. String: '//&
+        '\n'//str(c))
         return
       endif
       ic0 = ic0 + iic_singleQuote + 1
@@ -795,9 +795,9 @@ integer(4) function search_word(&
       iic_doubleQuote = index(c(ic0+1:),'"')
       if( iic_doubleQuote == 0 )then
         info = 1
-        call errret(msg_unexpected_condition()//&
-                  '\nDouble quote was not closed. String: '//&
-                  '\n'//str(c))
+        call errret(ERROR_CODE__CONDITION, &
+          'Double quote was not closed. String: '//&
+        '\n'//str(c))
         return
       endif
       ic0 = ic0 + iic_doubleQuote + 1
@@ -879,9 +879,9 @@ integer(4) function count_word(&
       iic_singleQuote = index(c(ic0+1:),"'")
       if( iic_doubleQuote == 0 )then
         info = 1
-        call errret(msg_unexpected_condition()//&
-                  '\nSingle quote was not closed. String: '//&
-                  '\n'//str(c))
+        call errret(ERROR_CODE__CONDITION, &
+          'Single quote was not closed. String: '//&
+        '\n'//str(c))
         return
       endif
       ic0 = ic0 + iic_singleQuote + 1
@@ -892,9 +892,9 @@ integer(4) function count_word(&
       iic_doubleQuote = index(c(ic0+1:),'"')
       if( iic_doubleQuote == 0 )then
         info = 1
-        call errret(msg_unexpected_condition()//&
-                  '\nDouble quote was not closed. String: '//&
-                  '\n'//str(c))
+        call errret(ERROR_CODE__CONDITION, &
+          'Double quote was not closed. String: '//&
+        '\n'//str(c))
         return
       endif
       ic0 = ic0 + iic_doubleQuote + 1
@@ -952,12 +952,12 @@ integer(4) function remove_word(c, word, n) result(info)
 
       if( loc == 0 )then
         info = 1
-        call errret(msg_unexpected_condition()//&
-                  '\nThe number of the word "'//trim(word)//'" '//&
-                    'included in the given string is less than '//&
-                    'the specified number.'//&
-                  '\n  string: '//str(c)//&
-                  '\n  n     : '//str(c))
+        call errret(ERROR_CODE__CONDITION, &
+          'The number of the word "'//trim(word)//'" '//&
+          'included in the given string is less than '//&
+          'the specified number.'//&
+        '\n  string: '//str(c)//&
+        '\n  n     : '//str(n))
         return
       endif
 
@@ -1006,12 +1006,12 @@ integer(4) function replace_word(&
       loc = index(c, word_old)
       if( loc == 0 )then
         info = 1
-        call errret(msg_unexpected_condition()//&
-                  '\nThe number of the word "'//trim(word_old)//'" '//&
-                    'included in the given string is less than '//&
-                    'the specified number.'//&
-                  '\n  string: '//str(c)//&
-                  '\n  n     : '//str(c))
+        call errret(ERROR_CODE__CONDITION, &
+          'The number of the word "'//trim(word_old)//'" '//&
+          'included in the given string is less than '//&
+          'the specified number.'//&
+        '\n  string: '//str(c)//&
+        '\n  n     : '//str(c))
         return
       endif
 
@@ -1089,13 +1089,13 @@ integer(4) function split(c, dlm, n, quote) result(info)
     endif
     if( ic == 0 )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\nThe number of the delimiter "'//dlm//'" '//&
-                  'included in the given string '//&
-                  'is less than the specified number.'//&
-                '\n  string: '//str(c)//&
-                '\n  n     : '//str(n)//&
-                '\n  quote : '//str(quote))
+      call errret(ERROR_CODE__CONDITION, &
+        'The number of the delimiter "'//dlm//'" '//&
+        'included in the given string '//&
+        'is less than the specified number.'//&
+      '\n  string: '//str(c)//&
+      '\n  n     : '//str(n)//&
+      '\n  quote : '//str(quote))
       return
     elseif( ic == len(c) )then
       c = ''

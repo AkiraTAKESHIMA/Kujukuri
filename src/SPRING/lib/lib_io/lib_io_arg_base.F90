@@ -42,8 +42,9 @@ function argument(i) result(res)
   character(CLEN_LINE) :: s
 
   if( i > argnum() )then
-    call errend('The specified index of argument exceeds the number of arguments.', &
-      '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__ARGUMENT, &
+      'The specified index of argument exceeds the number of arguments.', &
+      MODNAM, PRCNAM)
   endif
 #ifdef OPT_NO_F23
   call getarg(i, s)

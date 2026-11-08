@@ -35,12 +35,12 @@ subroutine raise_error_coef_negative(&
   real(8)   , intent(in) :: coef
   real(8)   , intent(in) :: zero_negative
 
-  call erradd(msg_unexpected_condition()//&
-            '\ncoef(ij) <= zero_negative'//&
-            '\n  ij: '//str(ij)//&
-            '\n  coef(ij): '//str(coef)//&
-            '\n  zero_negative: '//str(zero_negative), &
-              '', PRCNAM, MODNAM)
+  call errnew(ERROR_CODE__CONDITION, &
+    'coef(ij) <= zero_negative'//&
+  '\n  ij: '//str(ij)//&
+  '\n  coef: '//str(coef)//&
+  '\n  zero_negative: '//str(zero_negative), &
+    MODNAM, PRCNAM)
 end subroutine raise_error_coef_negative
 !===============================================================
 !
@@ -53,13 +53,13 @@ subroutine raise_error_coef_small(&
   real(8)   , intent(in) :: coef
   real(8)   , intent(in) :: zero_positive, zero_negative
 
-  call erradd(msg_unexpected_condition()//&
-            '\ncoef(ij) > zero_negative .and. coef(ij) < zero_positive'//&
-            '\n  ij: '//str(ij)//&
-            '\n  coef(ij): '//str(coef)//&
-            '\n  zero_positive: '//str(zero_positive)//&
-            '\n  zero_negative: '//str(zero_negative), &
-              '', PRCNAM, MODNAM)
+  call errnew(ERROR_CODE__CONDITION, &
+    'coef(ij) > zero_negative and coef(ij) < zero_positive'//&
+  '\n  ij: '//str(ij)//&
+  '\n  coef: '//str(coef)//&
+  '\n  zero_positive: '//str(zero_positive)//&
+  '\n  zero_negative: '//str(zero_negative), &
+  MODNAM, PRCNAM)
 end subroutine raise_error_coef_small
 !===============================================================
 !
@@ -73,14 +73,14 @@ subroutine raise_error_coef_above_thresh(&
   real(8)   , intent(in) :: coef
   real(8)   , intent(in) :: error_excess
 
-  call erradd(msg_unexpected_condition()//&
-            '\ncoef(ij) >= 1.0 + error_excess'//&
-            '\n  ij: '//str(ij)//&
-            '\n  sidx: '//str(sidx)//&
-            '\n  tidx: '//str(tidx)//&
-            '\n  coef(ij)-1.0: '//str(coef-1.d0)//&
-            '\n  error_excess: '//str(error_excess), &
-              '', PRCNAM, MODNAM)
+  call errnew(ERROR_CODE__CONDITION, &
+    'coef(ij) >= 1.0 + error_excess'//&
+  '\n  ij: '//str(ij)//&
+  '\n  sidx: '//str(sidx)//&
+  '\n  tidx: '//str(tidx)//&
+  '\n  coef(ij)-1.0: '//str(coef-1.d0)//&
+  '\n  error_excess: '//str(error_excess), &
+    MODNAM, PRCNAM)
 end subroutine raise_error_coef_above_thresh
 !===============================================================
 !
@@ -93,13 +93,13 @@ subroutine raise_error_coef_sum_above_thresh(&
   real(8)   , intent(in) :: coef_sum
   real(8)   , intent(in) :: sum_error_excess
 
-  call erradd(msg_unexpected_condition()//&
-            '\nsum(coef(ijs:ije)) >= 1.0 + sum_error_excess'//&
-            '\n  ijs: '//str(ijs)//&
-            '\n  ije: '//str(ije)//&
-            '\n  sum(coef(ijs:ije))-1.0: '//str(coef_sum-1.d0)//&
-            '\n  sum_error_excess: '//str(sum_error_excess), &
-              '', PRCNAM, MODNAM)
+  call errnew(ERROR_CODE__CONDITION, &
+    'sum(coef(ijs:ije)) >= 1.0 + sum_error_excess'//&
+  '\n  ijs: '//str(ijs)//&
+  '\n  ije: '//str(ije)//&
+  '\n  sum(coef(ijs:ije))-1.0: '//str(coef_sum-1.d0)//&
+  '\n  sum_error_excess: '//str(sum_error_excess), &
+    MODNAM, PRCNAM)
 end subroutine raise_error_coef_sum_above_thresh
 !===============================================================
 !
@@ -116,15 +116,15 @@ subroutine raise_error_val_sum_non_positive(&
 
   integer(8) :: ij
 
-  call erradd(msg_unexpected_condition()//&
-            '\n'//str(nam)//'_sum <= 0'//&
-            '\n  grid_coef: '//str(grid_coef)//&
-            '\n  '//str(nam)//'_sum: '//str(sum(val(ijs:ije)))//&
-            '\n  ijs: '//str(ijs)//&
-            '\n  ije: '//str(ije), &
-              '', PRCNAM, MODNAM)
+  call errnew(ERROR_CODE__CONDITION, &
+    str(nam)//'_sum <= 0'//&
+  '\n  grid_coef: '//str(grid_coef)//&
+  '\n  '//str(nam)//'_sum: '//str(sum(val(ijs:ije)))//&
+  '\n  ijs: '//str(ijs)//&
+  '\n  ije: '//str(ije), &
+    MODNAM, PRCNAM)
   do ij = ijs, ije
-    call errapd('  ij '//str(ij,dgt(ije))//&
+    call erradd('  ij '//str(ij,dgt(ije))//&
                 ' sidx '//str(sidx(ij))//' tidx '//str(tidx(ij))//&
                 ' '//str(nam)//' '//str(val(ij)))
   enddo

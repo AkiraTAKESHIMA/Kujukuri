@@ -127,7 +127,7 @@ subroutine remap(s, t, rt)
           sz=sfg%sz(2), lb=sfg%lb(2), check_recl=.true. &
         ) )
       case default
-        call errend(msg_invalid_value('sc%typ', sc%typ))
+        call errend(ERROR_CODE__VALUE, 'sc%typ == '//str(sc%typ))
       endselect
 
       call stop_ctimer('io')
@@ -142,15 +142,15 @@ subroutine remap(s, t, rt)
       do rtij = 1_8, rtm%nij
         call search(rtm%sidx(rtij), sg%idx, sg%idxarg, loc)
         if( loc == 0_8 )then
-          call errend(msg_unexpected_condition()//&
-                    '\nIndex '//str(rtm%sidx(rtij))//' of the source mesh is invalid.')
+          call errend(ERROR_CODE__CONDITION, &
+            'Index '//str(rtm%sidx(rtij))//' of the source mesh is invalid.')
         endif
         sij = sg%idxarg(loc)
 
         call search(rtm%tidx(rtij), tg%idx, tg%idxarg, loc)
         if( loc == 0_8 )then
-          call errend(msg_unexpected_condition()//&
-                    '\nIndex '//str(rtm%tidx(rtij))//' of the target mesh is invalid.')
+          call errend(ERROR_CODE__CONDITION, &
+            'Index '//str(rtm%tidx(rtij))//' of the target mesh is invalid.')
         endif
         tij = tg%idxarg(loc)
 
@@ -196,7 +196,7 @@ subroutine remap(s, t, rt)
         ) )
 
       case default
-        call errend(msg_invalid_value('tc%typ', tc%typ))
+        call errend(ERROR_CODE__VALUE, 'tc%typ == '//str(tc%typ))
       endselect
 
       call stop_ctimer('io')
@@ -212,7 +212,7 @@ subroutine remap(s, t, rt)
   !-------------------------------------------------------------
   ! Case: ERROR
   case default
-    call errend(msg_invalid_value('rtm%mode', rtm%mode))
+    call errend(ERROR_CODE__VALUE, 'rtm%mode == '//str(rtm%mode))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -234,8 +234,8 @@ subroutine get_is_south_to_north(a, is_south_to_north)
   case( MESHTYPE__POLYGON )
     is_south_to_north = .true.  ! not used
   case default
-    call errend(msg_invalid_value('a%cmn%typ', a%cmn%typ), &
-      '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'a%cmn%typ == '//str(a%cmn%typ), &
+      MODNAM, PRCNAM)
   endselect
 end subroutine get_is_south_to_north
 !===============================================================
@@ -255,8 +255,8 @@ subroutine alloc(ac, lb, ub, val, val_2d)
   case( MESHTYPE__POLYGON )
     allocate(val(lb(2):ub(2)))
   case default
-    call errend(msg_invalid_value('ac%typ', ac%typ), &
-      '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'ac%typ == '//str(ac%typ), &
+      MODNAM, PRCNAM)
   endselect
 end subroutine alloc
 !===============================================================

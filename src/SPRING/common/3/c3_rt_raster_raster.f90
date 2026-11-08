@@ -72,9 +72,9 @@ integer(4) function make_rt_raster_raster(&
   if( s%typ /= MESHTYPE__RASTER .or. &
       t%typ /= MESHTYPE__RASTER )then
     info = 1
-    call errret(msg_invalid_value()//&
-              '\n  s%typ: '//str(s%typ)//&
-              '\n  t%typ: '//str(t%typ))
+    call errret(ERROR_CODE__VALUE, &
+    '\n  s%typ: '//str(s%typ)//&
+    '\n  t%typ: '//str(t%typ))
     return
   endif
 
@@ -142,9 +142,9 @@ integer(4) function make_rt_raster_raster(&
     continue
   case default
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\n  ar%status_wgtmap: '//str(ar%status_wgtmap)//&
-              '\n  br%status_wgtmap: '//str(br%status_wgtmap))
+    call errret(ERROR_CODE__CONDITION, &
+    '\n  ar%status_wgtmap: '//str(ar%status_wgtmap)//&
+    '\n  br%status_wgtmap: '//str(br%status_wgtmap))
     return
   endselect
   !-------------------------------------------------------------
@@ -180,8 +180,8 @@ integer(4) function make_rt_raster_raster(&
           call search(aidx, ar%grid%idx, ar%grid%idxarg, loc)
           if( loc == 0_8 )then
             info = 1
-            call errret(msg_unexpected_condition()//&
-                      '\nIndex of $a, '//str(aidx)//', was not found.')
+            call errret(ERROR_CODE__CONDITION, &
+            '\nIndex of $a, '//str(aidx)//', was not found.')
             return
           endif
           aij = ar%grid%idxarg(loc)
@@ -194,12 +194,12 @@ integer(4) function make_rt_raster_raster(&
           if( rt1%mij > 0_8 )then
             if( rt1%idx(ij_prev(aij)) /= bidx_prev(aij) )then
               info = 1
-              call errret(msg_unexpected_condition()//&
-                        '\nrt1%idx(ij_prev(aij)) /= bidx_prev(aij)'//&
-                        '\n  aij: '//str(aij)//&
-                        '\n  ij_prev: '//str(ij_prev(aij))//&
-                        '\n  rt1%idx: '//str(rt1%idx(ij_prev(aij)))//&
-                        '\n  bidx_prev: '//str(bidx_prev(aij)))
+              call errret(ERROR_CODE__CONDITION, &
+                'rt1%idx(ij_prev(aij)) /= bidx_prev(aij)'//&
+              '\n  aij: '//str(aij)//&
+              '\n  ij_prev: '//str(ij_prev(aij))//&
+              '\n  rt1%idx: '//str(rt1%idx(ij_prev(aij)))//&
+              '\n  bidx_prev: '//str(bidx_prev(aij)))
               return
             endif
           endif
@@ -236,7 +236,7 @@ integer(4) function make_rt_raster_raster(&
                   lapara = avr%lapara_1rad(iibv) * ahr%lonwidth(iibh(ibh))
                 case default
                   info = 1
-                  call errret(msg_invalid_value('case_wgtmap', case_wgtmap))
+                  call errret(ERROR_CODE__VALUE, 'case_wgtmap == '//str(case_wgtmap))
                   return
                 endselect
 

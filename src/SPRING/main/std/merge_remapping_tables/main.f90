@@ -16,7 +16,7 @@ program main
   type(output_) :: output
   type(opt_)    :: opt
 
-  call logbgn('program main', '', '+tr')
+  call logbgn('', 'program main', '+tr')
   !-------------------------------------------------------------
   call read_settings(input, output, opt)
 
@@ -28,5 +28,5 @@ program main
 
   call finalize()
   !-------------------------------------------------------------
-  call logret('program main', '')
+  call logret('', 'program main')
 end program main

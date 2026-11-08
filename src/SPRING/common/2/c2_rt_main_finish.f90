@@ -67,7 +67,7 @@ integer(4) function finish_rt_main(rt, s, t, output) result(info)
     a => t
   case default
     info = 1
-    call errret(msg_invalid_value('rtm%mesh_coef', rtm%mesh_coef))
+    call errret(ERROR_CODE__VALUE, 'rtm%mesh_coef == '//str(rtm%mesh_coef))
     return
   endselect
 
@@ -80,7 +80,7 @@ integer(4) function finish_rt_main(rt, s, t, output) result(info)
     !-----------------------------------------------------------
     ! Case: Empty file is allowed.
     if( rtm%allow_empty )then
-      call logwrn('No valid data exists. Empty files are generated.')
+      call logwrn(ERROR_CODE__CONDITION, 'No valid data exists. Empty files are generated.')
 
       if( write_rt_main(rtm) /= 0 )then
         info = 1; call errret(); return
@@ -92,8 +92,7 @@ integer(4) function finish_rt_main(rt, s, t, output) result(info)
     ! Case: Empty file is not allowed.
     else
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\nrtm%nij == 0')
+      call errret(ERROR_CODE__CONDITION, 'rtm%nij == 0')
       return
     endif
   endif
@@ -120,13 +119,12 @@ integer(4) function finish_rt_main(rt, s, t, output) result(info)
 
   if( rtm%ijsize == 0_8 )then
     if( rtm%allow_empty )then
-      call logwrn('The remapping table is empty.')
+      call logwrn(ERROR_CODE__CONDITION, 'The remapping table is empty.')
       call logret(PRCNAM, MODNAM)
       return
     else
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\nrtm%ijsize == 0')
+      call errret(ERROR_CODE__CONDITION, 'rtm%ijsize == 0')
       return
     endif
   endif

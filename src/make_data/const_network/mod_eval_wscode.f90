@@ -424,9 +424,11 @@ subroutine evalWsCodeConsistency(regionName)
     isct_ent%n = isct_ent%ie - isct_ent%is + 1
 
     if( leng_ent == 0.d0 )then
-      call logwrn('Total length of the entity is zero.')
+      call logwrn(ERROR_CODE__CONDITION, &
+        'Total length of the entity is zero.')
       if( isct_ent%n > 1 )then
-        call logwrn('Total length is zero but included in more than two water systems.')
+        call logwrn(ERROR_CODE__CONDITION, &
+          'Total length is zero but included in more than two water systems.')
       endif
       isct_ent%ratio(isct_ent%is:isct_ent%ie) = 1.d0
     else

@@ -143,10 +143,10 @@ subroutine check_relations_rt_grid(&
   do gij = 1_8, ngij
     if( (grdidx(gij) == idx_miss .and. grdara(gij) > 0.d0) .or. &
         (grdidx(gij) /= idx_miss .and. grdara(gij) <= 0.d0) )then
-      call errend(msg_unexpected_condition()//&
-                '\n  gij: '//str(gij)//&
-                '\n  grdidx: '//str(grdidx(gij))//&
-                '\n  grdara: '//str(grdara(gij)))
+      call errend(ERROR_CODE__CONDITION, &
+        '  gij: '//str(gij)//&
+      '\n  grdidx: '//str(grdidx(gij))//&
+      '\n  grdara: '//str(grdara(gij)))
     endif
   enddo
 
@@ -166,7 +166,7 @@ subroutine check_relations_rt_grid(&
     call logmsg('Reading rt_tidx')
     call traperr( rbin(rt_grid, f%path, f%dtype, f%endian, f%rec) )
   case default
-    call errend(msg_invalid_value('mesh_which', mesh_which))
+    call errend(ERROR_CODE__VALUE, 'mesh_which == '//str(mesh_which))
   endselect
 
   f => rtm%f%area
@@ -177,8 +177,8 @@ subroutine check_relations_rt_grid(&
   do rtij = 1_8, rtm%nij
     call search(rt_grid(rtij), grdidx, grdidxarg, loc)
     if( loc == 0_8 )then
-      call errend(msg_unexpected_condition()//&
-                '\n  Index '//str(rt_grid(rtij))//' in rt was not found in grdidx.')
+      call errend(ERROR_CODE__CONDITION, &
+        'Index '//str(rt_grid(rtij))//' in rt was not found in grdidx.')
     endif
     call add(grdara_rt(grdidxarg(loc)), rt_area(rtij))
   enddo
@@ -198,26 +198,26 @@ subroutine check_relations_rt_grid(&
     selectcase( mode_rerr_grdara )
     case( MODE_RERR_TINY )
       if( abs(rerr_grdara(gij)) > rerr_grdara_llim )then
-        call errend(msg_unexpected_condition()//&
-                  '\n  abs(rerr_grdara) > rerr_grdara_llim'//&
-                  '\n  gij: '//str(gij)//&
-                  '\n  idx: '//str(grdidx(gij))//&
-                  '\n  grdara     : '//str(grdara(gij))//&
-                  '\n  grdara_rt  : '//str(grdara_rt(gij))//&
-                  '\n  rerr_grdara: '//str(rerr_grdara(gij)))
+        call errend(ERROR_CODE__CONDITION, &
+          'abs(rerr_grdara) > rerr_grdara_llim'//&
+        '\n  gij: '//str(gij)//&
+        '\n  idx: '//str(grdidx(gij))//&
+        '\n  grdara     : '//str(grdara(gij))//&
+        '\n  grdara_rt  : '//str(grdara_rt(gij))//&
+        '\n  rerr_grdara: '//str(rerr_grdara(gij)))
       endif
     case( MODE_RERR_NEGATIVE )
       if( rerr_grdara(gij) > rerr_grdara_llim )then
-        call errend(msg_unexpected_condition()//&
-                  '\n  rerr_grdara > 0.0'//&
-                  '\n  gij: '//str(gij)//&
-                  '\n  idx: '//str(grdidx(gij))//&
-                  '\n  grdara     : '//str(grdara(gij))//&
-                  '\n  grdara_rt  : '//str(grdara_rt(gij))//&
-                  '\n  rerr_grdara: '//str(rerr_grdara(gij)))
+        call errend(ERROR_CODE__CONDITION, &
+          'rerr_grdara > 0.0'//&
+        '\n  gij: '//str(gij)//&
+        '\n  idx: '//str(grdidx(gij))//&
+        '\n  grdara     : '//str(grdara(gij))//&
+        '\n  grdara_rt  : '//str(grdara_rt(gij))//&
+        '\n  rerr_grdara: '//str(rerr_grdara(gij)))
       endif
     case default
-      call errend(msg_invalid_value('mode_rerr_grdara', mode_rerr_grdara))
+      call errend(ERROR_CODE__VALUE, 'mode_rerr_grdara == '//str(mode_rerr_grdara))
     endselect
   enddo  ! gij/
 

@@ -51,7 +51,7 @@ integer(4) function calc_rt_coef(&
     coefidx => rtm%tidx
   case default
     info = 1
-    call errret(msg_invalid_value('rtm%mesh_coef', rtm%mesh_coef))
+    call errret(ERROR_CODE__VALUE, 'rtm%mesh_coef == '//str(rtm%mesh_coef))
     return
   endselect
   !-----------------------------------------------------------
@@ -103,7 +103,7 @@ integer(4) function calc_rt_coef_sum_modify_enabled(rtm) result(info)
     coefidx => rtm%tidx
   case default
     info = 1
-    call errret(msg_invalid_value('rtm%mesh_coef', rtm%mesh_coef))
+    call errret(ERROR_CODE__VALUE, 'rtm%mesh_coef == '//str(rtm%mesh_coef))
     return
   endselect
 
@@ -133,11 +133,11 @@ integer(4) function calc_rt_coef_sum_modify_enabled(rtm) result(info)
       cycle
     elseif( area_sum < 0.d0 )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\nsum(rtm%area(ijs:ije)) < 0'//&
-                '\n  ijs: '//str(ijs)//&
-                '\n  ije: '//str(ije)//&
-                '\n  sum(rtm%area(ijs:ije)): '//str(area_sum))
+      call errret(ERROR_CODE__CONDITION, &
+        'sum(rtm%area(ijs:ije)) < 0'//&
+      '\n  ijs: '//str(ijs)//&
+      '\n  ije: '//str(ije)//&
+      '\n  sum(rtm%area(ijs:ije)): '//str(area_sum))
       return
     endif
 
@@ -182,11 +182,11 @@ integer(4) function calc_rt_coef_sum_modify_enabled(rtm) result(info)
         exit
       elseif( area_sum < 0.d0 )then
         info = 1
-        call errret(msg_unexpected_condition()//&
-                  '\nsum(rtm%area(ijs:ije)) < 0'//&
-                  '\n  ijs: '//str(ijs)//&
-                  '\n  ije: '//str(ije)//&
-                  '\n  sum(rtm%area(ijs:ije)): '//str(area_sum))
+        call errret(ERROR_CODE__CONDITION, &
+        'sum(rtm%area(ijs:ije)) < 0'//&
+        '\n  ijs: '//str(ijs)//&
+        '\n  ije: '//str(ije)//&
+        '\n  sum(rtm%area(ijs:ije)): '//str(area_sum))
         return
       endif
 
@@ -263,7 +263,7 @@ integer(4) function calc_rt_coef_sum_modify_not_enabled(&
     coefidx => rtm%tidx
   case default
     info = 1
-    call errret(msg_invalid_value('rtm%mesh_coef', rtm%mesh_coef))
+    call errret(ERROR_CODE__VALUE, 'rtm%mesh_coef == '//str(rtm%mesh_coef))
     return
   endselect
 
@@ -292,10 +292,10 @@ integer(4) function calc_rt_coef_sum_modify_not_enabled(&
       call search(coefidx(ijs), grdidx, gij)
       if( gij == 0_8 )then
         info = 1
-        call errret(msg_unexpected_condition()//&
-                  '\ncoefidx(ijs) was not found in grdidx.'//&
-                  '\n  ijs: '//str(ijs)//&
-                  '\n  coefidx: '//str(coefidx(ijs)))
+        call errret(ERROR_CODE__CONDITION, &
+          'coefidx(ijs) was not found in grdidx.'//&
+        '\n  ijs: '//str(ijs)//&
+        '\n  coefidx: '//str(coefidx(ijs)))
         return
       endif
 
@@ -318,10 +318,10 @@ integer(4) function calc_rt_coef_sum_modify_not_enabled(&
       call search(coefidx(ijs), grdidx, grdidxarg, loc)
       if( loc == 0_8 )then
         info = 1
-        call errret(msg_unexpected_condition()//&
-                  '\ncoefidx(ijs) was not found in grdidx.'//&
-                  '\n  ijs: '//str(ijs)//&
-                  '\n  coefidx: '//str(coefidx(ijs)))
+        call errret(ERROR_CODE__CONDITION, &
+          'coefidx(ijs) was not found in grdidx.'//&
+        '\n  ijs: '//str(ijs)//&
+        '\n  coefidx: '//str(coefidx(ijs)))
         return
       endif
 
@@ -433,20 +433,20 @@ integer(4) function calc_coef() result(info)
   else
     if( all(rtm%area(ijs:ije) == 0.d0) )then
       ! TODO: option for allowing zero area grid
-      call logwrn(msg_unexpected_condition()//&
-                '\ngrdara('//str(gij)//') <= 0.0'//&
-                '\n  grdidx: '//str(grdidx(gij))//&
-                '\n  grdara: '//str(grdara(gij))//&
-                '\n  rtm%area min: '//str(minval(rtm%area(ijs:ije)),'es10.3')//&
-                           ', max: '//str(maxval(rtm%area(ijs:ije)),'es10.3'))
+      call logwrn(ERROR_CODE__VALUE, &
+        'grdara('//str(gij)//') <= 0.0'//&
+      '\n  grdidx: '//str(grdidx(gij))//&
+      '\n  grdara: '//str(grdara(gij))//&
+      '\n  rtm%area min: '//str(minval(rtm%area(ijs:ije)),'es10.3')//&
+                 ', max: '//str(maxval(rtm%area(ijs:ije)),'es10.3'))
       rtm%coef(ijs:ije) = 0.d0
     else
-      call logwrn(msg_unexpected_condition()//&
-                '\ngrdara('//str(gij)//') <= 0.0'//&
-                '\n  grdidx: '//str(grdidx(gij))//&
-                '\n  grdara: '//str(grdara(gij))//&
-                '\n  rtm%area min: '//str(minval(rtm%area(ijs:ije)),'es10.3')//&
-                           ', max: '//str(maxval(rtm%area(ijs:ije)),'es10.3'))
+      call logwrn(ERROR_CODE__VALUE, &
+        'grdara('//str(gij)//') <= 0.0'//&
+      '\n  grdidx: '//str(grdidx(gij))//&
+      '\n  grdara: '//str(grdara(gij))//&
+      '\n  rtm%area min: '//str(minval(rtm%area(ijs:ije)),'es10.3')//&
+                 ', max: '//str(maxval(rtm%area(ijs:ije)),'es10.3'))
     endif
   endif
 end function calc_coef

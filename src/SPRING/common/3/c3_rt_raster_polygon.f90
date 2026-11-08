@@ -93,9 +93,9 @@ integer(4) function make_rt_raster_polygon(&
     b => s
   else
     info = 1
-    call errret(str(msg_invalid_value())//&
-              '\n  s%typ: '//str(s%typ)//&
-              '\n  t%typ: '//str(t%typ))
+    call errret(ERROR_CODE__VALUE, &
+    '\n  s%typ: '//str(s%typ)//&
+    '\n  t%typ: '//str(t%typ))
     return
   endif
 
@@ -232,14 +232,14 @@ integer(4) function make_rt_raster_polygon(&
             if( wbin(iarea_sum, f%path, f%dtype, f%endian, f%rec, &
                      sz=(/ar%nx,ar%ny/), lb=(/arz%xi,arz%yi/), fill=rtv%dval_miss) /= 0 )then
               info = 1
-              call errret('Case fill_vrf')
+              call errret(msg='Case fill_vrf')
               return
             endif
           else
             if( wbin(iarea_sum, f%path, f%dtype, f%endian, f%rec, &
                      sz=(/ar%nx,ar%ny/), lb=(/arz%xi,arz%yi/)) /= 0 )then
               info = 1
-              call errret('Case not fill_vrf')
+              call errret(msg='Case not fill_vrf')
               return
             endif
           endif
@@ -268,14 +268,14 @@ integer(4) function make_rt_raster_polygon(&
             if( wbin(iarea_sum, f%path, f%dtype, f%endian, f%rec, &
                      sz=(/ar%nx,ar%ny/), lb=(/arz%xi,arz%yi/), fill=rtv%dval_miss) /= 0 )then
               info = 1
-              call errret('Case fill_vrf')
+              call errret(msg='Case fill_vrf')
               return
             endif
           else
             if( wbin(iarea_sum, f%path, f%dtype, f%endian, f%rec, &
                      sz=(/ar%nx,ar%ny/), lb=(/arz%xi,arz%yi/)) /= 0 )then
               info = 1
-              call errret('Case not fill_vrf')
+              call errret(msg='Case not fill_vrf')
               return
             endif
           endif

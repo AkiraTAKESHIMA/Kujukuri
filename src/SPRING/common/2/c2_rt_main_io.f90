@@ -41,8 +41,7 @@ integer(4) function read_rt_main(rtm) result(info)
   !-------------------------------------------------------------
   if( rtm%nij <= 0_8 )then
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\nrtm%nij <= 0')
+    call errret(ERROR_CODE__CONDITION, 'rtm%nij <= 0')
     return
   endif
 
@@ -237,7 +236,7 @@ integer(4) function copy_tmp_data(f, f_tmp, nij, memory_ulim) result(info)
     allocate(dat_dble(mij))
   case default
     info = 1
-    call errret(msg_invalid_value('f_tmp%dtype', f_tmp%dtype))
+    call errret(ERROR_CODE__VALUE, 'f_tmp%dtype == '//str(f_tmp%dtype))
     return
   endselect
 
@@ -308,7 +307,7 @@ integer(4) function copy_tmp_data(f, f_tmp, nij, memory_ulim) result(info)
       endif
     case default
       info = 1
-      call errret(msg_invalid_value('f_tmp%dtype', f_tmp%dtype))
+      call errret(ERROR_CODE__VALUE, 'f_tmp%dtype == '//str(f_tmp%dtype))
       return
     endselect
   enddo  ! iDiv/

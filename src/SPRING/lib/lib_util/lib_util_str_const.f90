@@ -88,8 +88,7 @@ function str_arctyp_long__0d(typ) result(res)
   case( ARC_TYPE_MERIDIAN )
     res = 'meridian'
   case default
-    call errend(msg_invalid_value('typ', typ), &
-                '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'typ == '//str(typ))
   endselect
   !-------------------------------------------------------------
 end function str_arctyp_long__0d
@@ -128,8 +127,7 @@ function str_arctyp_short__0d(typ) result(res)
   case( ARC_TYPE_MERIDIAN )
     res = 'm'
   case default
-    call errend(msg_invalid_value('typ', typ), &
-                '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'typ == '//str(typ), MODNAM, PRCNAM)
   endselect
   !-------------------------------------------------------------
 end function str_arctyp_short__0d
@@ -178,8 +176,7 @@ function str_arcpos_long__0d(pos) result(res)
   case( ARC_POSITION_POLAR )
     res = 'polar'
   case default
-    call errend(msg_invalid_value('pos', pos), &
-                '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'pos == '//str(pos), MODNAM, PRCNAM)
   endselect
   !-------------------------------------------------------------
 end function str_arcpos_long__0d
@@ -218,8 +215,7 @@ function str_arcpos_short__0d(pos) result(res)
   case( ARC_POSITION_POLAR )
     res = 'p'
   case default
-    call errend(msg_invalid_value('pos', pos), &
-                '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'pos == '//str(pos), MODNAM, PRCNAM)
   endselect
   !-------------------------------------------------------------
 end function str_arcpos_short__0d
@@ -304,8 +300,7 @@ function str_arc_rel_lat(arc_rel) result(res)
   case( ARC_REL_LAT_NORM_NORM_INTERSECTION_DOWNWARD )
     res = 'norm_norm_intersection_downward'
   case default
-    call errend(msg_invalid_value('arc_rel', arc_rel), &
-                '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'arc_rel == '//str(arc_rel), MODNAM, PRCNAM)
   endselect
   !-------------------------------------------------------------
 end function str_arc_rel_lat
@@ -339,8 +334,7 @@ function str_convex_long__0d(convex) result(res)
   case( CONVEX_DOWNWARD )
     res = 'downward'
   case default
-    call errend(msg_invalid_value('convex', convex), &
-                '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'convex == '//str(convex), MODNAM, PRCNAM)
   endselect
   !-------------------------------------------------------------
 end function str_convex_long__0d
@@ -381,8 +375,7 @@ function str_convex_short__0d(convex) result(res)
   case( CONVEX_UPWARD )
     res = 'u'
   case default
-    call errend(msg_invalid_value('convex', convex), &
-                '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'convex == '//str(convex), MODNAM, PRCNAM)
   endselect
   !-------------------------------------------------------------
 end function str_convex_short__0d
@@ -433,8 +426,7 @@ function str_polygon_pos_long__0d(pos) result(res)
   case( POLYGON_POSITION_POLAR )
     res = 'polar'
   case default
-    call errend(msg_invalid_value('pos', pos), &
-                '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'pos == '//str(pos), MODNAM, PRCNAM)
   endselect
   !-------------------------------------------------------------
 end function str_polygon_pos_long__0d
@@ -467,8 +459,7 @@ function str_region_type_long__0d(typ) result(res)
   case( REGION_TYPE_REGIONAL )
     res = 'regional'
   case default
-    call errend(msg_invalid_value('typ', typ), &
-                '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'typ == '//str(typ), MODNAM, PRCNAM)
   endselect
   !-------------------------------------------------------------
 end function str_region_type_long__0d

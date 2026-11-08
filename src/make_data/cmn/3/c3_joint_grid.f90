@@ -47,29 +47,29 @@ end subroutine conv_fdr_jflw2rri__2d
 !
 !===============================================================
 subroutine conv_fdr_jflw2rri__1d(fdr, fdr_rri)
-  use c2_rri_const, only: &
-        RRI_FDR_WEST       => FDR_WEST      , &
-        RRI_FDR_SOUTHWEST  => FDR_SOUTHWEST , &
-        RRI_FDR_SOUTH      => FDR_SOUTH     , &
-        RRI_FDR_SOUTHEAST  => FDR_SOUTHEAST , &
-        RRI_FDR_EAST       => FDR_EAST      , &
-        RRI_FDR_NORTHEAST  => FDR_NORTHEAST , &
-        RRI_FDR_NORTH      => FDR_NORTH     , &
-        RRI_FDR_NORTHWEST  => FDR_NORTHWEST , &
-        RRI_FDR_RIVERMOUTH => FDR_RIVERMOUTH, &
-        RRI_FDR_MISS       => FDR_MISS
+  use c3_rri_const, only: &
+    RRI_FDR__WEST      , &
+    RRI_FDR__SOUTHWEST , &
+    RRI_FDR__SOUTH     , &
+    RRI_FDR__SOUTHEAST , &
+    RRI_FDR__EAST      , &
+    RRI_FDR__NORTHEAST , &
+    RRI_FDR__NORTH     , &
+    RRI_FDR__NORTHWEST , &
+    RRI_FDR__RIVERMOUTH, &
+    RRI_FDR__MISS      
   use c2_jflw_const, only: &
-        FDR_WEST      , &
-        FDR_SOUTHWEST , &
-        FDR_SOUTH     , &
-        FDR_SOUTHEAST , &
-        FDR_EAST      , &
-        FDR_NORTHEAST , &
-        FDR_NORTH     , &
-        FDR_NORTHWEST , &
-        FDR_RIVERMOUTH, &
-        FDR_INLAND    , &
-        FDR_MISS
+    FDR__WEST      , &
+    FDR__SOUTHWEST , &
+    FDR__SOUTH     , &
+    FDR__SOUTHEAST , &
+    FDR__EAST      , &
+    FDR__NORTHEAST , &
+    FDR__NORTH     , &
+    FDR__NORTHWEST , &
+    FDR__RIVERMOUTH, &
+    FDR__INLAND    , &
+    FDR__MISS
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'conv_fdr_jflw2rri__1d'
   integer(1), intent(in) :: fdr(:)
@@ -79,30 +79,30 @@ subroutine conv_fdr_jflw2rri__1d(fdr, fdr_rri)
 
   do i = 1, size(fdr)
     selectcase( fdr(i) )
-    case( FDR_WEST )
-      fdr_rri(i) = RRI_FDR_WEST
-    case( FDR_SOUTHWEST )
-      fdr_rri(i) = RRI_FDR_SOUTHWEST
-    case( FDR_SOUTH )
-      fdr_rri(i) = RRI_FDR_SOUTH
-    case( FDR_SOUTHEAST )
-      fdr_rri(i) = RRI_FDR_SOUTHEAST
-    case( FDR_EAST )
-      fdr_rri(i) = RRI_FDR_EAST
-    case( FDR_NORTHEAST )
-      fdr_rri(i) = RRI_FDR_NORTHEAST
-    case( FDR_NORTH )
-      fdr_rri(i) = RRI_FDR_NORTH
-    case( FDR_NORTHWEST )
-      fdr_rri(i) = RRI_FDR_NORTHWEST
-    case( FDR_RIVERMOUTH, &
-          FDR_INLAND )
-      fdr_rri(i) = RRI_FDR_RIVERMOUTH
-    case( FDR_MISS )
-      fdr_rri(i) = RRI_FDR_MISS
+    case( FDR__WEST )
+      fdr_rri(i) = RRI_FDR__WEST
+    case( FDR__SOUTHWEST )
+      fdr_rri(i) = RRI_FDR__SOUTHWEST
+    case( FDR__SOUTH )
+      fdr_rri(i) = RRI_FDR__SOUTH
+    case( FDR__SOUTHEAST )
+      fdr_rri(i) = RRI_FDR__SOUTHEAST
+    case( FDR__EAST )
+      fdr_rri(i) = RRI_FDR__EAST
+    case( FDR__NORTHEAST )
+      fdr_rri(i) = RRI_FDR__NORTHEAST
+    case( FDR__NORTH )
+      fdr_rri(i) = RRI_FDR__NORTH
+    case( FDR__NORTHWEST )
+      fdr_rri(i) = RRI_FDR__NORTHWEST
+    case( FDR__RIVERMOUTH, &
+          FDR__INLAND )
+      fdr_rri(i) = RRI_FDR__RIVERMOUTH
+    case( FDR__MISS )
+      fdr_rri(i) = RRI_FDR__MISS
     case default
-      call errend(msg_invalid_value('fdr', fdr(i)), &
-                  '', PRCNAM, MODNAM)
+      call errend(ERROR_CODE__VALUE, 'fdr == '//str(fdr(i)), &
+                  MODNAM, PRCNAM)
     endselect
   enddo
 end subroutine conv_fdr_jflw2rri__1d
@@ -110,28 +110,28 @@ end subroutine conv_fdr_jflw2rri__1d
 !
 !===============================================================
 subroutine conv_fdr_rri2jflw(fdr_rri, fdr)
-  use c2_rri_const, only: &
-        RRI_FDR_WEST       => FDR_WEST      , &
-        RRI_FDR_SOUTHWEST  => FDR_SOUTHWEST , &
-        RRI_FDR_SOUTH      => FDR_SOUTH     , &
-        RRI_FDR_SOUTHEAST  => FDR_SOUTHEAST , &
-        RRI_FDR_EAST       => FDR_EAST      , &
-        RRI_FDR_NORTHEAST  => FDR_NORTHEAST , &
-        RRI_FDR_NORTH      => FDR_NORTH     , &
-        RRI_FDR_NORTHWEST  => FDR_NORTHWEST , &
-        RRI_FDR_RIVERMOUTH => FDR_RIVERMOUTH, &
-        RRI_FDR_MISS       => FDR_MISS
+  use c3_rri_const, only: &
+    RRI_FDR__WEST      , &
+    RRI_FDR__SOUTHWEST , &
+    RRI_FDR__SOUTH     , &
+    RRI_FDR__SOUTHEAST , &
+    RRI_FDR__EAST      , &
+    RRI_FDR__NORTHEAST , &
+    RRI_FDR__NORTH     , &
+    RRI_FDR__NORTHWEST , &
+    RRI_FDR__RIVERMOUTH, &
+    RRI_FDR__MISS      
   use c2_jflw_const, only: &
-        FDR_WEST      , &
-        FDR_SOUTHWEST , &
-        FDR_SOUTH     , &
-        FDR_SOUTHEAST , &
-        FDR_EAST      , &
-        FDR_NORTHEAST , &
-        FDR_NORTH     , &
-        FDR_NORTHWEST , &
-        FDR_RIVERMOUTH, &
-        FDR_MISS
+    FDR__WEST      , &
+    FDR__SOUTHWEST , &
+    FDR__SOUTH     , &
+    FDR__SOUTHEAST , &
+    FDR__EAST      , &
+    FDR__NORTHEAST , &
+    FDR__NORTH     , &
+    FDR__NORTHWEST , &
+    FDR__RIVERMOUTH, &
+    FDR__MISS
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'conv_fdr_rri2jflw'
   integer(4), intent(in)  :: fdr_rri(:,:)
@@ -146,28 +146,28 @@ subroutine conv_fdr_rri2jflw(fdr_rri, fdr)
   do igy = 1, size(fdr_rri,2)
   do igx = 1, size(fdr_rri,1)
     selectcase( fdr_rri(igx,igy) )
-    case( RRI_FDR_EAST )
-      fdr(igx,igy) = FDR_EAST
-    case( RRI_FDR_SOUTHEAST )
-      fdr(igx,igy) = FDR_SOUTHEAST
-    case( RRI_FDR_SOUTH )
-      fdr(igx,igy) = FDR_SOUTH
-    case( RRI_FDR_SOUTHWEST )
-      fdr(igx,igy) = FDR_SOUTHWEST
-    case( RRI_FDR_WEST )
-      fdr(igx,igy) = FDR_WEST
-    case( RRI_FDR_NORTHWEST )
-      fdr(igx,igy) = FDR_NORTHWEST
-    case( RRI_FDR_NORTH )
-      fdr(igx,igy) = FDR_NORTH
-    case( RRI_FDR_NORTHEAST )
-      fdr(igx,igy) = FDR_NORTHEAST
-    case( RRI_FDR_RIVERMOUTH )
-      fdr(igx,igy) = FDR_RIVERMOUTH
-    case( RRI_FDR_MISS )
-      fdr(igx,igy) = FDR_MISS
+    case( RRI_FDR__EAST )
+      fdr(igx,igy) = FDR__EAST
+    case( RRI_FDR__SOUTHEAST )
+      fdr(igx,igy) = FDR__SOUTHEAST
+    case( RRI_FDR__SOUTH )
+      fdr(igx,igy) = FDR__SOUTH
+    case( RRI_FDR__SOUTHWEST )
+      fdr(igx,igy) = FDR__SOUTHWEST
+    case( RRI_FDR__WEST )
+      fdr(igx,igy) = FDR__WEST
+    case( RRI_FDR__NORTHWEST )
+      fdr(igx,igy) = FDR__NORTHWEST
+    case( RRI_FDR__NORTH )
+      fdr(igx,igy) = FDR__NORTH
+    case( RRI_FDR__NORTHEAST )
+      fdr(igx,igy) = FDR__NORTHEAST
+    case( RRI_FDR__RIVERMOUTH )
+      fdr(igx,igy) = FDR__RIVERMOUTH
+    case( RRI_FDR__MISS )
+      fdr(igx,igy) = FDR__MISS
     case default
-      call errend(msg_invalid_value('fdr_rri', fdr_rri(igx,igy)))
+      call errend(ERROR_CODE__VALUE, 'fdr_rri == '//str(fdr_rri(igx,igy)))
     endselect
   enddo
   enddo

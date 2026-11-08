@@ -30,9 +30,9 @@ integer(1) function get_miss_int1(varname) result(res)
   !-------------------------------------------------------------
   selectcase( varname )
   case( 'dir' )
-    res = FDR_MISS
+    res = FDR__MISS
   case default
-    call errend(msg_invalid_value('varname', varname))
+    call errend(ERROR_CODE__VALUE, 'varname == '//str(varname))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -55,7 +55,7 @@ integer(4) function get_miss_int4(varname) result(res)
   case( 'bsn' )
     res = BSN_MISS
   case default
-    call errend(msg_invalid_value('varname', varname))
+    call errend(ERROR_CODE__VALUE, 'varname == '//str(varname))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -80,7 +80,7 @@ real(4) function get_miss_real(varname) result(res)
   case( 'wth' )
     res = WTH_MISS
   case default
-    call errend(msg_invalid_value('varname', varname))
+    call errend(ERROR_CODE__VALUE, 'varname == '//str(varname))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)

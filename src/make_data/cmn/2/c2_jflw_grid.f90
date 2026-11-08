@@ -435,42 +435,42 @@ subroutine get_nextxy(ix, iy, dir, xx, yy)
   integer   , intent(out) :: xx, yy
 
   selectcase( dir )
-  case( FDR_EAST )
+  case( FDR__EAST )
     xx = ix + 1
     yy = iy
-  case( FDR_SOUTHEAST )
+  case( FDR__SOUTHEAST )
     xx = ix + 1
     yy = iy + 1
-  case( FDR_SOUTH )
+  case( FDR__SOUTH )
     xx = ix
     yy = iy + 1
-  case( FDR_SOUTHWEST )
+  case( FDR__SOUTHWEST )
     xx = ix - 1
     yy = iy + 1
-  case( FDR_WEST )
+  case( FDR__WEST )
     xx = ix - 1
     yy = iy
-  case( FDR_NORTHWEST )
+  case( FDR__NORTHWEST )
     xx = ix - 1
     yy = iy - 1
-  case( FDR_NORTH )
+  case( FDR__NORTH )
     xx = ix
     yy = iy - 1
-  case( FDR_NORTHEAST )
+  case( FDR__NORTHEAST )
     xx = ix + 1
     yy = iy - 1
-  case( FDR_RIVERMOUTH )
-    xx = XY_RIVERMOUTH
-    yy = XY_RIVERMOUTH
-  case( FDR_INLAND )
-    xx = XY_INLAND
-    yy = XY_INLAND
-  case( FDR_UNDEF )
-    call errend('Unexpected condition. Reached to ocean.', &
-                '', PRCNAM, MODNAM)
+  case( FDR__RIVERMOUTH )
+    xx = XY__RIVERMOUTH
+    yy = XY__RIVERMOUTH
+  case( FDR__INLAND )
+    xx = XY__INLAND
+    yy = XY__INLAND
+  case( FDR__UNDEF )
+    call errend(ERROR_CODE__CONDITION, 'Unexpected condition. Reached to ocean.', &
+                MODNAM, PRCNAM)
   case default
-    call errend(msg_invalid_value('dir', dir), &
-                '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'dir == '//str(dir), &
+                MODNAM, PRCNAM)
   endselect
 end subroutine get_nextxy
 !===============================================================
@@ -485,50 +485,50 @@ integer(1) function get_fdr(gx, gy, gxx, gyy) result(fdr)
   case( 0 )
     selectcase( gyy - gy )
     case( 0 )
-      fdr = FDR_UNDEF
+      fdr = FDR__UNDEF
     case( 1 )
-      fdr = FDR_SOUTH
+      fdr = FDR__SOUTH
     case( -1 )
-      fdr = FDR_NORTH
+      fdr = FDR__NORTH
     case default
-      call errend(msg_unexpected_condition()//&
-                '\n  abs(gyy-gy) > 1'//&
-                '\n  gy: '//str(gy)//', gyy: '//str(gyy), &
-                  '', PRCNAM, MODNAM)
+      call errend(ERROR_CODE__CONDITION, &
+        'abs(gyy-gy) > 1'//&
+      '\n  gy: '//str(gy)//', gyy: '//str(gyy), &
+        MODNAM, PRCNAM)
     endselect
   case( 1 )
     selectcase( gyy - gy )
     case( 0 )
-      fdr = FDR_EAST
+      fdr = FDR__EAST
     case( 1 )
-      fdr = FDR_SOUTHEAST
+      fdr = FDR__SOUTHEAST
     case( -1 )
-      fdr = FDR_NORTHEAST
+      fdr = FDR__NORTHEAST
     case default
-      call errend(msg_unexpected_condition()//&
-                '\n  abs(gyy-gy) > 1'//&
-                '\n  gy: '//str(gy)//', gyy: '//str(gyy), &
-                  '', PRCNAM, MODNAM)
+      call errend(ERROR_CODE__CONDITION, &
+        'abs(gyy-gy) > 1'//&
+      '\n  gy: '//str(gy)//', gyy: '//str(gyy), &
+        MODNAM, PRCNAM)
     endselect
   case( -1 )
     selectcase( gyy - gy )
     case( 0 )
-      fdr = FDR_WEST
+      fdr = FDR__WEST
     case( 1 )
-      fdr = FDR_SOUTHWEST
+      fdr = FDR__SOUTHWEST
     case( -1 )
-      fdr = FDR_NORTHWEST
+      fdr = FDR__NORTHWEST
     case default
-      call errend(msg_unexpected_condition()//&
-                '\n  abs(gyy-gy) > 1'//&
-                '\n  gy: '//str(gy)//', gyy: '//str(gyy), &
-                  '', PRCNAM, MODNAM)
+      call errend(ERROR_CODE__CONDITION, &
+        'abs(gyy-gy) > 1'//&
+      '\n  gy: '//str(gy)//', gyy: '//str(gyy), &
+        MODNAM, PRCNAM)
     endselect
   case default
-    call errend(msg_unexpected_condition()//&
-              '\n  abs(gxx-gx) > 1'//&
-              '\n  gx: '//str(gx)//', gxx: '//str(gxx), &
-                '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'abs(gxx-gx) > 1'//&
+    '\n  gx: '//str(gx)//', gxx: '//str(gxx), &
+      MODNAM, PRCNAM)
   endselect
 end function get_fdr
 !===============================================================
@@ -540,25 +540,26 @@ real(8) function get_angle_fdr(fdr) result(res)
   integer(1), intent(in) :: fdr
 
   selectcase( fdr )
-  case( FDR_EAST )
+  case( FDR__EAST )
     res = 0.d0
-  case( FDR_NORTHEAST )
+  case( FDR__NORTHEAST )
     res = 45.d0
-  case( FDR_NORTH )
+  case( FDR__NORTH )
     res = 90.d0
-  case( FDR_NORTHWEST )
+  case( FDR__NORTHWEST )
     res = 135.d0
-  case( FDR_WEST )
+  case( FDR__WEST )
     res = 180.d0
-  case( FDR_SOUTHWEST )
+  case( FDR__SOUTHWEST )
     res = 225.d0
-  case( FDR_SOUTH )
+  case( FDR__SOUTH )
     res = 270.d0
-  case( FDR_SOUTHEAST )
+  case( FDR__SOUTHEAST )
     res = 315.d0
   case default
-    call errend('Angle is not defined for fdr = '//str(fdr), &
-      '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, &
+      'Angle is not defined for fdr = '//str(fdr), &
+      MODNAM, PRCNAM)
   endselect
 end function get_angle_fdr
 !===============================================================

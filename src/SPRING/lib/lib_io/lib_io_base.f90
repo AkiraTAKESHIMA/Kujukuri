@@ -40,8 +40,8 @@ function unit_number() result(un)
   enddo
 
   if( is_opened )then
-    call errend('Unopened unit number was not found.', &
-                PRCNAM, MODNAM)
+    call errend(ERROR_CODE__IO, 'Unopened unit number was not found.', &
+                MODNAM, PRCNAM)
     stop 1
   endif
 end function unit_number
@@ -77,8 +77,8 @@ integer function byte_of_dtype(dtype) result(byte)
   case( DTYPE_UNDEF )
     byte = 0
   case default
-    call errend(msg_invalid_value('dtype', dtype), &
-                PRCNAM, MODNAM) 
+    call errend(ERROR_CODE__VALUE, 'dtype == '//str(dtype), &
+                MODNAM, PRCNAM) 
     stop
   endselect
 end function byte_of_dtype
@@ -108,8 +108,8 @@ character(CLEN_KEY) function dtype_int(byte) result(dtype)
   case( 8 )
     dtype = DTYPE_INT8
   case default
-    call errend(msg_invalid_value('byte', byte), &
-                PRCNAM, MODNAM) 
+    call errend(ERROR_CODE__VALUE, 'byte == '//str(byte), &
+                MODNAM, PRCNAM)
     stop
   endselect
 end function dtype_int
@@ -127,8 +127,8 @@ character(CLEN_KEY) function dtype_float(byte) result(dtype)
   case( 8 )
     dtype = DTYPE_DBLE
   case default
-    call errend(msg_invalid_value('byte', byte), &
-                PRCNAM, MODNAM) 
+    call errend(ERROR_CODE__VALUE, 'byte == '//str(byte), &
+                MODNAM, PRCNAM) 
     stop
   endselect
 end function dtype_float
@@ -156,8 +156,8 @@ integer function int_endian(endian) result(res)
         ENDIAN_BIG_SHORT )
     res = INT_ENDIAN_BIG
   case default
-    call errend(msg_invalid_value('endian', endian), &
-                PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'endian == '//str(endian), &
+                MODNAM, PRCNAM)
     stop
   endselect
 end function int_endian
@@ -177,8 +177,8 @@ character(CLEN_KEY) function endian_name_long(endian) result(res)
         ENDIAN_BIG_SHORT )
     res = ENDIAN_BIG
   case default
-    call errend(msg_invalid_value('endian', endian), &
-                PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'endian == '//str(endian), &
+                MODNAM, PRCNAM)
     stop
   endselect
 end function endian_name_long
@@ -198,8 +198,8 @@ character(CLEN_KEY) function endian_name_short(endian) result(res)
         ENDIAN_BIG_SHORT )
     res = ENDIAN_BIG_SHORT
   case default
-    call errend(msg_invalid_value('endian', endian), &
-                PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'endian == '//str(endian), &
+                MODNAM, PRCNAM)
     stop
   endselect
 end function endian_name_short

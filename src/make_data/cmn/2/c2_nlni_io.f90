@@ -259,8 +259,8 @@ subroutine clip_from_tile__int1(&
   gye = gye_of_lat(north - cellsize_lat*0.5)
 
   if( gxe-gxs+1 /= size(dat,1) .or. gye-gys+1 /= size(dat,2) )then
-    call errend('Unexpected condition: '//&
-              '\n  gxe - gxs + 1 /= size(dat,1) .or. gye - gys + 1 /= size(dat,2)')
+    call errend(ERROR_CODE__CONDITION, &
+      'gxe - gxs + 1 /= size(dat,1) .or. gye - gys + 1 /= size(dat,2)')
   endif
 
   dat(:,:) = miss
@@ -280,7 +280,6 @@ subroutine clip_from_tile__int1(&
 
       f = get_f_map_tile_remapped(varName, resolution_org, resolution, itx, ity)
       if( access(f,' ') /= 0 ) cycle
-print*, trim(f)
       call traperr( rbin(&
              dat(gxs_-gxs+1:gxe_-gxs+1,gys_-gys+1:gye_-gys+1), &
              f, sz=int((/MX,MY/),8), lb=int((/lxs,lys/),8)) )
@@ -440,7 +439,7 @@ character(CLEN_PATH) function get_f_map_tile_remapped(&
   case( 'landuse' )
     dir = joined(DIR_PRD, varName)
   case default
-    call errend(msg_invalid_value('varName', varName))
+    call errend(ERROR_CODE__VALUE, 'varName == '//str(varName))
   endselect
 
   res = joined(dir, trim(dirname_resolution(resolution_org, resolution_rmp))//&

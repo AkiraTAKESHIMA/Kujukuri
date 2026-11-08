@@ -254,8 +254,8 @@ subroutine read_settings(rt_in, rt_out, agcm, rm, lsm)
     !-----------------------------------------------------------
     ! Case: ERROR
     case default
-      call errend(msg_invalid_value('blockName', blockName)//&
-                '\nCheck the name of the block.')
+      call errend(ERROR_CODE__VALUE, 'blockName == '//str(blockName)//&
+      '\nCheck the name of the block.')
     endselect
   enddo
 
@@ -1672,8 +1672,8 @@ subroutine read_settings_opt(opt)
         OPT_OLD_FILES_OVERWRITE )
     continue
   case default
-    call errend('Invalid value in opt%sys%old_files: '//str(opt%sys%old_files)//&
-            '\nCheck the value of "old_files".')
+    call errend(ERROR_CODE__VALUE, 'opt%sys%old_files == '//str(opt%sys%old_files)//&
+    '\nCheck the value of "old_files".')
   endselect
 
   call logext()

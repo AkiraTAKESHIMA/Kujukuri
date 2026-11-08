@@ -21,23 +21,23 @@ subroutine test_msg()
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
+  call logmsg('---- Test errnew ----------------------------------------------')
+  call errnew(msg='Error message 1')
+  call errend()
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
   call logmsg('---- Test erradd ----------------------------------------------')
-  call erradd('Error message 1')
+  call errnew(msg='Error message 2')
+  call erradd('  Error message 2-1')
+  call erradd('  Error message 2-2')
   call errend()
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
-  call logmsg('---- Test errapd ----------------------------------------------')
-  call erradd('Error message 2')
-  call errapd('  Error message 2-1')
-  call errapd('  Error message 2-2')
-  call errend()
-  !-------------------------------------------------------------
-  !
-  !-------------------------------------------------------------
-  call logmsg('---- Test errret ----------------------------------------------')
+  call logmsg('---- Test errend ----------------------------------------------')
   if( func1() /= 0 )then
-    call errend('Error from func1')
+    call errend(ERROR_CODE__BASE, 'Error from func1')
   endif
   !-------------------------------------------------------------
   call logmsg('---------------------------------------------------------------')
@@ -54,7 +54,7 @@ integer function func1() result(res)
   !-------------------------------------------------------------
   if( func1_1() /= 0 )then
     res = 1
-    call errret('Error from func1_1')
+    call errret(ERROR_CODE__BASE, 'Error from func1_1')
     return
   endif
   !-------------------------------------------------------------
@@ -70,7 +70,7 @@ integer function func1_1() result(res)
   res = 0
   !-------------------------------------------------------------
   res = 1
-  call errret('Error in func1_1')
+  call errret(ERROR_CODE__BASE, 'Error in func1_1')
   return
   !-------------------------------------------------------------
   call logret()

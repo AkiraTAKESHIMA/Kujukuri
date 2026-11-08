@@ -161,7 +161,7 @@ integer(4) function set_values_opt_earth(&
 
     case default
       info = 1
-      call errret(msg_invalid_value('earth%rtyp', earth%rtyp))
+      call errret(ERROR_CODE__VALUE, 'earth%rtyp == '//str(earth%rtyp))
       return
     endselect
 
@@ -203,7 +203,7 @@ integer(4) function set_values_opt_earth(&
 
     case default
       info = 1
-      call errret(msg_invalid_value('earth%rtyp', earth%rtyp))
+      call errret(ERROR_CODE__VALUE, 'earth%rtyp == '//str(earth%rtyp))
       return
     endselect
 
@@ -222,18 +222,16 @@ integer(4) function set_values_opt_earth(&
   case( EARTH_GEOSYS__OTHER )
     if( n_r == 0 )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\nRadius was not specified.'//&
-                '\nExplicit specification of constants is required '//&
-                  'when geodesic system is "'//str(earth%geosys)//'".')
+      call errret(ERROR_CODE__CONDITION, 'Radius was not specified.'//&
+      '\nExplicit specification of constants is required '//&
+        'when geodesic system is "'//str(earth%geosys)//'".')
       return
     endif
     if( n_finv == 0 .and. n_f == 0 .and. n_e2 == 0 )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\nFlattening was not specified.'//&
-                '\nExplicit specification of constants is required '//&
-                  'when geodesic system is "'//str(earth%geosys)//'".')
+      call errret(ERROR_CODE__CONDITION, 'Flattening was not specified.'//&
+      '\nExplicit specification of constants is required '//&
+        'when geodesic system is "'//str(earth%geosys)//'".')
       return
     endif
 
@@ -241,15 +239,15 @@ integer(4) function set_values_opt_earth(&
 
     ! Case: Both finv and f were given
     if( n_finv > 0 .and. n_f > 0 )then
-      call logwrn(msg_undesirable_condition()//&
-                '\nBoth finv and f were specified.')
+      call logwrn(ERROR_CODE__CONDITION, &
+      '\nBoth finv and f were specified.')
 
     ! Case: Only finv was given
     elseif( n_finv > 0 .and. n_f == 0 )then
       if( earth%finv == 0.d0 )then
-        call logwrn(msg_undesirable_condition()//&
-                  '\n  finv == 0'//&
-                  '\nThis is interpreted as flattening f being 0.')
+        call logwrn(ERROR_CODE__CONDITION, &
+          ' finv == 0'//&
+        '\nThis is interpreted as flattening f being 0.')
         earth%f = 0.d0
       else
         earth%f = 1.d0 / earth%finv
@@ -292,7 +290,7 @@ integer(4) function set_values_opt_earth(&
   ! Case: ERROR
   case default
     info = 1
-    call errret(msg_invalid_value('earth%geosys', earth%geosys))
+    call errret(ERROR_CODE__VALUE, 'earth%geosys == '//str(earth%geosys))
     return
   endselect
   !-------------------------------------------------------------
@@ -365,7 +363,7 @@ subroutine echo_settings_opt_earth(earth)
     call logmsg('  Flattening            : '//str(earth%f,'es22.15'))
     call logmsg('  Square of eccentricity: '//str(earth%e2,'es22.15'))
   case default
-    call errend(msg_invalid_value('earth%shptyp', earth%shptyp))
+    call errend(ERROR_CODE__VALUE, 'earth%shptyp == '//str(earth%shptyp))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)

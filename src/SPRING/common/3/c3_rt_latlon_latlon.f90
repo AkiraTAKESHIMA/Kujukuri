@@ -62,9 +62,9 @@ integer(4) function make_rt_latlon_latlon(&
   if( s%typ /= MESHTYPE__LATLON .or. &
       t%typ /= MESHTYPE__LATLON )then
     info = 1
-    call errret(msg_invalid_value()//&
-              '\n  s%typ: '//str(s%typ)//&
-              '\n  t%typ: '//str(t%typ))
+    call errret(ERROR_CODE__VALUE, &
+      '\n  s%typ: '//str(s%typ)//&
+      '\n  t%typ: '//str(t%typ))
     return
   endif
 

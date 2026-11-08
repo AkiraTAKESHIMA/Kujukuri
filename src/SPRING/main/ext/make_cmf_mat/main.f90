@@ -11,7 +11,7 @@ program main
   type(mat_) :: mat
   type(opt_) :: opt
 
-  call logbgn('program main', '', '+tr')
+  call logbgn('', 'program main', '+tr')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
@@ -19,5 +19,5 @@ program main
 
   call make_cmf_mat(cmn, cmf, mat, opt)
   !-------------------------------------------------------------
-  call logret('program main', '')
+  call logret('', 'program main')
 end program main

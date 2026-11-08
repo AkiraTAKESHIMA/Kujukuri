@@ -66,12 +66,12 @@ integer(4) function interp_fv2fv_conserve1st__real_2d(&
 
   if( getRelationOfGridLines(nsx, ntx, sxi, sxf, wsxi, wsxf) /= 0 )then
     info = 1
-    call errret('Error in x axis.')
+    call errret(ERROR_CODE__BASE, 'Error in x axis.', MODNAM, PRCNAM)
     return
   endif
   if( getRelationOfGridLines(nsy, nty, syi, syf, wsyi, wsyf) /= 0 )then
     info = 1
-    call errret('Error in y axis.')
+    call errret(ERROR_CODE__BASE, 'Error in y axis.', MODNAM, PRCNAM)
     return
   endif
   ws = (nsx*nsy)/real(ntx*nty)

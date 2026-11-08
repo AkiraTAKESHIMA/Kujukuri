@@ -548,8 +548,8 @@ subroutine inc_n_arg(is_positional, itype)
     call add(ad%ndble)
 
   case default
-    call errend(msg_not_implemented()//&
-      '\n  itype == '//str(itype))
+    call errend(ERROR_CODE__NOIMPLEMENTATION, &
+      'itype: '//str(itype))
 
   endselect
   !-------------------------------------------------------------
@@ -641,14 +641,15 @@ subroutine check_format_key_optional(key_short, key_long)
   !
   !-------------------------------------------------------------
   if( key_short == '' .and. key_long == '' )then
-    call errend('Key is empty.')
+    call errend(ERROR_CODE__ARGUMENT, 'Key is empty.')
   endif
 
   if( .not. is_key_optional(key_short) .and. &
       .not. is_key_optional(key_long) )then
-    call errend('Invalid format of key for optional arguments.'//&
-                ' Put "-" on the head of short key, and'//&
-                ' Put "--" on the head of long key.')
+    call errend(ERROR_CODE__SYNTAX, &
+      'Invalid format of key for optional arguments.'//&
+      ' Put "-" on the head of short key, and'//&
+      ' Put "--" on the head of long key.')
   endif
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -789,16 +790,22 @@ subroutine parsearg(istart, iend)
       endif
 
       selectcase( cmn%typ )
+      !---------------------------------------------------------
+      ! Case: flag
       case( ITYPE_FLAG )
         aflag => ad%lst_flag(cmn%idx)
         call update_used_status(aflag%used, aflag%name)
         aflag%val = .not. aflag%val
+      !---------------------------------------------------------
+      ! Case: char
       case( ITYPE_CHAR )
         call add(i)
         arg = argument(i)
         achar => ad%lst_char(cmn%idx)
         call update_used_status(achar%used, achar%name)
         achar%val = arg
+      !---------------------------------------------------------
+      ! Case: int4
       case( ITYPE_INT4 )
         call add(i)
         arg = argument(i)
@@ -807,6 +814,8 @@ subroutine parsearg(istart, iend)
         if( c2v(arg, aint4%val) /= 0 )then
           call errend_pos_reading_failure(aint4%name, j)
         endif
+      !---------------------------------------------------------
+      ! Case: dble
       case( ITYPE_DBLE )
         call add(i)
         arg = argument(i)
@@ -815,8 +824,10 @@ subroutine parsearg(istart, iend)
         if( c2v(arg, adble%val) /= 0 )then
           call errend_pos_reading_failure(adble%name, j)
         endif
+      !---------------------------------------------------------
+      ! Case: int1, int2, int8, real, else
       case default
-        call errend(msg_invalid_value('ad%cmn_opt('//str(j)//')%typ', cmn%typ))
+        call errend(ERROR_CODE__VALUE, 'ad%cmn_opt('//str(j)//')%typ == '//styp(cmn%typ))
       endselect
     !-----------------------------------------------------------
     ! Case: Positional argument
@@ -829,31 +840,32 @@ subroutine parsearg(istart, iend)
 
       jj = cmn%idx
       selectcase( cmn%typ )
-      case( ITYPE_FLAG )
-        call errend(msg_unexpected_condition()//&
-            'ad%cmn_pos('//str(j_pos)//')%typ == ITYPE_FLAG')
+      !---------------------------------------------------------
+      ! Case: char
       case( ITYPE_CHAR )
         achar => ad%lst_char(jj)
         call update_used_status(achar%used, achar%name)
         achar%val = arg
+      !---------------------------------------------------------
+      ! Case: int4
       case( ITYPE_INT4 )
         aint4 => ad%lst_int4(jj)
         call update_used_status(aint4%used, aint4%name)
         if( c2v(arg, aint4%val) /= 0 )then
           call errend_pos_reading_failure(aint4%name, j_pos)
         endif
+      !---------------------------------------------------------
+      ! Case: dble
       case( ITYPE_DBLE )
         adble => ad%lst_dble(jj)
         call update_used_status(adble%used, adble%name)
         if( c2v(arg, adble%val) /= 0 )then
           call errend_pos_reading_failure(adble%name, j_pos)
         endif
-      case( ITYPE_INT1, ITYPE_INT2, ITYPE_INT8, &
-            ITYPE_REAL )
-        call errend(msg_not_implemented()//&
-          '\nad%cmn_pos('//str(j_pos)//')%typ == '//str(cmn%typ))
+      !---------------------------------------------------------
+      ! Case: flag, int1, int2, int8, real, else
       case default
-        call errend(msg_invalid_value('ad%cmn_pos('//str(j_pos)//')%typ', cmn%typ))
+        call errend(ERROR_CODE__VALUE, 'ad%cmn_pos('//str(j_pos)//')%typ == '//styp(cmn%typ))
       endselect
     endif
 
@@ -863,6 +875,7 @@ subroutine parsearg(istart, iend)
   ! List missing required arguments
   !-------------------------------------------------------------
   if( .not. (present(istart) .or. present(iend)) )then
+    allocate(character(1) :: s)
     s = ''
 
     do j = j_pos+1, ad%n_pos
@@ -893,8 +906,9 @@ subroutine update_used_status(used, name)
   character(*), intent(in) :: name
 
   if( used )then
-    call errend('Argument `'//str(name)//'` has already been given.', &
-      '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'Argument `'//str(name)//'` has already been given.', &
+      MODNAM, PRCNAM)
   endif
 
   used = .true.
@@ -907,9 +921,9 @@ subroutine errend_pos_reading_failure(name, i)
 
   character(CLEN_PROC), parameter :: PRCNAM = 'errend_pos_reading_failure'
 
-  call errend(msg_io_error()//' Failed to read the '//ordinal(i)//&
-              ' positional argument `'//trim(name)//'`.', &
-              PRCNAM, MODNAM)
+  call errend(ERROR_CODE__IO, &
+    'Failed to read the '//ordinal(i)//' positional argument `'//trim(name)//'`.', &
+    MODNAM, PRCNAM)
 end subroutine errend_pos_reading_failure
 !---------------------------------------------------------------
 subroutine raise_error(msg)
@@ -951,7 +965,7 @@ logical(4) function arg_flag(s) result(v)
   !
   !-------------------------------------------------------------
   if( s == '' )then
-    call errend('No input.')
+    call errend(ERROR_CODE__ARGUMENT, 'No input.')
   !-------------------------------------------------------------
   ! Case: Optional
   ! -- $s is key.
@@ -961,6 +975,8 @@ logical(4) function arg_flag(s) result(v)
       cmn => ad%cmn_opt(i)
 
       selectcase( cmn%typ )
+      !---------------------------------------------------------
+      ! Case: flag
       case( ITYPE_FLAG )
         a => ad%lst_flag(cmn%idx)
         if( a%key_short == s .or. a%key_long == s )then
@@ -968,18 +984,21 @@ logical(4) function arg_flag(s) result(v)
           is_ok = .true.
           exit
         endif
+      !---------------------------------------------------------
+      ! Case: char, int, float
       case( ITYPE_CHAR, &
             ITYPE_INT1, ITYPE_INT2, ITYPE_INT4, ITYPE_INT8, &
             ITYPE_REAL, ITYPE_DBLE )
         continue
+      !---------------------------------------------------------
+      ! Case: else
       case default
-        call errend(msg_invalid_value(&
-               'ad%cmn_opt('//str(i)//')%typ', cmn%typ))
+        call errend(ERROR_CODE__VALUE, 'ad%cmn_opt('//str(i)//')%typ == '//styp(cmn%typ))
       endselect
     enddo
 
     if( .not. is_ok )then
-      call errend('The key "'//trim(s)//'" is invalid.')
+      call errend(ERROR_CODE__VALUE, 's == '//str(s))
     endif
   !-------------------------------------------------------------
   ! Case: Positional
@@ -990,6 +1009,8 @@ logical(4) function arg_flag(s) result(v)
       cmn => ad%cmn_pos(i)
 
       selectcase( cmn%typ )
+      !---------------------------------------------------------
+      ! Case: flag
       case( ITYPE_FLAG )
         a => ad%lst_flag(cmn%idx)
         if( a%name == s )then
@@ -997,18 +1018,21 @@ logical(4) function arg_flag(s) result(v)
           is_ok = .true.
           exit
         endif
+      !---------------------------------------------------------
+      ! Case: char, int, float
       case( ITYPE_CHAR, &
             ITYPE_INT1, ITYPE_INT2, ITYPE_INT4, ITYPE_INT8, &
             ITYPE_REAL, ITYPE_DBLE )
         continue
+      !---------------------------------------------------------
+      ! Case: else
       case default
-        call errend(msg_invalid_value(&
-               'ad%cmn_pos('//str(i)//')%typ', cmn%typ))
+        call errend(ERROR_CODE__VALUE, 'ad%cmn_pos('//str(i)//')%typ == '//styp(cmn%typ))
       endselect
     enddo
 
     if( .not. is_ok )then
-      call errend('The name "'//trim(s)//'" is invalid.')
+      call errend(ERROR_CODE__VALUE, 's == '//str(s))
     endif
   endif
   !-------------------------------------------------------------
@@ -1032,7 +1056,7 @@ character(CLEN_PATH) function arg_char(s) result(v)
   !
   !-------------------------------------------------------------
   if( s == '' )then
-    call errend('No input.')
+    call errend(ERROR_CODE__ARGUMENT, 'No input.')
   !-------------------------------------------------------------
   ! Case: Optional
   ! -- $s is key.
@@ -1042,6 +1066,8 @@ character(CLEN_PATH) function arg_char(s) result(v)
       cmn => ad%cmn_opt(i)
 
       selectcase( cmn%typ )
+      !---------------------------------------------------------
+      ! Case: char
       case( ITYPE_CHAR )
         a => ad%lst_char(cmn%idx)
         if( a%key_short == s .or. a%key_long == s )then
@@ -1049,18 +1075,21 @@ character(CLEN_PATH) function arg_char(s) result(v)
           is_ok = .true.
           exit
         endif
+      !---------------------------------------------------------
+      ! Case: flag, int, float
       case( ITYPE_FLAG, &
             ITYPE_INT1, ITYPE_INT2, ITYPE_INT4, ITYPE_INT8, &
             ITYPE_REAL, ITYPE_DBLE )
         continue
+      !---------------------------------------------------------
+      ! Case: else
       case default
-        call errend(msg_invalid_value(&
-               'ad%cmn_opt('//str(i)//')%typ', cmn%typ))
+        call errend(ERROR_CODE__VALUE, 'ad%cmn_opt('//str(i)//')%typ == '//styp(cmn%typ))
       endselect
     enddo
 
     if( .not. is_ok )then
-      call errend('The key "'//trim(s)//'" is invalid.')
+      call errend(ERROR_CODE__VALUE, 's == '//str(s))
     endif
   !-------------------------------------------------------------
   ! Case: Positional
@@ -1071,6 +1100,8 @@ character(CLEN_PATH) function arg_char(s) result(v)
       cmn => ad%cmn_pos(i)
 
       selectcase( cmn%typ )
+      !---------------------------------------------------------
+      ! Case: char
       case( ITYPE_CHAR )
         a => ad%lst_char(cmn%idx)
         if( a%name == s )then
@@ -1078,18 +1109,21 @@ character(CLEN_PATH) function arg_char(s) result(v)
           is_ok = .true.
           exit
         endif
+      !---------------------------------------------------------
+      ! Case: flag, int, float
       case( ITYPE_FLAG, &
             ITYPE_INT1, ITYPE_INT2, ITYPE_INT4, ITYPE_INT8, &
             ITYPE_REAL, ITYPE_DBLE )
         continue
+      !---------------------------------------------------------
+      ! Case: else
       case default
-        call errend(msg_invalid_value(&
-               'ad%cmn_pos('//str(i)//')%typ', cmn%typ))
+        call errend(ERROR_CODE__VALUE, 'ad%cmn_pos('//str(i)//')%typ == '//styp(cmn%typ))
       endselect
     enddo
 
     if( .not. is_ok )then
-      call errend('The name "'//trim(s)//'" is invalid.')
+      call errend(ERROR_CODE__VALUE, 's == '//str(s))
     endif
   endif
   !-------------------------------------------------------------
@@ -1113,7 +1147,7 @@ integer(4) function arg_int4(s) result(v)
   !
   !-------------------------------------------------------------
   if( s == '' )then
-    call errend('No input.')
+    call errend(ERROR_CODE__ARGUMENT, 'No input.')
   !-------------------------------------------------------------
   ! Case: Optional
   ! -- $s is key.
@@ -1123,6 +1157,8 @@ integer(4) function arg_int4(s) result(v)
       cmn => ad%cmn_opt(i)
 
       selectcase( cmn%typ )
+      !---------------------------------------------------------
+      ! Case: int4
       case( ITYPE_INT4 )
         a => ad%lst_int4(cmn%idx)
         if( a%key_short == s .or. a%key_long == s )then
@@ -1130,19 +1166,20 @@ integer(4) function arg_int4(s) result(v)
           is_ok = .true.
           exit
         endif
+      !---------------------------------------------------------
+      ! Case: flag, char, int1/2/8, float
       case( ITYPE_FLAG, &
             ITYPE_CHAR, &
             ITYPE_INT1, ITYPE_INT2, ITYPE_INT8, &
             ITYPE_REAL, ITYPE_DBLE )
         continue
       case default
-        call errend(msg_invalid_value(&
-               'ad%cmn_opt('//str(i)//')%typ', cmn%typ))
+        call errend(ERROR_CODE__VALUE, 'ad%cmn_opt('//str(i)//')%typ == '//styp(cmn%typ))
       endselect
     enddo
 
     if( .not. is_ok )then
-      call errend('The key "'//trim(s)//'" is invalid.')
+      call errend(ERROR_CODE__VALUE, 's == '//str(s))
     endif
   !-------------------------------------------------------------
   ! Case: Positional
@@ -1153,29 +1190,35 @@ integer(4) function arg_int4(s) result(v)
       cmn => ad%cmn_pos(i)
 
       selectcase( cmn%typ )
+      !---------------------------------------------------------
+      ! Case: int4
       case( ITYPE_INT4 )
         a => ad%lst_int4(cmn%idx)
         if( a%name == s )then
           if( .not. a%used )then
-            call errend('The '//ordinal(i)//' positional argument is missing.')
+            call errend(ERROR_CODE__CONDITION, &
+              'The '//ordinal(i)//' positional argument is missing.')
           endif
           v = a%val
           is_ok = .true.
           exit
         endif
+      !---------------------------------------------------------
+      ! Case: flag, char, int1/2/8, float
       case( ITYPE_FLAG, &
             ITYPE_CHAR, &
             ITYPE_INT1, ITYPE_INT2, ITYPE_INT8, &
             ITYPE_REAL, ITYPE_DBLE )
         continue
+      !---------------------------------------------------------
+      ! Case: else
       case default
-        call errend(msg_invalid_value(&
-               'ad%cmn_pos('//str(i)//')%typ', cmn%typ))
+        call errend(ERROR_CODE__VALUE, 'ad%cmn_pos('//str(i)//')%typ == '//styp(cmn%typ))
       endselect
     enddo
 
     if( .not. is_ok )then
-      call errend('The name "'//trim(s)//'" is invalid.')
+      call errend(ERROR_CODE__VALUE, 's == '//str(s))
     endif
   endif
   !-------------------------------------------------------------
@@ -1199,7 +1242,7 @@ real(8) function arg_dble(s) result(v)
   !
   !-------------------------------------------------------------
   if( s == '' )then
-    call errend('No input.')
+    call errend(ERROR_CODE__ARGUMENT, 'No input.')
   !-------------------------------------------------------------
   ! Case: Optional
   ! -- $s is key.
@@ -1209,6 +1252,8 @@ real(8) function arg_dble(s) result(v)
       cmn => ad%cmn_opt(i)
 
       selectcase( cmn%typ )
+      !---------------------------------------------------------
+      ! Case: dble
       case( ITYPE_DBLE )
         a => ad%lst_dble(cmn%idx)
         if( a%key_short == s .or. a%key_long == s )then
@@ -1216,19 +1261,22 @@ real(8) function arg_dble(s) result(v)
           is_ok = .true.
           exit
         endif
+      !---------------------------------------------------------
+      ! Case: flag, char, int, real
       case( ITYPE_FLAG, &
             ITYPE_CHAR, &
             ITYPE_INT1, ITYPE_INT2, ITYPE_INT4, ITYPE_INT8, &
             ITYPE_REAL )
         continue
+      !---------------------------------------------------------
+      ! Case: else
       case default
-        call errend(msg_invalid_value(&
-               'ad%cmn_opt('//str(i)//')%typ', cmn%typ))
+        call errend(ERROR_CODE__VALUE, 'ad%cmn_opt('//str(i)//')%typ == '//styp(cmn%typ))
       endselect
     enddo
 
     if( .not. is_ok )then
-      call errend('The key "'//trim(s)//'" is invalid.')
+      call errend(ERROR_CODE__VALUE, 's == '//str(s))
     endif
   !-------------------------------------------------------------
   ! Case: Positional
@@ -1239,29 +1287,35 @@ real(8) function arg_dble(s) result(v)
       cmn => ad%cmn_pos(i)
 
       selectcase( cmn%typ )
+      !---------------------------------------------------------
+      ! Case: dble
       case( ITYPE_DBLE )
         a => ad%lst_dble(cmn%idx)
         if( a%name == s )then
           if( .not. a%used )then
-            call errend('The '//ordinal(i)//' positional argument is missing.')
+            call errend(ERROR_CODE__CONDITION, &
+              'The '//ordinal(i)//' positional argument is missing.')
           endif
           v = a%val
           is_ok = .true.
           exit
         endif
+      !---------------------------------------------------------
+      ! Case: flag, char, int, real
       case( ITYPE_FLAG, &
             ITYPE_CHAR, &
             ITYPE_INT1, ITYPE_INT2, ITYPE_INT4, ITYPE_INT8, &
             ITYPE_REAL )
         continue
+      !---------------------------------------------------------
+      ! Case: else
       case default
-        call errend(msg_invalid_value(&
-               'ad%cmn_pos('//str(i)//')%typ', cmn%typ))
+        call errend(ERROR_CODE__VALUE, 'ad%cmn_pos('//str(i)//')%typ == '//styp(cmn%typ))
       endselect
     enddo
 
     if( .not. is_ok )then
-      call errend('The name "'//trim(s)//'" is invalid.')
+      call errend(ERROR_CODE__VALUE, 's == '//str(s))
     endif
   endif
   !-------------------------------------------------------------
@@ -1306,20 +1360,24 @@ subroutine print_usage()
     endif  
 
     selectcase( cmn%typ )
+    !-----------------------------------------------------------
+    ! Case: flag
     case( ITYPE_FLAG )
       s = trim(s)//' '//trim(parenthl)//&
           get_key_single(cmn%key_short, cmn%key_long)//&
           trim(parenthr)
-
+    !-----------------------------------------------------------
+    ! Case: char, int, float
     case( ITYPE_CHAR, &
           ITYPE_INT1, ITYPE_INT2, ITYPE_INT4, ITYPE_INT8, &
           ITYPE_REAL, ITYPE_DBLE )
       s = trim(s)//' '//trim(parenthl)//&
           get_key_single(cmn%key_short, cmn%key_long)//&
           ' '//trim(cmn%name)//trim(parenthr)
-
+    !-----------------------------------------------------------
+    ! Case: else
     case default
-      call errend(msg_invalid_value('ad%cmn_opt('//str(i)//')%typ', cmn%typ))
+      call errend(ERROR_CODE__VALUE, 'ad%cmn_opt('//str(i)//')%typ == '//styp(cmn%typ))
     endselect
   enddo  ! i = 1, ad%n_opt/
 
@@ -1327,17 +1385,16 @@ subroutine print_usage()
     cmn => ad%cmn_pos(i)
 
     selectcase( cmn%typ )
-    case( ITYPE_FLAG )
-      call errend(msg_unexpected_condition()//&
-                '\n  ad%cmn_pos('//str(i)//')%typ == ITYPE_FLAG')
-
+    !-----------------------------------------------------------
+    ! Case: char, int, float
     case( ITYPE_CHAR, &
           ITYPE_INT1, ITYPE_INT2, ITYPE_INT4, ITYPE_INT8, &
           ITYPE_REAL, ITYPE_DBLE )
       s = trim(s)//' '//trim(cmn%name)
-
+    !-----------------------------------------------------------
+    ! Case: flag, else
     case default
-      call errend(msg_invalid_value('ad%cmn_pos('//str(i)//')%typ', cmn%typ))
+      call errend(ERROR_CODE__VALUE, 'ad%cmn_pos('//str(i)//')%typ == '//styp(cmn%typ))
     endselect
   enddo  ! i = 1, ad%n_pos/
 
@@ -1400,8 +1457,6 @@ function styp(ityp) result(s)
   integer, intent(in) :: ityp
   character(:), allocatable :: s
 
-  character(CLEN_PROC), parameter :: PRCNAM = 'styp'
-
   allocate(character(1) :: s)
 
   selectcase( ityp )
@@ -1422,7 +1477,7 @@ function styp(ityp) result(s)
   case( ITYPE_DBLE )
     s = trim(STYPE_DBLE)
   case default
-    call errend(msg_invalid_value('ityp', ityp))
+    s = str(ityp)
   endselect
 end function styp
 !===============================================================

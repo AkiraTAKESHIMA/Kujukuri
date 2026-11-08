@@ -88,8 +88,8 @@ integer(4) function initialize(br) result(info)
   !-------------------------------------------------------------
   if( is_initialized )then
     info = 1
-    call errret('The module has already been initialized.', &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__CONDITION, 'The module has already been initialized.', &
+                MODNAM, PRCNAM)
     return
   endif
   is_initialized = .true.
@@ -122,8 +122,8 @@ integer(4) function finalize() result(info)
   !-------------------------------------------------------------
   if( .not. is_initialized )then
     info = 1
-    call errret('The module has not been initialized.', &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__CONDITION, 'The module has already been initialized.', &
+                MODNAM, PRCNAM)
     return
   endif
   is_initialized = .false.
@@ -143,8 +143,8 @@ integer(4) function initialize_thresh(thresh) result(info)
   !-------------------------------------------------------------
   if( is_initialized_thresh )then
     info = 1
-    call errret('Thresholds have already been initialized.', &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__CONDITION, 'Thresholds have already been initialized.', &
+                MODNAM, PRCNAM)
     return
   endif
 
@@ -168,8 +168,8 @@ integer(4) function finalize_thresh() result(info)
   !-------------------------------------------------------------
   if( .not. is_initialized_thresh )then
     info = 1
-    call errret('Thresholds has not been initialized.', &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__CONDITION, 'Thresholds have already been initialized.', &
+                MODNAM, PRCNAM)
     return
   endif
 
@@ -188,8 +188,8 @@ integer(4) function initialize_zone(brz) result(info)
   !-------------------------------------------------------------
   if( is_initialized_zone )then
     info = 1
-    call errret('The zone has already been initialized.', &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__CONDITION, 'The zone has already been initialized.', &
+                MODNAM, PRCNAM)
     return
   endif
   is_initialized_zone = .true.
@@ -216,8 +216,8 @@ integer(4) function finalize_zone() result(info)
   !-------------------------------------------------------------
   if( .not. is_initialized_zone )then
     info = 1
-    call errret('The zone has not been initialized.', &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__CONDITION, 'The zone has already been initialized.', &
+                MODNAM, PRCNAM)
     return
   endif
   is_initialized_zone = .false.
@@ -322,9 +322,9 @@ integer function update_iarea_max(&
         selectcase( iamax%nij )
         case( :0 )
           info = 1
-          call errret(msg_unexpected_condition()//&
-                    '\niamax%nij <= 0', &
-                      PRCNAM, MODNAM)
+          call errret(ERROR_CODE__CONDITION, &
+            'iamax%nij <= 0', &
+            MODNAM, PRCNAM)
           return
         case( 1 )
           iamax%nij = 2
@@ -385,14 +385,14 @@ integer(4) function calc_iratio_sum__out(&
   !-------------------------------------------------------------
   if( .not. is_initialized )then
     info = 1
-    call errret('The module has not been initialized.', &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__CONDITION, 'The module has not been initialized.', &
+                MODNAM, PRCNAM)
     return
   endif
   if( .not. is_initialized_zone )then
     info = 1
-    call errret('The zone has not been initialized.', &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__CONDITION, 'The zone has not been initialized.', &
+                MODNAM, PRCNAM)
     return
   endif
   !-------------------------------------------------------------
@@ -440,14 +440,14 @@ integer(4) function calc_iratio_sum__inout(&
   !-------------------------------------------------------------
   if( .not. is_initialized )then
     info = 1
-    call errret('The module has not been initialized.', &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__CONDITION, 'The module has not been initialized.', &
+                MODNAM, PRCNAM)
     return
   endif
   if( .not. is_initialized_zone )then
     info = 1
-    call errret('The zone has not been initialized.', &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__CONDITION, 'The zone has not been initialized.', &
+                MODNAM, PRCNAM)
     return
   endif
   !-------------------------------------------------------------
@@ -499,20 +499,20 @@ integer(4) function make_idx(&
   !-------------------------------------------------------------
   if( .not. is_initialized )then
     info = 1
-    call errret('The module has not been initialized.', &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__CONDITION, 'The module has not been initialized.', &
+                MODNAM, PRCNAM)
     return
   endif
   if( .not. is_initialized_thresh )then
     info = 1
-    call errret('Thresholds has not been initialized.', &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__CONDITION, 'The thresholds have not been initialized.', &
+                MODNAM, PRCNAM)
     return
   endif
   if( .not. is_initialized_zone )then
     info = 1
-    call errret('The zone has not been initialized.', &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__CONDITION, 'The zone has not been initialized.', &
+                MODNAM, PRCNAM)
     return
   endif
   !-------------------------------------------------------------
@@ -521,9 +521,9 @@ integer(4) function make_idx(&
   if( thresh_iratio_min_idx > 0.d0 )then
     if( .not. associated(iratio_sum) )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\n$iratio_sum has not been allocated.', &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__CONDITION, &
+        '$iratio_sum has not been allocated.', &
+        MODNAM, PRCNAM)
       return
     endif
 
@@ -539,9 +539,9 @@ integer(4) function make_idx(&
         selectcase( iamax%nij )
         case( :-1 )
           info = 1
-          call errret(msg_unexpected_condition()//&
-                    '\niamax%nij < 0', &
-                      PRCNAM, MODNAM)
+          call errret(ERROR_CODE__CONDITION, &
+            'iamax%nij < 0', &
+            MODNAM, PRCNAM)
           return
         case( 0 )
           idx(idh,idv) = sidx_miss
@@ -560,9 +560,9 @@ integer(4) function make_idx(&
         selectcase( iamax%nij )
         case( :-1 )
           info = 1
-          call errret(msg_unexpected_condition()//&
-                    '\niamax%nij < 0', &
-                      PRCNAM, MODNAM)
+          call errret(ERROR_CODE__CONDITION, &
+            'iamax%nij < 0', &
+            MODNAM, PRCNAM)
           return
         case( 0 )
           idx(idh,idv) = sidx_miss
@@ -595,20 +595,20 @@ integer(4) function make_mask(mask, iratio_sum) result(info)
   !-------------------------------------------------------------
   if( .not. is_initialized )then
     info = 1
-    call errret('The module has not been initialized.', &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__CONDITION, 'The module has not been initialized.', &
+                MODNAM, PRCNAM)
     return
   endif
   if( .not. is_initialized_thresh )then
     info = 1
-    call errret('Thresholds has not been initialized.', &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__CONDITION, 'Thresholds has not been initialized.', &
+                MODNAM, PRCNAM)
     return
   endif
   if( .not. is_initialized_zone )then
     info = 1
-    call errret('The zone has not been initialized.', &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__CONDITION, 'The zone has not been initialized.', &
+                MODNAM, PRCNAM)
     return
   endif
   !-------------------------------------------------------------
@@ -629,8 +629,8 @@ integer(4) function make_mask(mask, iratio_sum) result(info)
     continue
   case default
     info = 1
-    call errret(msg_invalid_value('thresh_ineq_iratio_max', thresh_ineq_iratio_max), &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__VALUE, 'thresh_ineq_iratio_max == '//str(thresh_ineq_iratio_max), &
+                MODNAM, PRCNAM)
     return
   endselect
 
@@ -647,8 +647,8 @@ integer(4) function make_mask(mask, iratio_sum) result(info)
     continue
   case default
     info = 1
-    call errret(msg_invalid_value('thresh_ineq_iratio_min', thresh_ineq_iratio_min), &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__VALUE, 'thresh_ineq_iratio_min == '//str(thresh_ineq_iratio_min), &
+                MODNAM, PRCNAM)
     return
   endselect
   !-------------------------------------------------------------
@@ -675,8 +675,8 @@ integer(4) function alloc_map__int1(map) result(info)
   !-------------------------------------------------------------
   if( associated(map) )then
     info = 1
-    call errret('`map` has already been allocated.', &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__CONDITION, '$map has already been allocated.', &
+                MODNAM, PRCNAM)
     return
   endif
 
@@ -697,8 +697,8 @@ integer(4) function alloc_map__int8(map) result(info)
   !-------------------------------------------------------------
   if( associated(map) )then
     info = 1
-    call errret('`map` has already been allocated.', &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__CONDITION, '$map has already been allocated.', &
+                MODNAM, PRCNAM)
     return
   endif
 
@@ -725,8 +725,8 @@ integer(4) function alloc_map__dble(map, buffer) result(info)
 
   if( associated(map) )then
     info = 1
-    call errret('`map` has already been allocated.', &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__CONDITION, '$map has already been allocated.', &
+                MODNAM, PRCNAM)
     return
   endif
 
@@ -750,8 +750,8 @@ integer(4) function alloc_map__iarea_max(map) result(info)
   !-------------------------------------------------------------
   if( associated(map) )then
     info = 1
-    call errret('`map` has already been allocated.', &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__CONDITION, '$map has already been allocated.', &
+                MODNAM, PRCNAM)
     return
   endif
 

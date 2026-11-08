@@ -135,13 +135,12 @@ subroutine modifyElv(networkType, resl, id)
   !-------------------------------------------------------------
   ! Case: networkset
   case( NETWORKTYPE__NETWORKSET )
-    call errend(msg_not_implemented()//&
-      '\nnetworkType: '//str(networkType))
+    call errend(ERROR_CODE__NOIMPLEMENTATION, 'networkType == '//str(networkType))
 
   !-------------------------------------------------------------
   ! Case: ERROR
   case default
-    call errend(msg_invalid_value('networkType', networkType))
+    call errend(ERROR_CODE__VALUE, 'networkType == '//str(networkType))
 
   endselect
   !-------------------------------------------------------------
@@ -223,7 +222,8 @@ subroutine modify_elv_network(resl, id)
     enddo  ! iby/
 
     if( n_neighbor == 0 )then
-      call logwrn('Elevation was not updated because non-river grid was not found around.')
+      call logwrn(ERROR_CODE__CONDITION, &
+        'Elevation was not updated because non-river grid was not found around.')
       cycle
     endif
 
@@ -298,13 +298,12 @@ subroutine modifyFlwDir(networkType, resl, id)
   !-------------------------------------------------------------
   ! Case: networkset
   case( NETWORKTYPE__NETWORKSET )
-    call errend(msg_not_implemented()//&
-      '\nnetworkType: '//str(networkType))
+    call errend(ERROR_CODE__NOIMPLEMENTATION, 'networkType == '//str(networkType))
 
   !-------------------------------------------------------------
   ! Case: ERROR
   case default
-    call errend(msg_invalid_value('networkType', networkType))
+    call errend(ERROR_CODE__VALUE, 'networkType == '//str(networkType))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -464,10 +463,11 @@ subroutine modify_flwdir_network(resl, id)
       nwk%gxe < maxval(nwk%channel(:)%isct%gxe) .or. &
       nwk%gys > minval(nwk%channel(:)%isct%gys) .or. &
       nwk%gye < maxval(nwk%channel(:)%isct%gye) )then
-    call errend('Inconsistency between domain and intersection.'//&
-      '\nintersection: ['//&
-      str((/minval(nwk%channel(:)%isct%gxs),maxval(nwk%channel(:)%isct%gxe)/),DGT_GXY,':')//','//&
-      str((/minval(nwk%channel(:)%isct%gys),maxval(nwk%channel(:)%isct%gye)/),DGT_GXY,':')//']')
+    call errend(ERROR_CODE__CONDITION, &
+      'Inconsistency between domain and intersection.'//&
+    '\nintersection: ['//&
+       str((/minval(nwk%channel(:)%isct%gxs),maxval(nwk%channel(:)%isct%gxe)/),DGT_GXY,':')//','//&
+       str((/minval(nwk%channel(:)%isct%gys),maxval(nwk%channel(:)%isct%gye)/),DGT_GXY,':')//']')
   endif
 
   ! Mesh data
@@ -662,7 +662,7 @@ subroutine modify_flwdir_network(resl, id)
   call sort(lst_iNode_src(:nNode_src), arg)
   call sort(lst_dist_src(:nNode_src), arg)
   if( .not. all(lst_dist_src(2:nNode_src) >= lst_dist_src(:nNode_src-1)) )then
-    call errend('Sorting failed')
+    call errend(ERROR_CODE__CONDITION, 'Sorting failed')
   endif
   deallocate(arg)
 
@@ -744,7 +744,7 @@ subroutine modify_flwdir_network(resl, id)
     do while( nwknode%downleng > 0.d0 )
       call add(iter)
       if( iter > THRESH_ITER )then
-        call errend('iter > thresh')
+        call errend(ERROR_CODE__CONDITION, 'iter > thresh')
       endif
 
       jjCh = nwknode%jjCh_to_outlet
@@ -798,9 +798,9 @@ subroutine modify_flwdir_network(resl, id)
 
     gx = lst_gx(nMesh)
     gy = lst_gy(nMesh)
-    if( fdr(gx,gy) /= FDR_RIVERMOUTH )then
+    if( fdr(gx,gy) /= FDR__RIVERMOUTH )then
       call logmsg('fdr('//str((/gx,gy/),',')//') -> river mouth')
-      fdr(gx,gy) = FDR_RIVERMOUTH
+      fdr(gx,gy) = FDR__RIVERMOUTH
     endif
     !-----------------------------------------------------------
     ! Calc. length
@@ -941,7 +941,7 @@ subroutine modify_flwdir_network(resl, id)
   do igy = nwk%gys, nwk%gye
   do igx = nwk%gxs, nwk%gxe
     if( msk(igx,igy) <= 0_1 .and. isc(igx,igy) > 0_1 )then
-      call errend('msk <= 0 but isc > 0')
+      call errend(ERROR_CODE__CONDITION, 'msk <= 0 but isc > 0')
     endif
 
     if( msk(igx,igy) <= 0_1 ) cycle
@@ -961,9 +961,9 @@ subroutine modify_flwdir_network(resl, id)
 
   do igy = nwk%gys, nwk%gye
   do igx = nwk%gxs, nwk%gxe
-    if( fdr(igx,igy) == FDR_RIVERMOUTH )then
+    if( fdr(igx,igy) == FDR__RIVERMOUTH )then
       reach(igx,igy) = REACH__RIVERMOUTH
-    elseif( fdr(igx,igy) == FDR_INLAND )then
+    elseif( fdr(igx,igy) == FDR__INLAND )then
       reach(igx,igy) = REACH__INLAND
     elseif( reach(igx,igy) == REACH__SOURCE )then
       continue
@@ -984,7 +984,7 @@ subroutine modify_flwdir_network(resl, id)
 
   do igy = nwk%gys, nwk%gye
   do igx = nwk%gxs, nwk%gxe
-    if( reach(igx,igy) == REACH__SOURCE .and. fdr(igx,igy) == FDR_MISS )then
+    if( reach(igx,igy) == REACH__SOURCE .and. fdr(igx,igy) == FDR__MISS )then
       !call logmsg('ocean '//slonlat(center_of_gx(igx),center_of_gy(igy)))
       reach(igx,igy) = REACH__RIVERMOUTH
     endif
@@ -1045,7 +1045,7 @@ subroutine modify_flwdir_network(resl, id)
       !---------------------------------------------------------
       ! Case: msk > 0 and fdr == miss
       !   Modified to river mouth later
-      elseif( fdr(gx,gy) == FDR_MISS )then
+      elseif( fdr(gx,gy) == FDR__MISS )then
         reach(igx,igy) = REACH__RIVERMOUTH
         reach(gx,gy) = REACH__RIVERMOUTH
         exit
@@ -1054,14 +1054,13 @@ subroutine modify_flwdir_network(resl, id)
       selectcase( fdr(gx,gy) )
       case( 1_1: )
         continue
-      case( FDR_RIVERMOUTH, &
-            FDR_INLAND, &
-            FDR_MISS, &
-            FDR_UNDEF )
-        call errend(msg_unexpected_condition()//&
-          '\nfdr == '//str(fdr(gx,gy)))
+      case( FDR__RIVERMOUTH, &
+            FDR__INLAND, &
+            FDR__MISS, &
+            FDR__UNDEF )
+        call errend(ERROR_CODE__VALUE, 'fdr == '//str(fdr(gx,gy)))
       case default
-        call errend(msg_invalid_value('fdr', fdr(gx,gy)))
+        call errend(ERROR_CODE__VALUE, 'fdr == '//str(fdr(gx,gy)))
       endselect
     enddo
 
@@ -1070,7 +1069,8 @@ subroutine modify_flwdir_network(resl, id)
     enddo
 
     if( .not. is_ok )then
-      call erradd('Flow direction is cycling. source: ('//str((/igx,igy/),',')//')')
+      call errnew(ERROR_CODE__CONDITION, &
+        'Flow direction is cycling. source: ('//str((/igx,igy/),',')//')')
       open(newunit=un, file='tmp/passed.txt', status='replace')
       do i = 1, n
         gx = lst_gx(i)
@@ -1106,10 +1106,9 @@ subroutine modify_flwdir_network(resl, id)
       enddo
     case( REACH__SOURCE, &
           REACH__UNDEF )
-      call errend(msg_unexpected_condition()//&
-        '\n  reach == '//str(reach(gx,gy)))
+      call errend(ERROR_CODE__VALUE, 'reach == '//str(reach(gx,gy)))
     case default
-      call errend(msg_invalid_value('reach', reach(gx,gy)))
+      call errend(ERROR_CODE__VALUE, 'reach == '//str(reach(gx,gy)))
     endselect
 
     call logext()
@@ -1137,18 +1136,18 @@ subroutine modify_flwdir_network(resl, id)
     selectcase( fdr(igx,igy) )
     !-----------------------------------------------------------
     ! Case: Ocean
-    case( FDR_MISS )
+    case( FDR__MISS )
       call logmsg('Modifying: '//&
         '('//str((/igx,igy/),DGT_GXY,',')//')'//&
         ' msk '//str(msk(igx,igy),2)//' isc '//str(isc(igx,igy),1)//&
         ' -> ocean')
       call logmsg('  Set to river mouth')
 
-      fdr(igx,igy) = FDR_RIVERMOUTH
+      fdr(igx,igy) = FDR__RIVERMOUTH
     !-----------------------------------------------------------
     ! Case: Outlet
-    case( FDR_RIVERMOUTH, &
-          FDR_INLAND )
+    case( FDR__RIVERMOUTH, &
+          FDR__INLAND )
       cycle
     !-----------------------------------------------------------
     ! Case: Downstream exists
@@ -1165,7 +1164,8 @@ subroutine modify_flwdir_network(resl, id)
       call setlog('+x2')
 
       if( msk(igx,igy) == STAT_NWKMESH__OUT .neqv. msk(gxx,gyy) == -9_1 )then
-        call errend('Inconsistency in the mask. `this` == out .neqv. `next` == ocean')
+        call errend(ERROR_CODE__CONDITION, &
+          'Inconsistency in the mask. `this` == out .neqv. `next` == ocean')
       endif
 
       angle_join_min = 360.d0
@@ -1177,8 +1177,8 @@ subroutine modify_flwdir_network(resl, id)
 
         selectcase( fdr(jgx,jgy) )
         case( 1_1:, &
-              FDR_RIVERMOUTH, &
-              FDR_INLAND )
+              FDR__RIVERMOUTH, &
+              FDR__INLAND )
 
           if( fdr(jgx,jgy) > 0_1 )then
             call get_nextxy(jgx, jgy, fdr(jgx,jgy), gxx, gyy)
@@ -1186,7 +1186,7 @@ subroutine modify_flwdir_network(resl, id)
             if( gxx == igx .and. gyy == igy )then
               cycle
             elseif( gxx <= 0 )then
-              call errend('Downstream is ocean although fdr > 0')
+              call errend(ERROR_CODE__CONDITION, 'Downstream is ocean although fdr > 0')
             endif
           endif
 
@@ -1215,10 +1215,10 @@ subroutine modify_flwdir_network(resl, id)
           if( fdr(jgx,jgy) > 0_1 )then
             angle_target = (angle_target + get_angle_fdr(fdr(jgx,jgy))) / 2
           endif
-        case( FDR_MISS )
+        case( FDR__MISS )
           cycle
         case default
-          call errend(msg_invalid_value('fdr', fdr(jgx,jgy)))
+          call errend(ERROR_CODE__VALUE, 'fdr == '//str(fdr(jgx,jgy)))
         endselect
 
         angle_join = londiff_deg(angle_in, angle_target)
@@ -1235,8 +1235,9 @@ subroutine modify_flwdir_network(resl, id)
       enddo  ! jgy
 
       if( angle_join_min == 360.d0 )then
-        call logwrn('Downstream grid was not obtained. Set to inland outlet.')
-        fdr(igx,igy) = FDR_INLAND
+        call logwrn(ERROR_CODE__CONDITION, &
+          'Downstream grid was not obtained. Set to inland outlet.')
+        fdr(igx,igy) = FDR__INLAND
       else
         fdr(igx,igy) = get_fdr(igx, igy, gx_next, gy_next)
       endif
@@ -1244,13 +1245,12 @@ subroutine modify_flwdir_network(resl, id)
       call setlog('-x2')
     !-----------------------------------------------------------
     ! Case: ERROR (Undef)
-    case( FDR_UNDEF )
-      call errend(msg_unexpected_condition()//&
-        '\n fdr('//str((/igx,igy/),',')//') == undef')
+    case( FDR__UNDEF )
+      call errend(ERROR_CODE__VALUE, 'fdr == UNDEF')
     !-----------------------------------------------------------
     ! Case: ERROR
     case default
-      call errend(msg_invalid_value('fdr('//str((/igx,igy/),',')//')', fdr(igx,igy)))
+      call errend(ERROR_CODE__VALUE, 'fdr == '//str(fdr(igx,igy)))
     endselect
   enddo  ! igx
   enddo  ! igy
@@ -1307,14 +1307,15 @@ subroutine update_list_isct()
     if( nMesh > 1 )then
       if( abs(lst_gx(nMesh) - lst_gx(nMesh-1)) > 1 .or. &
           abs(lst_gy(nMesh) - lst_gy(nMesh-1)) > 1 )then
-        call errend('Discontinuition was found in the intersection.'//&
-          '\ncurrent: #'//str(nMesh-1)//&
-            '('//str((/lst_gx(nMesh-1),lst_gy(nMesh-1)/),DGT_GXY,',')//')'//&
-          '\nnext : #'//str(iMesh)//&
-            '('//str((/ci%gx(iMesh),ci%gy(iMesh)/),DGT_GXY,',')//')'//&
-          '\nchdir: '//str(chdir)//&
-          '\nisct x: '//str(ci%gx,DGT_GXY)//&
-          '\n     y: '//str(ci%gy,DGT_GXY))
+        call errend(ERROR_CODE__CONDITION, &
+          'Discontinuition was found in the intersection.'//&
+        '\ncurrent: #'//str(nMesh-1)//&
+          '('//str((/lst_gx(nMesh-1),lst_gy(nMesh-1)/),DGT_GXY,',')//')'//&
+        '\nnext : #'//str(iMesh)//&
+          '('//str((/ci%gx(iMesh),ci%gy(iMesh)/),DGT_GXY,',')//')'//&
+        '\nchdir: '//str(chdir)//&
+        '\nisct x: '//str(ci%gx,DGT_GXY)//&
+        '\n     y: '//str(ci%gy,DGT_GXY))
       endif
     endif
   enddo  ! iMesh
@@ -1357,8 +1358,9 @@ subroutine make_continuous_mesh_line()
   do iMesh = 2, nMesh
     if( lst_gx(iMesh) == lst_gx(iMesh-1) .and. &
         lst_gy(iMesh) == lst_gy(iMesh-1) )then
-      call errend('mesh#'//str(iMesh)//&
-        'Same pair of (x,y): ('//str((/lst_gx(iMesh),lst_gy(iMesh)/),',')//')')
+      call errend(ERROR_CODE__CONDITION, &
+        'mesh#'//str(iMesh)//&
+        ' Same pair of (x,y): ('//str((/lst_gx(iMesh),lst_gy(iMesh)/),',')//')')
     endif
   enddo
   !call logmsg('Meshes: '//str(nMesh)//' leng: '//str(sum(lst_leng(:nMesh))))
@@ -1401,7 +1403,8 @@ subroutine make_continuous_mesh_line()
         !  str(kMesh,dgt(nMesh))//' ('//str((/lst_gx(kMesh),lst_gy(kMesh)/),DGT_GXY,',')//') - '//&
         !  str(jMesh,dgt(nMesh))//' ('//str((/lst_gx(jMesh),lst_gy(jMesh)/),DGT_GXY,',')//')')
         if( lst_counted(kMesh) )then
-          call errend('Mesh#'//str(kMesh)//' is already counted.')
+          call errend(ERROR_CODE__CONDITION, &
+            'Mesh#'//str(kMesh)//' has already been counted.')
         endif
         lst_counted(kMesh) = .true.
         is_updated = .true.
@@ -1471,8 +1474,9 @@ subroutine make_continuous_mesh_line()
   do iMesh = 1, nMesh-1
     if( abs(lst_gx(iMesh+1) - lst_gx(iMesh)) > 1 .or. &
         abs(lst_gy(iMesh+1) - lst_gy(iMesh)) > 1 )then
-      call errend('mesh#'//str(iMesh)//' ('//str((/lst_gx(iMesh),lst_gy(iMesh)/),',')//')'//&
-                '\nmesh#'//str(iMesh+1)//' ('//str((/lst_gx(iMesh+1),lst_gy(iMesh+1)/),',')//')')
+      call errend(ERROR_CODE__CONDITION, &
+        'mesh#'//str(iMesh)//' ('//str((/lst_gx(iMesh),lst_gy(iMesh)/),',')//')'//&
+      '\nmesh#'//str(iMesh+1)//' ('//str((/lst_gx(iMesh+1),lst_gy(iMesh+1)/),',')//')')
     endif
   enddo
 end subroutine make_continuous_mesh_line
@@ -1489,12 +1493,14 @@ subroutine assert_mesh_leng_unchanged(step)
 
   if( leng_mesh == 0.d0 )then
     if( leng_mesh_new > 0.d0 )then
-      call errend('leng_mesh '//str(leng_mesh)//' -> '//str(leng_mesh_new)//&
-        trim(step), PRCNAM, MODNAM)
+      call errend(ERROR_CODE__CONDITION, &
+        'leng_mesh '//str(leng_mesh)//' -> '//str(leng_mesh_new)//&
+        MODNAM, PRCNAM, trim(step))
     endif
   elseif( abs(leng_mesh_new - leng_mesh) / leng_mesh > 1d-6 )then
-    call errend('leng_mesh '//str(leng_mesh)//' -> '//str(leng_mesh_new)//&
-      trim(step), PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'leng_mesh '//str(leng_mesh)//' -> '//str(leng_mesh_new)//&
+      MODNAM, PRCNAM, trim(step))
   endif
 end subroutine assert_mesh_leng_unchanged
 !---------------------------------------------------------------
@@ -1595,7 +1601,7 @@ subroutine calcUpperArea(catmType, resl, modified, id)
   !-------------------------------------------------------------
   ! Case: ERROR
   case default
-    call errend(msg_invalid_value('catmType', catmType))
+    call errend(ERROR_CODE__VALUE, 'catmType == '//str(catmType))
   endselect
 end subroutine calcUpperArea
 !===============================================================
@@ -1624,7 +1630,6 @@ subroutine calc_upper_area__network(resl, c_mod, id, pixara)
   integer, allocatable :: passed(:,:)
   integer :: nx, ny, gxs, gxe, gys, gye
   integer :: igx, igy, gx, gy, gxx, gyy
-  integer :: gxs1, gxe1, gys1, gye1, gxs2, gxe2, gys2, gye2
   real(8) :: west, east, south, north
   integer :: n, n_next, i
   logical :: is_updated
@@ -1743,8 +1748,8 @@ subroutine calc_upper_area__network(resl, c_mod, id, pixara)
   do igy = gys, gye
   do igx = gxs, gxe
     selectcase( fdr(igx,igy) )
-    case( FDR_RIVERMOUTH, &
-          FDR_INLAND )
+    case( FDR__RIVERMOUTH, &
+          FDR__INLAND )
       call add(grdnum, upg(igx,igy))
       call add(bsnara, upa(igx,igy))
     endselect
@@ -1776,9 +1781,10 @@ subroutine calc_upper_area__network(resl, c_mod, id, pixara)
   call logmsg('upa max: '//str(maxval(upa))//' bsnara: '//str(bsnara_true))
 
   if( grdnum /= grdnum_true )then
-    call errend('The number of grids do not match.'//&
-      '\n  truth     : '//str(grdnum_true)//&
-      '\n  calculated: '//str(grdnum))
+    call errend(ERROR_CODE__CONDITION, &
+      'The number of grids do not match.'//&
+    '\n  truth     : '//str(grdnum_true)//&
+    '\n  calculated: '//str(grdnum))
   endif
 
   err_norm = abs(bsnara - bsnara_true) / bsnara_true
@@ -1786,7 +1792,7 @@ subroutine calc_upper_area__network(resl, c_mod, id, pixara)
             ', upa: '//str(bsnara)//&
             ', normalized error: '//str(err_norm))
   if( err_norm > 1d-8 )then
-    call errend('Error exceeded the threshold.')
+    call errend(ERROR_CODE__CONDITION, 'Error exceeded the threshold.')
   endif
 
   call logext()

@@ -72,12 +72,12 @@ integer(4) function get_rt_main_stats(&
   if( size(rtm%sidx) /= rtm%ijsize ) is_ok = .false.
   if( size(rtm%tidx) /= rtm%ijsize ) is_ok = .false.
   if( .not. is_ok )then
-    msg = msg_unexpected_condition()//&
-        '\nsize of arrays are incorrect.'//&
-        '\n  ijsize: '//str(rtm%ijsize)//&
-        '\n  nij   : '//str(rtm%nij)//&
-        '\n  size(sidx): '//str(size(rtm%sidx))//&
-        '\n  size(tidx): '//str(size(rtm%tidx))
+    msg = &
+      'The sizes of arrays are incorrect.'//&
+    '\n  ijsize: '//str(rtm%ijsize)//&
+    '\n  nij   : '//str(rtm%nij)//&
+    '\n  size(sidx): '//str(size(rtm%sidx))//&
+    '\n  size(tidx): '//str(size(rtm%tidx))
   endif
 
   if( associated(rtm%area) )then
@@ -96,7 +96,7 @@ integer(4) function get_rt_main_stats(&
 
   if( .not. is_ok )then
     info = 1
-    call errret(msg)
+    call errret(ERROR_CODE__CONDITION, msg)
     return
   endif
   !-------------------------------------------------------------
@@ -104,20 +104,20 @@ integer(4) function get_rt_main_stats(&
   !-------------------------------------------------------------
   if( ijs_ > ije_ )then
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\nijs > ije'//&
-              '\n  ijs: '//str(ijs_)//&
-              '\n  ije: '//str(ije_))
+    call errret(ERROR_CODE__CONDITION, &
+      'ijs > ije'//&
+    '\n  ijs: '//str(ijs_)//&
+    '\n  ije: '//str(ije_))
     return
   endif
 
   if( ijs_ < 1_8 .or. ije_ > rtm%nij )then
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\n$ijs or $ije is out of range.'//&
-              '\n  ijs: '//str(ijs_)//&
-              '\n  ije: '//str(ije_)//&
-              '\n  nij: '//str(rtm%nij))
+    call errret(ERROR_CODE__VALUE, &
+      '\n$ijs or $ije is out of range.'//&
+    '\n  ijs: '//str(ijs_)//&
+    '\n  ije: '//str(ije_)//&
+    '\n  nij: '//str(rtm%nij))
     return
   endif
   !-------------------------------------------------------------
@@ -356,12 +356,12 @@ integer(4) function report_rt_main_summary(&
 
     if( .not. is_ok )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\nRemapping table is empty but arrays are associated'//&
-                '\n  associated(sidx): '//str(associated(rtm%sidx))//&
-                '\n  associated(tidx): '//str(associated(rtm%tidx))//&
-                '\n  associated(area): '//str(associated(rtm%area))//&
-                '\n  associated(coef): '//str(associated(rtm%coef)))
+      call errret(ERROR_CODE__CONDITION, &
+        'Remapping table is empty but arrays are associated'//&
+      '\n  associated(sidx): '//str(associated(rtm%sidx))//&
+      '\n  associated(tidx): '//str(associated(rtm%tidx))//&
+      '\n  associated(area): '//str(associated(rtm%area))//&
+      '\n  associated(coef): '//str(associated(rtm%coef)))
       return
     endif
   else
@@ -372,14 +372,14 @@ integer(4) function report_rt_main_summary(&
 
     if( .not. is_ok )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\nSize of arrays are incorrect.'//&
-                '\n  ijsize: '//str(rtm%ijsize)//&
-                '\n  nij   : '//str(rtm%nij)//&
-                '\n  size(sidx): '//str(size(rtm%sidx))//&
-                '\n  size(tidx): '//str(size(rtm%tidx))//&
-                '\n  size(area): '//str(size(rtm%area))//&
-                '\n  size(coef): '//str(size(rtm%coef)))
+      call errret(ERROR_CODE__CONDITION, &
+        'Size of arrays are incorrect.'//&
+      '\n  ijsize: '//str(rtm%ijsize)//&
+      '\n  nij   : '//str(rtm%nij)//&
+      '\n  size(sidx): '//str(size(rtm%sidx))//&
+      '\n  size(tidx): '//str(size(rtm%tidx))//&
+      '\n  size(area): '//str(size(rtm%area))//&
+      '\n  size(coef): '//str(size(rtm%coef)))
       return
     endif
   endif
@@ -404,14 +404,13 @@ integer(4) function report_rt_main_summary(&
     enddo
   case default
     info = 1
-    call errret(msg_invalid_value('rtm%mesh_sort', rtm%mesh_sort))
+    call errret(ERROR_CODE__VALUE, 'rtm%mesh_sort == '//str(rtm%mesh_sort))
     return
   endselect
 
   if( .not. is_ok )then
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\nArray is not sorted. mesh_sort: '//str(rtm%mesh_sort))
+    call errret(ERROR_CODE__CONDITION, 'Array is not sorted. mesh_sort: '//str(rtm%mesh_sort))
     return
   endif
   !-------------------------------------------------------------

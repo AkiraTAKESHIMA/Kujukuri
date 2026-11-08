@@ -77,7 +77,7 @@ subroutine set_resolution(resolution)
     MX = 1200
     MY =  800
   case default
-    call errend(msg_invalid_value('resolution', resolution))
+    call errend(ERROR_CODE__VALUE, 'resolution == '//str(resolution))
   endselect
 
   NGX = MX * NTX

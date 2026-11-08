@@ -58,26 +58,26 @@ integer(4) function calc_grdnum(&
   !-------------------------------------------------------------
   if( size(grdmsk) /= nij )then
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\nsize(grdmsk) /= size(grdidx_fmt)'//&
-              '\n  size(grdmsk)    : '//str(size(grdmsk))//&
-              '\n  size(grdidx_fmt): '//str(nij))
+    call errret(ERROR_CODE__CONDITION, &
+      'size(grdmsk) /= size(grdidx_fmt)'//&
+    '\n  size(grdmsk)    : '//str(size(grdmsk))//&
+    '\n  size(grdidx_fmt): '//str(nij))
     return
   endif
   if( size(grdnum) /= nij )then
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\nsize(grdnum) /= size(grdidx_fmt)'//&
-              '\n  size(grdnum)    : '//str(size(grdnum))//&
-              '\n  size(grdidx_fmt): '//str(nij))
+    call errret(ERROR_CODE__CONDITION, &
+      'size(grdnum) /= size(grdidx_fmt)'//&
+    '\n  size(grdnum)    : '//str(size(grdnum))//&
+    '\n  size(grdidx_fmt): '//str(nij))
     return
   endif
   if( size(arg_fmt) /= 1 .and. size(arg_fmt) /= nij )then
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\nsize(arg_fmt) /= 1 .and. size(arg_fmt) /= size(grdidx_fmt)'//&
-              '\n  size(arg_fmt)   : '//str(size(arg_fmt))//&
-              '\n  size(grdidx_fmt): '//str(nij))
+    call errret(ERROR_CODE__CONDITION, &
+      'size(arg_fmt) /= 1 and size(arg_fmt) /= size(grdidx_fmt)'//&
+    '\n  size(arg_fmt)   : '//str(size(arg_fmt))//&
+    '\n  size(grdidx_fmt): '//str(nij))
     return
   endif
   !-------------------------------------------------------------
@@ -100,9 +100,9 @@ integer(4) function calc_grdnum(&
       call search(grdidx_rtm(ij), grdidx_fmt, loc)
       if( loc == 0_8 )then
         info = 1
-        call errret(msg_unexpected_condition()//&
-                  '\nIndex '//str(grdidx_rtm(ij))//' was not found'//&
-                    ' in the set of indices $grdidx_fmt.')
+        call errret(ERROR_CODE__CONDITION, &
+          'Index '//str(grdidx_rtm(ij))//' was not found'//&
+          ' in the set of indices $grdidx_fmt.')
         return
       endif
       call add(grdnum(loc))
@@ -112,9 +112,9 @@ integer(4) function calc_grdnum(&
       call search(grdidx_rtm(ij), grdidx_fmt, arg_fmt, loc)
       if( loc == 0_8 )then
         info = 1
-        call errret(msg_unexpected_condition()//&
-                  '\nIndex '//str(grdidx_rtm(ij))//' was not found'//&
-                    ' in the set of indices $grdidx_fmt.')
+        call errret(ERROR_CODE__CONDITION, &
+          'Index '//str(grdidx_rtm(ij))//' was not found'//&
+          ' in the set of indices $grdidx_fmt.')
         return
       endif
       call add(grdnum(arg_fmt(loc)))
@@ -169,26 +169,26 @@ integer(4) function calc_grdara_rt(&
   !-------------------------------------------------------------
   if( size(grdmsk) /= nij )then
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\nsize(grdmsk) /= size(grdidx_fmt)'//&
-              '\n  size(grdmsk)    : '//str(size(grdmsk))//&
-              '\n  size(grdidx_fmt): '//str(nij))
+    call errret(ERROR_CODE__CONDITION, &
+      'size(grdmsk) /= size(grdidx_fmt)'//&
+    '\n  size(grdmsk)    : '//str(size(grdmsk))//&
+    '\n  size(grdidx_fmt): '//str(nij))
     return
   endif
   if( size(grdara_rt) /= nij )then
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\nsize(grdara_rt) /= size(grdidx_fmt)'//&
-              '\n  size(grdara_rt) : '//str(size(grdara_rt))//&
-              '\n  size(grdidx_fmt): '//str(nij))
+    call errret(ERROR_CODE__CONDITION, &
+      'size(grdara_rt) /= size(grdidx_fmt)'//&
+    '\n  size(grdara_rt) : '//str(size(grdara_rt))//&
+    '\n  size(grdidx_fmt): '//str(nij))
     return
   endif
   if( size(arg_fmt) /= 1 .and. size(arg_fmt) /= nij )then
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\nsize(arg_fmt) /= 1 .and. size(arg_fmt) /= size(grdidx_fmt)'//&
-              '\n  size(arg_fmt)   : '//str(size(arg_fmt))//&
-              '\n  size(grdidx_fmt): '//str(nij))
+    call errret(ERROR_CODE__CONDITION, &
+      'size(arg_fmt) /= 1 and size(arg_fmt) /= size(grdidx_fmt)'//&
+    '\n  size(arg_fmt)   : '//str(size(arg_fmt))//&
+    '\n  size(grdidx_fmt): '//str(nij))
     return
   endif
   !-------------------------------------------------------------
@@ -218,9 +218,9 @@ integer(4) function calc_grdara_rt(&
       call search(grdidx_rtm(ij), grdidx_fmt, loc)
       if( loc == 0_8 )then
         info = 1
-        call errret(msg_unexpected_condition()//&
-                  '\nIndex '//str(grdidx_rtm(ij))//' was not found'//&
-                    ' in the set of indices $grdidx_fmt.')
+        call errret(ERROR_CODE__CONDITION, &
+          'Index '//str(grdidx_rtm(ij))//' was not found'//&
+          ' in the set of indices $grdidx_fmt.')
         return
       endif
       call add(grdara_rt(loc), grdara_rtm(ij))
@@ -230,9 +230,9 @@ integer(4) function calc_grdara_rt(&
       call search(grdidx_rtm(ij), grdidx_fmt, arg_fmt, loc)
       if( loc == 0_8 )then
         info = 1
-        call errret(msg_unexpected_condition()//&
-                  '\nIndex '//str(grdidx_rtm(ij))//' was not found'//&
-                    ' in the set of indices $grdidx_fmt.')
+        call errret(ERROR_CODE__CONDITION, &
+          'Index '//str(grdidx_rtm(ij))//' was not found'//&
+          ' in the set of indices $grdidx_fmt.')
         return
       endif
       call add(grdara_rt(arg_fmt(loc)), grdara_rtm(ij))
@@ -284,26 +284,26 @@ integer(4) function calc_rerr_grdara(&
   !-------------------------------------------------------------
   if( size(grdmsk) /= nij )then
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\nsize(grdmsk) /= size(rerr_grdara)'//&
-              '\n  size(grdmsk)    : '//str(size(grdmsk))//&
-              '\n  size(grdidx_fmt): '//str(nij))
+    call errret(ERROR_CODE__CONDITION, &
+      'size(grdmsk) /= size(rerr_grdara)'//&
+    '\n  size(grdmsk)    : '//str(size(grdmsk))//&
+    '\n  size(grdidx_fmt): '//str(nij))
     return
   endif
   if( size(grdara_true) /= nij )then
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\nsize(grdara_true) /= size(rerr_grdara)'//&
-              '\n  size(grdara_true): '//str(size(grdara_true))//&
-              '\n  size(grdidx_fmt) : '//str(nij))
+    call errret(ERROR_CODE__CONDITION, &
+      'size(grdara_true) /= size(rerr_grdara)'//&
+    '\n  size(grdara_true): '//str(size(grdara_true))//&
+    '\n  size(grdidx_fmt) : '//str(nij))
     return
   endif
   if( size(grdara_rt) /= nij )then
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\nsize(grdara_rt) /= size(rerr_grdara)'//&
-              '\n  size(grdara_rt) : '//str(size(grdara_rt))//&
-              '\n  size(grdidx_fmt): '//str(nij))
+    call errret(ERROR_CODE__CONDITION, &
+      'size(grdara_rt) /= size(rerr_grdara)'//&
+    '\n  size(grdara_rt) : '//str(size(grdara_rt))//&
+    '\n  size(grdidx_fmt): '//str(nij))
     return
   endif
   !-------------------------------------------------------------
@@ -329,29 +329,29 @@ integer(4) function calc_rerr_grdara(&
         if( is_zero_grdara_true_allowed )then
           if( grdara_rt(ij) /= 0.d0 )then
             info = 1
-            call errret(msg_unexpected_condition()//&
-                      '\nGrid area calculated from remapping table is not zero '//&
-                        'although its true value is zero.'//&
-                      '\n  ij: '//str(ij)//&
-                      '\n  Grid area from rt: '//str(grdara_rt(ij))//&
-                      '\n  True value       : '//str(grdara_true(ij)))
+            call errret(ERROR_CODE__CONDITION, &
+              'Grid area calculated from remapping table is not zero '//&
+              'although its true value is zero.'//&
+            '\n  ij: '//str(ij)//&
+            '\n  Grid area from rt: '//str(grdara_rt(ij))//&
+            '\n  True value       : '//str(grdara_true(ij)))
             return
           endif
           rerr_grdara(ij) = val_miss
         else
           info = 1
-          call errret(msg_unexpected_condition()//&
-                    '\nThe true value of grid area is equal to zero.'//&
-                    '\n  ij: '//str(ij)//&
-                    '\n  Grid area: '//str(grdara_true(ij)))
+          call errret(ERROR_CODE__CONDITION, &
+            'The true value of grid area is equal to zero.'//&
+          '\n  ij: '//str(ij)//&
+          '\n  Grid area: '//str(grdara_true(ij)))
           return
         endif
       else
         info = 1
-        call errret(msg_unexpected_condition()//&
-                 '\nThe true value of grid area is negative.'//&
-                 '\n  ij: '//str(ij)//&
-                 '\n  area: '//str(grdara_true(ij)))
+        call errret(ERROR_CODE__CONDITION, &
+         'The true value of grid area is negative.'//&
+       '\n  ij: '//str(ij)//&
+       '\n  area: '//str(grdara_true(ij)))
         return
       endif
     else

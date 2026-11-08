@@ -61,8 +61,7 @@ integer(4) function open_report_file(path) result(info)
        iostat=ios)
   if( ios /= 0 )then
     info = 1
-    call errret(msg_io_error()//&
-              '\nFailed to open file.')
+    call errret(ERROR_CODE__IO, 'Failed to open file.')
     return
   endif
   !-------------------------------------------------------------
@@ -86,8 +85,7 @@ integer(4) function close_report_file() result(info)
   close(un_report, iostat=ios)
   if( ios /= 0 )then
     info = 1
-    call errret(msg_io_error()//&
-              '\nFailed to open file.')
+    call errret(ERROR_CODE__IO, 'Failed to open file.')
     return
   endif
 
@@ -159,10 +157,10 @@ integer(4) function handle_old_file__file(f) result(info)
   case( OPT_OLD_FILES_STOP )
     if( access(f%path,' ') == 0 )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\nFile already exists.'//&
-                '\n  id  : '//str(f%id)//&
-                '\n  path: '//str(f%path))
+      call errret(ERROR_CODE__CONDITION, &
+        'File already exists.'//&
+      '\n  id  : '//str(f%id)//&
+      '\n  path: '//str(f%path))
       return
     endif
   !-------------------------------------------------------------
@@ -171,9 +169,8 @@ integer(4) function handle_old_file__file(f) result(info)
     selectcase( f%action )
     case( ACTION_READ )
       info = 1
-      call errret(msg_unexpected_condition()//&
-               '\nold_files == '//str(old_files)//&
-                  ' .and. f%action == '//str(f%action))
+      call errret(ERROR_CODE__CONDITION, &
+        'old_files == '//str(old_files)//' and f%action == '//str(f%action))
       return
     case( ACTION_WRITE, &
           ACTION_READWRITE, &
@@ -186,9 +183,9 @@ integer(4) function handle_old_file__file(f) result(info)
       endif
     case default
       info = 1
-      call errret(msg_invalid_value()//&
-                '\n  id    : '//str(f%id)//&
-                '\n  action: '//str(f%action))
+      call errret(ERROR_CODE__VALUE, &
+      '\n  id    : '//str(f%id)//&
+      '\n  action: '//str(f%action))
       return
     endselect
   !-------------------------------------------------------------
@@ -198,7 +195,7 @@ integer(4) function handle_old_file__file(f) result(info)
       call logmsg('To be updated '//str(f%id)//': "'//str(f%path)//'"')
       if( check_permission(f%path, action_readwrite) /= 0 )then
         info = 1
-        call errret(&
+        call errret(ERROR_CODE__CONDITION, &
           'Option "'//str(OPT_OLD_FILES_OVERWRITE)//&
           '" was selected but no readwrite permission for'//&
           ' the file.')
@@ -209,7 +206,7 @@ integer(4) function handle_old_file__file(f) result(info)
   ! Case: ERROR
   case default
     info = 1
-    call errret(msg_invalid_value('old_files', old_files))
+    call errret(ERROR_CODE__VALUE, 'old_files == '//str(old_files))
     return
   endselect
   !-------------------------------------------------------------
@@ -237,8 +234,9 @@ integer(4) function handle_old_file__path(path, id) result(info)
   case( OPT_OLD_FILES_STOP )
     if( access(path,' ') == 0 )then
       info = 1
-      call errret('File already exists.'//&
-                '\n'//str(id)//': "'//str(path)//'"')
+      call errret(ERROR_CODE__CONDITION, &
+        'File already exists.'//&
+      '\n  '//str(id)//': "'//str(path)//'"')
       return
     endif
   !-------------------------------------------------------------
@@ -257,7 +255,7 @@ integer(4) function handle_old_file__path(path, id) result(info)
       call logmsg('To be updated '//str(id)//': "'//str(path)//'"')
       if( check_permission(path, ACTION_READWRITE) /= 0 )then
         info = 1
-        call errret(&
+        call errret(ERROR_CODE__CONDITION, &
           'Option "'//str(OPT_OLD_FILES_OVERWRITE)//&
           '" was selected but no readwrite permission for'//&
           ' the file.')
@@ -268,7 +266,7 @@ integer(4) function handle_old_file__path(path, id) result(info)
   ! Case: ERROR
   case default
     info = 1
-    call errret(msg_invalid_value('old_files', old_files))
+    call errret(ERROR_CODE__VALUE, 'old_files == '//str(old_files))
     return
   endselect
   !-------------------------------------------------------------

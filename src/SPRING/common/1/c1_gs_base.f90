@@ -85,11 +85,11 @@ integer(4) function init_mesh(a) result(info)
     return
   case( MESH_STATUS__MODIFIED )
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\n  a%status == MESH_STATUS__MODIFIED'//&
-              '\nThe mesh has been modified.'//&
-              '\n  id : '//str(a%id)//&
-              '\n  nam: '//str(a%nam))
+    call errret(ERROR_CODE__CONDITION, &
+      ' a%status == MESH_STATUS__MODIFIED'//&
+    '\nThe mesh has already been modified.'//&
+    '\n  id : '//str(a%id)//&
+    '\n  nam: '//str(a%nam))
     return
   endselect
   a%status = MESH_STATUS__INITIALIZED
@@ -766,20 +766,20 @@ end function alloc_file_grid_out_val
 !===============================================================
 !
 !===============================================================
-integer(4) function set_bounds_file_grid_in(fg, nx, ny) result(info)
+integer(4) function set_bounds_file_grid_in(fg, sz1, sz2) result(info)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'set_bounds_file_grid_in'
   type(file_grid_in_), intent(inout), target :: fg
-  integer(8), intent(in), optional :: nx, ny
+  integer(8), intent(in), optional :: sz1, sz2
 
   type(file_), pointer :: f
 
   info = 0
   call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
-  if( present(nx) )then
-    if( fg%sz(1) == 0_8 ) fg%sz(1) = nx
-    if( fg%sz(2) == 0_8 ) fg%sz(2) = ny
+  if( present(sz1) )then
+    if( fg%sz(1) == 0_8 ) fg%sz(1) = sz1
+    if( fg%sz(2) == 0_8 ) fg%sz(2) = sz2
   endif
 
   if( fg%lb(1) == 0_8 ) fg%lb(1) = 1_8
@@ -791,15 +791,6 @@ integer(4) function set_bounds_file_grid_in(fg, nx, ny) result(info)
   fg%nx = fg%ub(1) - fg%lb(1) + 1_8
   fg%ny = fg%ub(2) - fg%lb(2) + 1_8
   fg%nij = fg%nx * fg%ny
-
-  if( present(nx) )then
-    if( fg%nx /= nx .or. fg%ny /= ny )then
-      call errend('Inconsistent inputs.'//&
-        '\n  nx: '//str(nx)//', ny: '//str(ny)//&
-        '\n  fg%ub(1)-fg%lb(1)+1: '//str(fg%nx)//&
-        '\n  fg%ub(2)-fg%lb(2)+1: '//str(fg%ny))
-    endif
-  endif
 
   f => fg%idx
   f%sz = fg%sz
@@ -840,10 +831,8 @@ integer(4) function set_bounds_file_grid_out(fg, sz1, sz2) result(info)
   if( fg%lb(1) == 0_8 ) fg%lb(1) = 1_8
   if( fg%lb(2) == 0_8 ) fg%lb(2) = 1_8
 
-  !if( fg%ub(1) == 0_8 ) fg%ub(1) = fg%sz(1)
-  !if( fg%ub(2) == 0_8 ) fg%ub(2) = fg%sz(2)
-  fg%ub(1) = fg%lb(1) + fg%sz(1) - 1_8
-  fg%ub(2) = fg%lb(2) + fg%sz(2) - 1_8
+  if( fg%ub(1) == 0_8 ) fg%ub(1) = fg%sz(1)
+  if( fg%ub(2) == 0_8 ) fg%ub(2) = fg%sz(2)
 
   fg%nx = fg%ub(1) - fg%lb(1) + 1_8
   fg%ny = fg%ub(2) - fg%lb(2) + 1_8
@@ -990,16 +979,16 @@ integer(4) function set_bounds_file_raster_in(&
       fr%ub(2) - fr%lb(2) + 1_8 /= yf - yi + 1_8 )then
     info = 1
     dgt_xy = max(dgt(fr%sz(:2),dgt_opt_max), dgt(max(nx,ny)))
-    call errret(msg_unexpected_condition()//&
-              '\nShape of input and that of grid system mismatch.'//&
-              '\ninput x: '//str(fr%ub(1)-fr%lb(1)+1_8)//&
-                ' ('//str((/fr%lb(1),fr%ub(1)/),dgt_xy,':')//' in '//str(fr%sz(1),dgt_xy)//')'//&
-              '\n      y: '//str(fr%ub(2)-fr%lb(2)+1_8)//&
-                ' ('//str((/fr%lb(2),fr%ub(2)/),dgt_xy,':')//' in '//str(fr%sz(2),dgt_xy)//')'//&
-              '\ngs    x: '//str(xf-xi+1_8)//&
-                ' ('//str((/xi,xf/),dgt_xy,':')//' in '//str(nx,dgt_xy)//')'//&
-              '\ngs    y: '//str(yf-yi+1_8)//&
-                ' ('//str((/yi,yf/),dgt_xy,':')//' in '//str(ny,dgt_xy)//')')
+    call errret(ERROR_CODE__CONDITION, &
+      'Shape of input and that of grid system mismatch.'//&
+    '\ninput x: '//str(fr%ub(1)-fr%lb(1)+1_8)//&
+      ' ('//str((/fr%lb(1),fr%ub(1)/),dgt_xy,':')//' in '//str(fr%sz(1),dgt_xy)//')'//&
+    '\n      y: '//str(fr%ub(2)-fr%lb(2)+1_8)//&
+      ' ('//str((/fr%lb(2),fr%ub(2)/),dgt_xy,':')//' in '//str(fr%sz(2),dgt_xy)//')'//&
+    '\ngs    x: '//str(xf-xi+1_8)//&
+      ' ('//str((/xi,xf/),dgt_xy,':')//' in '//str(nx,dgt_xy)//')'//&
+    '\ngs    y: '//str(yf-yi+1_8)//&
+      ' ('//str((/yi,yf/),dgt_xy,':')//' in '//str(ny,dgt_xy)//')')
     return
   endif
   !-------------------------------------------------------------
@@ -1024,29 +1013,39 @@ end function set_bounds_file_raster_in
 !
 !===============================================================
 integer(4) function set_bounds_file_polygon_in(&
-    fp, ijs, ije, np, nij) result(info)
+  ap &
+) result(info)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'set_bounds_file_polygon_in'
-  type(file_polygon_in_), intent(inout), target :: fp
-  integer(8), intent(inout) :: ijs, ije
-  integer(8), intent(in) :: np
-  integer(8), intent(in) :: nij
+  type(gs_polygon_), intent(inout), target :: ap
 
+  type(file_polygon_in_), pointer :: fp
+  type(file_grid_in_), pointer :: fg_in
+  type(file_grid_out_), pointer :: fg_out
   type(file_), pointer :: f
 
   info = 0
   call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
-  if( ijs == 0_8 ) ijs = 1_8
-  if( ije == 0_8 ) ije = nij
+  !
+  !-------------------------------------------------------------
+  fp     => ap%f_polygon_in
+  fg_in  => ap%f_grid_in
+  fg_out => ap%f_grid_out
+  !-------------------------------------------------------------
+  if( fg_in%lb(2) == 0_8 ) fg_in%lb(2) = 1_8
+  if( fg_in%ub(2) == 0_8 ) fg_in%ub(2) = ap%nij
 
-  fp%sz(1) = np
+  ap%ijs = fg_in%lb(2)
+  ap%ije = fg_in%ub(2)
+
+  fp%sz(1) = ap%np
   fp%lb(1) = 1_8
-  fp%ub(1) = np
+  fp%ub(1) = ap%np
 
-  if( fp%sz(2) == 0_8 ) fp%sz(2) = nij
+  if( fp%sz(2) == 0_8 ) fp%sz(2) = ap%nij
   if( fp%lb(2) == 0_8 ) fp%lb(2) = 1_8
-  if( fp%ub(2) == 0_8 ) fp%ub(2) = fp%lb(2) + nij - 1_8
+  if( fp%ub(2) == 0_8 ) fp%ub(2) = fp%lb(2) + ap%nij - 1_8
 
   f => fp%x
   f%sz(:) = fp%sz(:)
@@ -1247,9 +1246,9 @@ integer(4) function set_mesh_common(a) result(info)
     ac%idx_debug   => ap%idx_debug
   case default
     info = 1
-    call errret(msg_invalid_value('meshtype', a%typ)//&
-              '\n  a%id : '//str(a%id)//&
-              '\n  a%nam: '//str(a%nam))
+    call errret(ERROR_CODE__VALUE, 'meshtype == '//str(a%typ)//&
+    '\n  a%id : '//str(a%id)//&
+    '\n  a%nam: '//str(a%nam))
     return
   endselect
 
@@ -1306,9 +1305,9 @@ integer(4) function clear_mesh(a) result(info)
     continue
   case default
     info = 1
-    call errret(msg_invalid_value('a%status', a%status)//&
-              '\n  id : '//str(a%id)//&
-              '\n  nam: '//str(a%nam))
+    call errret(ERROR_CODE__VALUE, 'a%status == '//str(a%status)//&
+    '\n  a%id : '//str(a%id)//&
+    '\n  a%nam: '//str(a%nam))
     return
   endselect
   !-------------------------------------------------------------
@@ -1499,7 +1498,7 @@ integer(4) function clear_mesh(a) result(info)
   ! Case: ERROR
   case default
     info = 1
-    call errret(msg_invalid_value('a%typ', a%typ))
+    call errret(ERROR_CODE__VALUE, 'a%typ == '//str(a%typ))
     return
   endselect
   !-------------------------------------------------------------

@@ -236,7 +236,7 @@ subroutine make_cmf(cmn, cmf, opt)
               cgx == cmf%nextxy_ocean )then
         continue
       else
-        call errend(msg_invalid_value('nextxx('//str((/icgx,icgy/),', ')//')', cgx))
+        call errend(ERROR_CODE__VALUE, 'nextxx('//str((/icgx,icgy/),', ')//') == '//str(cgx))
       endif
     enddo
   enddo
@@ -347,7 +347,7 @@ subroutine make_cmf(cmn, cmf, opt)
           elseif( cgx == cmf%catmxy_ocean )then
             continue
           else
-            call errend(msg_invalid_value('catmxx('//str((/iklx,ikly/),', ')//')', cgx))
+            call errend(ERROR_CODE__VALUE, 'catmxx('//str((/iklx,ikly/),', ')//') == '//str(cgx))
           endif
         enddo
       enddo
@@ -1449,8 +1449,8 @@ subroutine make_mat_grid(&
 
     if( mat%make_grdidx_noriv )then
       if( ngij_river < 0_8 )then
-        call errend(msg_unexpected_condition()//&
-                  '\n  $mat%make_grdidx_noriv is True but $ngij_river < 0')
+        call errend(ERROR_CODE__CONDITION, &
+          '$mat%make_grdidx_noriv is True but $ngij_river < 0')
       endif
 
       call make_grdidx_model(&
@@ -2703,7 +2703,7 @@ subroutine make_grdmsk(&
       elseif( cmf_idx == cmf_idx_miss )then
         grdmsk(icgx,icgy) = 0_1
       else
-        call errend(msg_invalid_value('cmf_grdidx('//str((/icgx,icgy/),',')//')', cmf_idx))
+        call errend(ERROR_CODE__VALUE, 'cmf_grdidx('//str((/icgx,icgy/),',')//') == '//str(cmf_idx))
       endif
     enddo  ! icgx/
   enddo  ! icgy/
@@ -2748,7 +2748,7 @@ subroutine make_grdidx_model(&
         call add(idx)
         grdidx(icgx,icgy) = idx
       case default
-        call errend(msg_invalid_value('grdmsk('//str((/icgx,icgy/),',')//')', grdmsk(icgx,icgy)))
+        call errend(ERROR_CODE__VALUE, 'grdmsk('//str((/icgx,icgy/),',')//') == '//str(grdmsk(icgx,icgy)))
       endselect
     enddo  ! icgx/
   enddo  ! icgy/
@@ -2788,7 +2788,7 @@ subroutine make_grdidx_bnd(&
       case( 1_1 )
         grdidx(icgx,icgy) = (icgy-1)*ncgx + icgx + idx0
       case default
-        call errend(msg_invalid_value('grdmsk('//str((/icgx,icgy/),',')//')', grdmsk(icgx,icgy)))
+        call errend(ERROR_CODE__VALUE, 'grdmsk('//str((/icgx,icgy/),',')//') == '//str(grdmsk(icgx,icgy)))
       endselect
     enddo  ! icgx/
   enddo  ! icgy/
@@ -2829,7 +2829,7 @@ subroutine make_grdmsk_river_end(&
       elseif( iXX > 0_8 )then
         grdmsk(icgx,icgy) = 0_1
       else
-        call errend(msg_invalid_value('nextxx('//str((/icgx,icgy/),',')//')', iXX))
+        call errend(ERROR_CODE__VALUE, 'nextxx('//str((/icgx,icgy/),',')//') == '//str(iXX))
       endif
     enddo  ! icgx/
   enddo ! icgy/
@@ -2870,7 +2870,7 @@ subroutine make_grdmsk_river_mouth(&
       elseif( iXX > 0_8 )then
         grdmsk(icgx,icgy) = 0_1
       else
-        call errend(msg_invalid_value('nextxx('//str((/icgx,icgy/),',')//')', iXX))
+        call errend(ERROR_CODE__VALUE, 'nextxx('//str((/icgx,icgy/),',')//') == '//str(iXX))
       endif
     enddo  ! icgx/
   enddo ! icgy/
@@ -2911,7 +2911,7 @@ subroutine make_grdmsk_river_inland(&
       elseif( iXX > 0_8 )then
         grdmsk(icgx,icgy) = 0_1
       else
-        call errend(msg_invalid_value('cmf_nextxx('//str((/icgx,icgy/),',')//')', iXX))
+        call errend(ERROR_CODE__VALUE, 'cmf_nextxx('//str((/icgx,icgy/),',')//') == '//str(iXX))
       endif
     enddo  ! icgx/
   enddo ! icgy/
@@ -2947,7 +2947,7 @@ subroutine mask_grdidx(&
       case( 1_1 )
         grdidx(icgx,icgy) = grdidx_in(icgx,icgy)
       case default
-        call errend(msg_invalid_value('grdmsk('//str((/icgx,icgy/),',')//')', grdmsk(icgx,icgy)))
+        call errend(ERROR_CODE__VALUE, 'grdmsk('//str((/icgx,icgy/),',')//') == '//str(grdmsk(icgx,icgy)))
       endselect
     enddo  ! icgx/
   enddo  ! icgy/
@@ -2996,10 +2996,10 @@ subroutine make_rstidx_river_from_grdidx(&
       if( cgx > 0_8 )then
         if( correspond_1on1 )then
           if( grdidx(cgx,cgy) <= 0_8 )then
-            call errend(msg_unexpected_condition()//&
-                     '\n  @ (ikx,iky) = ('//str((/ikx,iky/),', ')//')'//&
-                     '\n  (cgx,cgy) = ('//str((/cgx,cgy/),', ')//')'//&
-                     '\n  grdidx: '//str(grdidx(cgx,cgy)))
+            call errend(ERROR_CODE__CONDITION, &
+               '@ (ikx,iky) = ('//str((/ikx,iky/),', ')//')'//&
+             '\n  (cgx,cgy) = ('//str((/cgx,cgy/),', ')//')'//&
+             '\n  grdidx: '//str(grdidx(cgx,cgy)))
           endif
           call add(nkij)
           rstidx(ikx,iky) = grdidx(cgx,cgy)
@@ -3074,11 +3074,11 @@ subroutine make_rstidx_noriv_from_grdidx(&
           if( cgx == catmxy_noriv_coastal .or. &
               cgx == catmxy_noriv_inland )then
             if( grdidx(icgx,icgy) == idx_miss )then
-              call errend(msg_unexpected_condition()//&
-                        '\n  (icgx,icgy): ('//str((/icgx,icgy/),', ')//')'//&
-                        '\n  (ikx,iky)  : ('//str((/ikx,iky/),', ')//')'//&
-                        '\n  catmxx: '//str(catmxx(ikx,iky))//&
-                        '\n  grdidx: '//str(grdidx(icgx,icgy)))
+              call errend(ERROR_CODE__CONDITION, &
+                '  (icgx,icgy): ('//str((/icgx,icgy/),', ')//')'//&
+              '\n  (ikx,iky)  : ('//str((/ikx,iky/),', ')//')'//&
+              '\n  catmxx: '//str(catmxx(ikx,iky))//&
+              '\n  grdidx: '//str(grdidx(icgx,icgy)))
             endif
             call add(nkij)
             rstidx(ikx,iky) = grdidx(icgx,icgy)
@@ -3150,12 +3150,12 @@ subroutine check_consistency_grdidx_river(&
       do icgx = 1_8, cmn%ncgx
         if( grdidx_river(icgx,icgy) == idx_miss .and. &
             grdidx_river_end(icgx,icgy) /= idx_miss )then
-          call errend(msg_unexpected_condition()//&
-                    '\n  grdidx_river == idx_miss .and. grdidx_river_end /= idx_miss'//&
-                    '\n  (cgx,cgy): ('//str((/icgx,icgy/),',')//')'//&
-                    '\n  grdidx_river    : '//str(grdidx_river(icgx,icgy))//&
-                    '\n  grdidx_river_end: '//str(grdidx_river_end(icgx,icgy)), &
-                      'A-1')
+          call errend(ERROR_CODE__CONDITION, &
+            'grdidx_river == idx_miss .and. grdidx_river_end /= idx_miss'//&
+          '\n  (cgx,cgy): ('//str((/icgx,icgy/),',')//')'//&
+          '\n  grdidx_river    : '//str(grdidx_river(icgx,icgy))//&
+          '\n  grdidx_river_end: '//str(grdidx_river_end(icgx,icgy)), &
+            stp='A-1')
         endif
       enddo
     enddo
@@ -3168,12 +3168,12 @@ subroutine check_consistency_grdidx_river(&
       do icgx = 1_8, cmn%ncgx
         if( grdidx_river(icgx,icgy) == idx_miss .and. &
             grdidx_river_mouth(icgx,icgy) /= idx_miss )then
-          call errend(msg_unexpected_condition()//&
-                    '\n  grdidx_river == idx_miss .and. grdidx_river_mouth /= idx_miss'//&
-                    '\n  (cgx,cgy): ('//str((/icgx,icgy/),',')//')'//&
-                    '\n  grdidx_river      : '//str(grdidx_river(icgx,icgy))//&
-                    '\n  grdidx_river_mouth: '//str(grdidx_river_mouth(icgx,icgy)), &
-                      'A-2')
+          call errend(ERROR_CODE__CONDITION, &
+            'grdidx_river == idx_miss .and. grdidx_river_mouth /= idx_miss'//&
+          '\n  (cgx,cgy): ('//str((/icgx,icgy/),',')//')'//&
+          '\n  grdidx_river      : '//str(grdidx_river(icgx,icgy))//&
+          '\n  grdidx_river_mouth: '//str(grdidx_river_mouth(icgx,icgy)), &
+            stp='A-2')
         endif
       enddo
     enddo
@@ -3186,12 +3186,12 @@ subroutine check_consistency_grdidx_river(&
       do icgx = 1_8, cmn%ncgx
         if( grdidx_river(icgx,icgy) == idx_miss .and. &
             grdidx_river_inland(icgx,icgy) /= idx_miss )then
-          call errend(msg_unexpected_condition()//&
-                    '\n  grdidx_river == idx_miss .and. grdidx_river_inland /= idx_miss'//&
-                    '\n  (cgx,cgy): ('//str((/icgx,icgy/),',')//')'//&
-                    '\n  grdidx_river       : '//str(grdidx_river(icgx,icgy))//&
-                    '\n  grdidx_river_inland: '//str(grdidx_river_inland(icgx,icgy)), &
-                      'A-3')
+          call errend(ERROR_CODE__CONDITION, &
+            'grdidx_river == idx_miss .and. grdidx_river_inland /= idx_miss'//&
+          '\n  (cgx,cgy): ('//str((/icgx,icgy/),',')//')'//&
+          '\n  grdidx_river       : '//str(grdidx_river(icgx,icgy))//&
+          '\n  grdidx_river_inland: '//str(grdidx_river_inland(icgx,icgy)), &
+            stp='A-3')
         endif
       enddo
     enddo
@@ -3210,12 +3210,12 @@ subroutine check_consistency_grdidx_river(&
         do icgx = 1_8, cmn%ncgx
           if( grdidx_river_end(icgx,icgy) == idx_miss .and. &
               grdidx_river_mouth(icgx,icgy) /= idx_miss )then
-            call errend(msg_unexpected_condition()//&
-                      '\n  grdidx_river_end == idx_miss .and. grdidx_river_mouth /= idx_miss'//&
-                      '\n  (cgx,cgy): ('//str((/icgx,icgy/),',')//')'//&
-                      '\n  grdidx_river_end  : '//str(grdidx_river_end(icgx,icgy))//&
-                      '\n  grdidx_river_mouth: '//str(grdidx_river_mouth(icgx,icgy)), &
-                        'B-1')
+            call errend(ERROR_CODE__CONDITION, &
+              'grdidx_river_end == idx_miss .and. grdidx_river_mouth /= idx_miss'//&
+            '\n  (cgx,cgy): ('//str((/icgx,icgy/),',')//')'//&
+            '\n  grdidx_river_end  : '//str(grdidx_river_end(icgx,icgy))//&
+            '\n  grdidx_river_mouth: '//str(grdidx_river_mouth(icgx,icgy)), &
+              stp='B-1')
           endif
         enddo
       enddo
@@ -3228,12 +3228,12 @@ subroutine check_consistency_grdidx_river(&
         do icgx = 1_8, cmn%ncgx
           if( grdidx_river_end(icgx,icgy) == idx_miss .and. &
               grdidx_river_inland(icgx,icgy) /= idx_miss )then
-            call errend(msg_unexpected_condition()//&
-                      '\n  grdidx_river_end == idx_miss .and. grdidx_river_inland /= idx_miss'//&
-                      '\n  (cgx,cgy): ('//str((/icgx,icgy/),',')//')'//&
-                      '\n  grdidx_river_end   : '//str(grdidx_river_end(icgx,icgy))//&
-                      '\n  grdidx_river_inland: '//str(grdidx_river_inland(icgx,icgy)), &
-                        'B-2')
+            call errend(ERROR_CODE__CONDITION, &
+              'grdidx_river_end == idx_miss .and. grdidx_river_inland /= idx_miss'//&
+            '\n  (cgx,cgy): ('//str((/icgx,icgy/),',')//')'//&
+            '\n  grdidx_river_end   : '//str(grdidx_river_end(icgx,icgy))//&
+            '\n  grdidx_river_inland: '//str(grdidx_river_inland(icgx,icgy)), &
+              stp='B-2')
           endif
         enddo
       enddo
@@ -3248,12 +3248,12 @@ subroutine check_consistency_grdidx_river(&
       do icgx = 1_8, cmn%ncgx
         if( grdidx_river_mouth(icgx,icgy) /= idx_miss .and. &
             grdidx_river_inland(icgx,icgy) /= idx_miss )then
-          call errend(msg_unexpected_condition()//&
-                    '\n  grdidx_river_end == idx_miss .and. grdidx_river_inland /= idx_miss'//&
-                    '\n  (cgx,cgy): ('//str((/icgx,icgy/),',')//')'//&
-                    '\n  grdidx_river_end   : '//str(grdidx_river_end(icgx,icgy))//&
-                    '\n  grdidx_river_inland: '//str(grdidx_river_inland(icgx,icgy)), &
-                      'C')
+          call errend(ERROR_CODE__CONDITION, &
+            'grdidx_river_end == idx_miss .and. grdidx_river_inland /= idx_miss'//&
+          '\n  (cgx,cgy): ('//str((/icgx,icgy/),',')//')'//&
+          '\n  grdidx_river_end   : '//str(grdidx_river_end(icgx,icgy))//&
+          '\n  grdidx_river_inland: '//str(grdidx_river_inland(icgx,icgy)), &
+            stp='C')
         endif
       enddo
     enddo
@@ -3301,11 +3301,11 @@ subroutine check_consistency_rstidx_river(&
       do ikx = 1_8, cmn%nklx
         if( rstidx_river(ikx,iky) == idx_miss .and. &
             rstidx_river_end(ikx,iky) /= idx_miss )then
-          call errend(msg_unexpected_condition()//&
-                    '\n  rstidx_river == idx_miss .and. rstidx_river_end /= idx_miss'//&
-                    '\n  (kx,ky): ('//str((/ikx,iky/),', ')//')'//&
-                    '\n  rstidx_river    : '//str(rstidx_river(ikx,iky))//&
-                    '\n  rstidx_river_end: '//str(rstidx_river_end(ikx,iky)))
+          call errend(ERROR_CODE__CONDITION, &
+            'rstidx_river == idx_miss .and. rstidx_river_end /= idx_miss'//&
+          '\n  (kx,ky): ('//str((/ikx,iky/),', ')//')'//&
+          '\n  rstidx_river    : '//str(rstidx_river(ikx,iky))//&
+          '\n  rstidx_river_end: '//str(rstidx_river_end(ikx,iky)))
         endif
       enddo
     enddo
@@ -3318,11 +3318,11 @@ subroutine check_consistency_rstidx_river(&
         do ikx = 1_8, cmn%nklx
           if( rstidx_river(ikx,iky) == idx_miss .and. &
               rstidx_river_mouth(ikx,iky) /= idx_miss )then
-            call errend(msg_unexpected_condition()//&
-                      '\n  rstidx_river == idx_miss .and. rstidx_river_mouth /= idx_miss'//&
-                      '\n  (kx,ky): ('//str((/ikx,iky/),', ')//')'//&
-                      '\n  rstidx_river      : '//str(rstidx_river(ikx,iky))//&
-                      '\n  rstidx_river_mouth: '//str(rstidx_river_mouth(ikx,iky)))
+            call errend(ERROR_CODE__CONDITION, &
+              'rstidx_river == idx_miss .and. rstidx_river_mouth /= idx_miss'//&
+            '\n  (kx,ky): ('//str((/ikx,iky/),', ')//')'//&
+            '\n  rstidx_river      : '//str(rstidx_river(ikx,iky))//&
+            '\n  rstidx_river_mouth: '//str(rstidx_river_mouth(ikx,iky)))
           endif
         enddo
       enddo
@@ -3335,11 +3335,11 @@ subroutine check_consistency_rstidx_river(&
         do ikx = 1_8, cmn%nklx
           if( rstidx_river(ikx,iky) == idx_miss .and. &
               rstidx_river_inland(ikx,iky) /= idx_miss )then
-            call errend(msg_unexpected_condition()//&
-                      '\n  rstidx_river == idx_miss .and. rstidx_river_inland /= idx_miss'//&
-                      '\n  (kx,ky): ('//str((/ikx,iky/),', ')//')'//&
-                      '\n  rstidx_river       : '//str(rstidx_river(ikx,iky))//&
-                      '\n  rstidx_river_inland: '//str(rstidx_river_inland(ikx,iky)))
+            call errend(ERROR_CODE__CONDITION, &
+              'rstidx_river == idx_miss .and. rstidx_river_inland /= idx_miss'//&
+            '\n  (kx,ky): ('//str((/ikx,iky/),', ')//')'//&
+            '\n  rstidx_river       : '//str(rstidx_river(ikx,iky))//&
+            '\n  rstidx_river_inland: '//str(rstidx_river_inland(ikx,iky)))
           endif
         enddo
       enddo
@@ -3359,11 +3359,11 @@ subroutine check_consistency_rstidx_river(&
         do ikx = 1_8, cmn%nklx
           if( rstidx_river_end(ikx,iky) == idx_miss .and. &
               rstidx_river_mouth(ikx,iky) /= idx_miss )then
-            call errend(msg_unexpected_condition()//&
-                      '\n  rstidx_river_end == idx_miss .and. rstidx_river_mouth /= idx_miss'//&
-                      '\n  (kx,ky): ('//str((/ikx,iky/),', ')//')'//&
-                      '\n  rstidx_river_end  : '//str(rstidx_river_end(ikx,iky))//&
-                      '\n  rstidx_river_mouth: '//str(rstidx_river_mouth(ikx,iky)))
+            call errend(ERROR_CODE__CONDITION, &
+              'rstidx_river_end == idx_miss .and. rstidx_river_mouth /= idx_miss'//&
+            '\n  (kx,ky): ('//str((/ikx,iky/),', ')//')'//&
+            '\n  rstidx_river_end  : '//str(rstidx_river_end(ikx,iky))//&
+            '\n  rstidx_river_mouth: '//str(rstidx_river_mouth(ikx,iky)))
           endif
         enddo
       enddo
@@ -3376,11 +3376,11 @@ subroutine check_consistency_rstidx_river(&
         do ikx = 1_8, cmn%nklx
           if( rstidx_river_end(ikx,iky) == idx_miss .and. &
               rstidx_river_inland(ikx,iky) /= idx_miss )then
-            call errend(msg_unexpected_condition()//&
-                      '\n  rstidx_river_end == idx_miss .and. rstidx_river_inland /= idx_miss'//&
-                      '\n  (kx,ky): ('//str((/ikx,iky/),', ')//')'//&
-                      '\n  rstidx_river_end   : '//str(rstidx_river_end(ikx,iky))//&
-                      '\n  rstidx_river_inland: '//str(rstidx_river_inland(ikx,iky)))
+            call errend(ERROR_CODE__CONDITION, &
+              'rstidx_river_end == idx_miss .and. rstidx_river_inland /= idx_miss'//&
+            '\n  (kx,ky): ('//str((/ikx,iky/),', ')//')'//&
+            '\n  rstidx_river_end   : '//str(rstidx_river_end(ikx,iky))//&
+            '\n  rstidx_river_inland: '//str(rstidx_river_inland(ikx,iky)))
           endif
         enddo
       enddo
@@ -3395,11 +3395,11 @@ subroutine check_consistency_rstidx_river(&
       do ikx = 1_8, cmn%nklx
         if( rstidx_river_mouth(ikx,iky) /= idx_miss .and. &
             rstidx_river_inland(ikx,iky) /= idx_miss )then
-          call errend(msg_unexpected_condition()//&
-                    '\n  rstidx_river_mouth /= idx_miss .and. rstidx_river_inland /= idx_miss'//&
-                    '\n  (kx,ky): ('//str((/ikx,iky/),', ')//')'//&
-                    '\n  rstidx_river_mouth : '//str(rstidx_river_mouth(ikx,iky))//&
-                    '\n  rstidx_river_inland: '//str(rstidx_river_inland(ikx,iky)))
+          call errend(ERROR_CODE__CONDITION, &
+            'rstidx_river_mouth /= idx_miss .and. rstidx_river_inland /= idx_miss'//&
+          '\n  (kx,ky): ('//str((/ikx,iky/),', ')//')'//&
+          '\n  rstidx_river_mouth : '//str(rstidx_river_mouth(ikx,iky))//&
+          '\n  rstidx_river_inland: '//str(rstidx_river_inland(ikx,iky)))
         endif
       enddo
     enddo
@@ -3446,11 +3446,11 @@ subroutine check_consistency_rstidx_validity(&
         if( rstidx_ocean(ikx,iky) /= idx_miss ) call add(n_valid)
 
         if( n_valid /= 1 )then
-          call errend(msg_unexpected_condition()//&
-                    '\n  Status of raster @ ('//str((/ikx,iky/),', ')//') is invalid.'//&
-                    '\n  rstidx_river: '//str(rstidx_river(ikx,iky))//&
-                    '\n  rstidx_noriv: '//str(rstidx_noriv(ikx,iky))//&
-                    '\n  rstidx_ocean: '//str(rstidx_ocean(ikx,iky)))
+          call errend(ERROR_CODE__CONDITION, &
+            'Status of raster @ ('//str((/ikx,iky/),', ')//') is invalid.'//&
+          '\n  rstidx_river: '//str(rstidx_river(ikx,iky))//&
+          '\n  rstidx_noriv: '//str(rstidx_noriv(ikx,iky))//&
+          '\n  rstidx_ocean: '//str(rstidx_ocean(ikx,iky)))
         endif
       else
         if( make_river )then
@@ -3464,12 +3464,11 @@ subroutine check_consistency_rstidx_validity(&
         endif
 
         if( n_valid > 1 )then
-          msg = msg_unexpected_condition()//&
-              '\n  Status of raster @ ('//str((/ikx,iky/),', ')//') is invalid.'
+          msg = 'Status of raster @ ('//str((/ikx,iky/),', ')//') is invalid.'
           if( make_river ) msg = msg//'\n  rstidx_river: '//str(rstidx_river(ikx,iky))
           if( make_noriv ) msg = msg//'\n  rstidx_noriv: '//str(rstidx_noriv(ikx,iky))
           if( make_ocean ) msg = msg//'\n  rstidx_ocean: '//str(rstidx_ocean(ikx,iky))
-          call errend(msg)
+          call errend(ERROR_CODE__CONDITION, msg)
         endif
       endif
     enddo
@@ -3510,23 +3509,23 @@ subroutine check_consistency_grdidx_rstidx_rect(&
 
       if( grdidx(icgx,icgy) == idx_miss )then
         if( any(rstidx(kxi:kxf,kyi:kyf) /= idx_miss) )then
-          call errend(msg_unexpected_condition()//&
-                    '\n  Valid raster exists in an invalid grid.'//&
-                    '\n  @ grid ('//str((/icgx,icgy/),', ')//')'//&
-                    '\n    raster('//str((/kxi,kxf/),':')//', '//str((/kyi,kyf/),':')//')')
+          call errend(ERROR_CODE__CONDITION, &
+            'Valid raster exists in an invalid grid.'//&
+          '\n  @ grid ('//str((/icgx,icgy/),', ')//')'//&
+          '\n    raster('//str((/kxi,kxf/),':')//', '//str((/kyi,kyf/),':')//')')
         endif
       else
         if( all(rstidx(kxi:kxf,kyi:kyf) == idx_miss) )then
-          call errend(msg_unexpected_condition()//&
-                    '\n  Valid raster does not exist in an valid grid.'//&
-                    '\n  @ grid ('//str((/icgx,icgy/),', ')//')'//&
-                    '\n    raster('//str((/kxi,kxf/),':')//', '//str((/kyi,kyf/),':')//')')
+          call errend(ERROR_CODE__CONDITION, &
+            'Valid raster does not exist in an valid grid.'//&
+          '\n  @ grid ('//str((/icgx,icgy/),', ')//')'//&
+          '\n    raster('//str((/kxi,kxf/),':')//', '//str((/kyi,kyf/),':')//')')
         elseif( any(rstidx(kxi:kxf,kyi:kyf) /= idx_miss .and. &
                     rstidx(kxi:kxf,kyi:kyf) /= grdidx(icgx,icgy)) )then
-          call errend(msg_unexpected_condition()//&
-                    '\n  Raster has an index different from that of grid.'//&
-                    '\n  @ grid ('//str((/icgx,icgy/),', ')//')'//&
-                    '\n    raster('//str((/kxi,kxf/),':')//', '//str((/kyi,kyf/),':')//')')
+          call errend(ERROR_CODE__CONDITION, &
+            'Raster has an index different from that of grid.'//&
+          '\n  @ grid ('//str((/icgx,icgy/),', ')//')'//&
+          '\n    raster('//str((/kxi,kxf/),':')//', '//str((/kyi,kyf/),':')//')')
         endif
       endif
     enddo
@@ -3582,8 +3581,8 @@ subroutine check_if_rstidx_in_grdidx(&
         idx_prev = idx
         call search(idx, grdidx_1d, arg, loc)
         if( loc == 0_8 )then
-          call errend(msg_unexpected_condition()//&
-                    '\n  Index '//str(idx)//' of raster was not found in grid.')
+          call errend(ERROR_CODE__CONDITION, &
+            'Index '//str(idx)//' of raster was not found in grid.')
         endif
       endif
 
@@ -3645,23 +3644,18 @@ subroutine cmf_check_if_grdidx_in_rstidx(&
 
   selectcase( idx_condition )
   case( IDX_CONDITION__MATCH, IDX_CONDITION__GRD_IN_RST )
-    call errend(msg_unexpected_condition()//&
-              '\n  '//str(num_invalid)//' grids are defined but'//&
-                ' not found in the raster map.'//&
-              '\n  e.g. @ (icgx,icgy) = ('//str((/cgx,cgy/),',')//'), '//&
-              '\n  grdidx /= idx_miss .and. grdstat == GRDSTAT_INVALID'//&
-              '\n  (landType = '//str(landType)//')'//&
-              '\nIt means that grid index '//str(grdidx(cgx,cgy))//&
-                ' in `grdidx` does not exist in `rstidx`. This can'//&
-                ' occur when `rstidx` is an upscaled one, not the'//&
-                ' original one. For example, the case that you are using'//&
-                ' `rstidx` of 1min resolution and CaMa-Flood map is'//&
-                ' generated from 3sec map. You can ignore this error '//&
-                ' by setting an option "idx_condition: raster_in_grid"'//&
-                ' in the block "cama-flood".')
+    call errend(ERROR_CODE__CONDITION, &
+      ''//str(num_invalid)//' grids are defined but not found in the raster map.'//&
+    '\n  e.g. @ (icgx,icgy) = ('//str((/cgx,cgy/),',')//'), '//&
+    '\n  grdidx /= idx_miss .and. grdstat == GRDSTAT_INVALID'//&
+    '\n  (landType = '//str(landType)//')'//&
+    '\nIt means that grid index '//str(grdidx(cgx,cgy))//' in `grdidx` does not exist '//&
+      'in `rstidx`. This can occur when `rstidx` is an upscaled one, not the original one. '//&
+      'For example, the case that you are using `rstidx` of 1min resolution and CaMa-Flood '//&
+      'map is generated from 3sec map. You can ignore this error by setting an option '//&
+      '"idx_condition: raster_in_grid" in the block "cama-flood".')
   case( IDX_CONDITION__RST_IN_GRD )
-    call logmsg(str(num_invalid)//' grids are defined but'//&
-                ' not found in the raster map.')
+    call logmsg(str(num_invalid)//' grids are defined but not found in the raster map.')
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -3704,8 +3698,8 @@ subroutine mat_check_if_grdidx_in_rstidx(&
     return
   endif
 
-  call erradd(msg_unexpected_condition()//&
-              '  '//str(num_invalid)//' grid(s) is (are) defined but not found in catmxy.')
+  call errnew(ERROR_CODE__CONDITION, &
+    str(num_invalid)//' grid(s) is (are) defined but not found in catmxy.')
 
   dgt_cgxy = dgt(shape(grdidx),DGT_OPT_MAX)
 
@@ -3717,18 +3711,18 @@ subroutine mat_check_if_grdidx_in_rstidx(&
         grdstat(icgx,icgy) == GRDSTAT_INVALID )then
       call add(num_invalid)
       if( num_invalid > 10_8 )then
-        call errapd('...')
+        call erradd('...')
         exit loop_mat
       endif
 
-      call errapd('  @ ('//str((/icgx,icgy/),dgt_cgxy,', ')//') '//&
+      call erradd('  @ ('//str((/icgx,icgy/),dgt_cgxy,', ')//') '//&
                   'grdidx: '//str(grdidx(icgx,icgy)))
 
     endif
   enddo  ! icgx/
   enddo& ! icgy/
   loop_mat
-  call errend('')
+  call errend()
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
 end subroutine mat_check_if_grdidx_in_rstidx
@@ -3775,8 +3769,8 @@ subroutine get_value_bounds_tile(&
   case( 'n' )
     continue
   case default
-    call errend(msg_invalid_value('sn', sn)//&
-              '\n  path: '//str(path))
+    call errend(ERROR_CODE__VALUE, 'sn == '//str(sn)//&
+    '\n  path: '//str(path))
   endselect
 
   selectcase( we )
@@ -3785,8 +3779,8 @@ subroutine get_value_bounds_tile(&
   case( 'e' )
     continue
   case default
-    call errend(msg_invalid_value('we', we)//&
-              '\n  path: '//str(path))
+    call errend(ERROR_CODE__VALUE, 'we == '//str(we)//&
+    '\n  path: '//str(path))
   endselect
 
   east = west + cmn%tile_size_lon

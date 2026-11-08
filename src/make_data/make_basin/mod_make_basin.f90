@@ -115,15 +115,15 @@ subroutine findRiverEnds(tx, ty)
   call traperr( mkdir(dirname(f_rivend)) )
   call logmsg('Writing '//str(f_rivend))
   open(newunit=un, file=f_rivend, status='replace')
-  write(un,"(1x,a)") 'x y next('//str(XY_RIVERMOUTH)//'=rivermouth'//&
-                     ','//str(XY_INLAND)//'=inland)'
+  write(un,"(1x,a)") 'x y next('//str(XY__RIVERMOUTH)//'=rivermouth'//&
+                     ','//str(XY__INLAND)//'=inland)'
   do iy = 1, MY
   do ix = 1, MX
-    if( fdr(ix,iy) == FDR_MISS ) cycle
+    if( fdr(ix,iy) == FDR__MISS ) cycle
     call get_nextxy(ix, iy, fdr(ix,iy), xx, yy)
     selectcase( xx )
-    case( XY_RIVERMOUTH, &
-          XY_INLAND )
+    case( XY__RIVERMOUTH, &
+          XY__INLAND )
       write(un,"(2(1x,i4),1x,i2)") ix, iy, xx
     endselect
   enddo
@@ -193,17 +193,17 @@ subroutine setBasinIds()
       case( 0 )
         nBsn_tile = nBsn_tile + 1
         selectcase( xx )
-        case( XY_RIVERMOUTH )
+        case( XY__RIVERMOUTH )
           nRivermouth = nRivermouth + 1
-        case( XY_INLAND )
+        case( XY__INLAND )
           nInland = nInland + 1
         case default
-          call errend(msg_invalid_value('xx', xx))
+          call errend(ERROR_CODE__VALUE, 'xx == '//str(xx))
         endselect
       case( -1 )
         exit
       case default
-        call errend(msg_io_error(f=f_rivend))
+        call errend(ERROR_CODE__IO, 'Reading error: '//str(f_rivend))
       endselect
     enddo
 
@@ -332,7 +332,7 @@ subroutine getBasinInTile(tx, ty)
     case( -1 )
       exit
     case default
-      call errend(msg_io_error(f=f_rivend_id))
+      call errend(ERROR_CODE__IO, 'Reading error: '//str(f_rivend_id))
     endselect
   enddo
   close(un)
@@ -342,23 +342,23 @@ subroutine getBasinInTile(tx, ty)
   do iy0 = 1, MY
   do ix0 = 1, MX
     if( bsn(ix0,iy0) /= BSN_MISS ) cycle
-    if( fdr(ix0,iy0) == FDR_MISS ) cycle
+    if( fdr(ix0,iy0) == FDR__MISS ) cycle
 
     ix = ix0
     iy = iy0
     do
       call get_nextxy(ix, iy, fdr(ix,iy), xx, yy)
       if( xx < 1 .or. xx > MX .or. yy < 1 .or. yy > MY )then
-        if( xx == XY_RIVERMOUTH .or. &
-            xx == XY_INLAND )then
-          call errend(msg_unexpected_condition()//&
-                      ' xx='//str(xx)//', yy='//str(yy))
+        if( xx == XY__RIVERMOUTH .or. &
+            xx == XY__INLAND )then
+          call errend(ERROR_CODE__CONDITION, &
+            'xx='//str(xx)//', yy='//str(yy))
         elseif( xx == 0 .or. xx == MX+1 .or. &
                 yy == 0 .or. yy == MY+1 )then
           stat = STAT_OTHER_TILE
         else
-          call errend(msg_unexpected_condition()//&
-                      'xx='//str(xx)//', yy='//str(yy))
+          call errend(ERROR_CODE__CONDITION, &
+            'xx='//str(xx)//', yy='//str(yy))
         endif
         exit
       endif
@@ -389,7 +389,7 @@ subroutine getBasinInTile(tx, ty)
         bsn(ix,iy) = bsnId
         call get_nextxy(ix, iy, fdr(ix,iy), xx, yy)
         if( xx < 1 .or. xx > MX .or. yy < 1 .or. yy > MY )then
-          call errend(msg_unexpected_condition())
+          call errend(ERROR_CODE__CONDITION)
         endif
         ix = xx
         iy = yy
@@ -399,7 +399,7 @@ subroutine getBasinInTile(tx, ty)
     !-----------------------------------------------------------
     ! Case: ERROR
     case default
-      call errend(msg_invalid_value('stat', stat))
+      call errend(ERROR_CODE__VALUE, 'stat == '//str(stat))
     endselect
     !-----------------------------------------------------------
     ! Put basin id on the map
@@ -443,9 +443,9 @@ subroutine getBasinInTile(tx, ty)
   ix = 1
   iy = 1
   if( upg(ix,iy) > 1 )then
-    if( .not. (fdr(ix+1,iy  ) == FDR_WEST      .or. &
-               fdr(ix+1,iy+1) == FDR_NORTHWEST .or. &
-               fdr(ix  ,iy+1) == FDR_NORTH) )then
+    if( .not. (fdr(ix+1,iy  ) == FDR__WEST      .or. &
+               fdr(ix+1,iy+1) == FDR__NORTHWEST .or. &
+               fdr(ix  ,iy+1) == FDR__NORTH) )then
       write(un,"(1x,i10,2(1x,i4))") bsn(ix,iy), ix, iy
     endif
   endif
@@ -453,9 +453,9 @@ subroutine getBasinInTile(tx, ty)
   ix = 1
   iy = MY
   if( upg(ix,iy) > 1 )then
-    if( .not. (fdr(ix+1,iy  ) == FDR_WEST      .or. &
-               fdr(ix+1,iy-1) == FDR_SOUTHWEST .or. &
-               fdr(ix  ,iy-1) == FDR_SOUTH) )then
+    if( .not. (fdr(ix+1,iy  ) == FDR__WEST      .or. &
+               fdr(ix+1,iy-1) == FDR__SOUTHWEST .or. &
+               fdr(ix  ,iy-1) == FDR__SOUTH) )then
       write(un,"(1x,i10,2(1x,i4))") bsn(ix,iy), ix, iy
     endif
   endif
@@ -463,9 +463,9 @@ subroutine getBasinInTile(tx, ty)
   ix = MX
   iy = 1
   if( upg(ix,iy) > 1 )then
-    if( .not. (fdr(ix-1,iy  ) == FDR_EAST      .or. &
-               fdr(ix-1,iy+1) == FDR_NORTHEAST .or. &
-               fdr(ix  ,iy+1) == FDR_NORTH) )then
+    if( .not. (fdr(ix-1,iy  ) == FDR__EAST      .or. &
+               fdr(ix-1,iy+1) == FDR__NORTHEAST .or. &
+               fdr(ix  ,iy+1) == FDR__NORTH) )then
       write(un,"(1x,i10,2(1x,i4))") bsn(ix,iy), ix, iy
     endif
   endif
@@ -473,9 +473,9 @@ subroutine getBasinInTile(tx, ty)
   ix = MX
   iy = MY
   if( upg(ix,iy) > 1 )then
-    if( .not. (fdr(ix-1,iy  ) == FDR_EAST      .or. &
-               fdr(ix-1,iy-1) == FDR_SOUTHEAST .or. &
-               fdr(ix  ,iy-1) == FDR_SOUTH) )then
+    if( .not. (fdr(ix-1,iy  ) == FDR__EAST      .or. &
+               fdr(ix-1,iy-1) == FDR__SOUTHEAST .or. &
+               fdr(ix  ,iy-1) == FDR__SOUTH) )then
       write(un,"(1x,i10,2(1x,i4))") bsn(ix,iy), ix, iy
     endif
   endif
@@ -483,11 +483,11 @@ subroutine getBasinInTile(tx, ty)
   ix = 1
   do iy = 2, MY-1
     if( upg(ix,iy) > 1 )then
-      if( .not. (fdr(ix  ,iy-1) == FDR_SOUTH     .or. &
-                 fdr(ix  ,iy+1) == FDR_NORTH     .or. &
-                 fdr(ix+1,iy-1) == FDR_SOUTHWEST .or. &
-                 fdr(ix+1,iy  ) == FDR_WEST      .or. &
-                 fdr(ix+1,iy+1) == FDR_NORTHWEST) )then
+      if( .not. (fdr(ix  ,iy-1) == FDR__SOUTH     .or. &
+                 fdr(ix  ,iy+1) == FDR__NORTH     .or. &
+                 fdr(ix+1,iy-1) == FDR__SOUTHWEST .or. &
+                 fdr(ix+1,iy  ) == FDR__WEST      .or. &
+                 fdr(ix+1,iy+1) == FDR__NORTHWEST) )then
         write(un,"(1x,i10,2(1x,i4))") bsn(ix,iy), ix, iy
       endif
     endif
@@ -496,11 +496,11 @@ subroutine getBasinInTile(tx, ty)
   ix = MX
   do iy = 2, MY-1
     if( upg(ix,iy) > 1 )then
-      if( .not. (fdr(ix  ,iy-1) == FDR_SOUTH     .or. &
-                 fdr(ix  ,iy+1) == FDR_NORTH     .or. &
-                 fdr(ix-1,iy-1) == FDR_SOUTHEAST .or. &
-                 fdr(ix-1,iy  ) == FDR_EAST      .or. &
-                 fdr(ix-1,iy+1) == FDR_NORTHEAST ) )then
+      if( .not. (fdr(ix  ,iy-1) == FDR__SOUTH     .or. &
+                 fdr(ix  ,iy+1) == FDR__NORTH     .or. &
+                 fdr(ix-1,iy-1) == FDR__SOUTHEAST .or. &
+                 fdr(ix-1,iy  ) == FDR__EAST      .or. &
+                 fdr(ix-1,iy+1) == FDR__NORTHEAST ) )then
         write(un,"(1x,i10,2(1x,i4))") bsn(ix,iy), ix, iy
       endif
     endif
@@ -509,11 +509,11 @@ subroutine getBasinInTile(tx, ty)
   iy = 1
   do ix = 2, MX-1
     if( upg(ix,iy) > 1 )then
-      if( .not. (fdr(ix-1,iy  ) == FDR_EAST      .or. &
-                 fdr(ix+1,iy  ) == FDR_WEST      .or. &
-                 fdr(ix-1,iy+1) == FDR_NORTHEAST .or. &
-                 fdr(ix  ,iy+1) == FDR_NORTH     .or. &
-                 fdr(ix+1,iy+1) == FDR_NORTHWEST) )then
+      if( .not. (fdr(ix-1,iy  ) == FDR__EAST      .or. &
+                 fdr(ix+1,iy  ) == FDR__WEST      .or. &
+                 fdr(ix-1,iy+1) == FDR__NORTHEAST .or. &
+                 fdr(ix  ,iy+1) == FDR__NORTH     .or. &
+                 fdr(ix+1,iy+1) == FDR__NORTHWEST) )then
         write(un,"(1x,i10,2(1x,i4))") bsn(ix,iy), ix, iy
       endif
     endif
@@ -522,11 +522,11 @@ subroutine getBasinInTile(tx, ty)
   iy = MY
   do ix = 2, MX-1
     if( upg(ix,iy) > 1 )then
-      if( .not. (fdr(ix-1,iy  ) == FDR_EAST      .or. &
-                 fdr(ix+1,iy  ) == FDR_WEST      .or. &
-                 fdr(ix-1,iy-1) == FDR_SOUTHEAST .or. &
-                 fdr(ix  ,iy-1) == FDR_SOUTH     .or. &
-                 fdr(ix+1,iy-1) == FDR_SOUTHWEST) )then
+      if( .not. (fdr(ix-1,iy  ) == FDR__EAST      .or. &
+                 fdr(ix+1,iy  ) == FDR__WEST      .or. &
+                 fdr(ix-1,iy-1) == FDR__SOUTHEAST .or. &
+                 fdr(ix  ,iy-1) == FDR__SOUTH     .or. &
+                 fdr(ix+1,iy-1) == FDR__SOUTHWEST) )then
         write(un,"(1x,i10,2(1x,i4))") bsn(ix,iy), ix, iy
       endif
     endif
@@ -585,7 +585,7 @@ subroutine getUpperBasin(tx, ty)
   allocate(fdr(0:MX+1,0:MY+1))
   allocate(bsn(0:MX+1,0:MY+1))
 
-  call read_map_tile_margin(fdr, FDR_MISS, 'dir', tx, ty, info)
+  call read_map_tile_margin(fdr, FDR__MISS, 'dir', tx, ty, info)
   if( info /= 0 )then
     call logmsg('File not found for `dir`.')
     call logret(PRCNAM, MODNAM)
@@ -640,8 +640,8 @@ subroutine getUpperBasin(tx, ty)
   enddo
   do iBsn = 1, nBsn
     if( lst_bsn(iBsn)%id == 0 )then
-      call errend(msg_unexpected_condition()//&
-                  ' lst_bsn('//str(iBsn)//')%id == 0')
+      call errend(ERROR_CODE__CONDITION, &
+        'lst_bsn('//str(iBsn)//')%id == 0')
     endif
   enddo
 
@@ -695,13 +695,13 @@ subroutine getUpperBasin(tx, ty)
   do iy = 2, MY-1
     if( bsn(ix,iy) == BSN_MISS ) cycle
     upper => lst_bsn(bsnId_to_idx(bsn(ix,iy)))%upper
-    if( fdr(ix-1,iy-1) == FDR_SOUTHEAST )then
+    if( fdr(ix-1,iy-1) == FDR__SOUTHEAST )then
       call update_upper(upper, tx-1, ty, bsn(ix-1,iy-1))
     endif
-    if( fdr(ix-1,iy  ) == FDR_EAST      )then
+    if( fdr(ix-1,iy  ) == FDR__EAST      )then
       call update_upper(upper, tx-1, ty, bsn(ix-1,iy))
     endif
-    if( fdr(ix-1,iy+1) == FDR_NORTHEAST )then
+    if( fdr(ix-1,iy+1) == FDR__NORTHEAST )then
       call update_upper(upper, tx-1, ty, bsn(ix-1,iy+1))
     endif
   enddo
@@ -710,13 +710,13 @@ subroutine getUpperBasin(tx, ty)
   do iy = 2, MY-1
     if( bsn(ix,iy) == BSN_MISS ) cycle
     upper => lst_bsn(bsnId_to_idx(bsn(ix,iy)))%upper
-    if( fdr(ix+1,iy-1) == FDR_SOUTHWEST )then
+    if( fdr(ix+1,iy-1) == FDR__SOUTHWEST )then
       call update_upper(upper, tx+1, ty, bsn(ix+1,iy-1))
     endif
-    if( fdr(ix+1,iy) == FDR_WEST )then
+    if( fdr(ix+1,iy) == FDR__WEST )then
       call update_upper(upper, tx+1, ty, bsn(ix+1,iy))
     endif
-    if( fdr(ix+1,iy+1) == FDR_NORTHWEST )then
+    if( fdr(ix+1,iy+1) == FDR__NORTHWEST )then
       call update_upper(upper, tx+1, ty, bsn(ix+1,iy+1))
     endif
   enddo
@@ -725,13 +725,13 @@ subroutine getUpperBasin(tx, ty)
   do ix = 2, MX-1
     if( bsn(ix,iy) == BSN_MISS ) cycle
     upper => lst_bsn(bsnId_to_idx(bsn(ix,iy)))%upper
-    if( fdr(ix-1,iy-1) == FDR_SOUTHEAST )then
+    if( fdr(ix-1,iy-1) == FDR__SOUTHEAST )then
       call update_upper(upper, tx, ty-1, bsn(ix-1,iy-1))
     endif
-    if( fdr(ix,iy-1) == FDR_SOUTH )then
+    if( fdr(ix,iy-1) == FDR__SOUTH )then
       call update_upper(upper, tx, ty-1, bsn(ix,iy-1))
     endif
-    if( fdr(ix+1,iy-1) == FDR_SOUTHWEST )then
+    if( fdr(ix+1,iy-1) == FDR__SOUTHWEST )then
       call update_upper(upper, tx, ty-1, bsn(ix+1,iy-1))
     endif
   enddo
@@ -740,13 +740,13 @@ subroutine getUpperBasin(tx, ty)
   do ix = 2, MX-1
     if( bsn(ix,iy) == BSN_MISS ) cycle
     upper => lst_bsn(bsnId_to_idx(bsn(ix,iy)))%upper
-    if( fdr(ix-1,iy+1) == FDR_NORTHEAST )then
+    if( fdr(ix-1,iy+1) == FDR__NORTHEAST )then
       call update_upper(upper, tx, ty+1, bsn(ix-1,iy+1))
     endif
-    if( fdr(ix,iy+1) == FDR_NORTH )then
+    if( fdr(ix,iy+1) == FDR__NORTH )then
       call update_upper(upper, tx, ty+1, bsn(ix,iy+1))
     endif
-    if( fdr(ix+1,iy+1) == FDR_NORTHWEST )then
+    if( fdr(ix+1,iy+1) == FDR__NORTHWEST )then
       call update_upper(upper, tx, ty+1, bsn(ix+1,iy+1))
     endif
   enddo
@@ -755,19 +755,19 @@ subroutine getUpperBasin(tx, ty)
   iy = 1
   if( bsn(ix,iy) /= BSN_MISS )then
     upper => lst_bsn(bsnId_to_idx(bsn(ix,iy)))%upper
-    if( fdr(ix-1,iy-1) == FDR_SOUTHEAST )then
+    if( fdr(ix-1,iy-1) == FDR__SOUTHEAST )then
       call update_upper(upper, tx-1, ty-1, bsn(ix-1,iy-1))
     endif
-    if( fdr(ix-1,iy) == FDR_EAST )then
+    if( fdr(ix-1,iy) == FDR__EAST )then
       call update_upper(upper, tx-1, ty, bsn(ix-1,iy))
     endif
-    if( fdr(ix-1,iy+1) == FDR_NORTHEAST )then
+    if( fdr(ix-1,iy+1) == FDR__NORTHEAST )then
       call update_upper(upper, tx-1, ty, bsn(ix-1,iy+1))
     endif
-    if( fdr(ix,iy-1) == FDR_SOUTH )then
+    if( fdr(ix,iy-1) == FDR__SOUTH )then
       call update_upper(upper, tx, ty-1, bsn(ix,iy-1))
     endif
-    if( fdr(ix+1,iy-1) == FDR_SOUTHWEST )then
+    if( fdr(ix+1,iy-1) == FDR__SOUTHWEST )then
       call update_upper(upper, tx, ty-1, bsn(ix+1,iy-1))
     endif
   endif
@@ -776,19 +776,19 @@ subroutine getUpperBasin(tx, ty)
   iy = MY
   if( bsn(ix,iy) /= BSN_MISS )then
     upper => lst_bsn(bsnId_to_idx(bsn(ix,iy)))%upper
-    if( fdr(ix-1,iy+1) == FDR_NORTHEAST )then
+    if( fdr(ix-1,iy+1) == FDR__NORTHEAST )then
       call update_upper(upper, tx-1, ty+1, bsn(ix-1,iy+1))
     endif
-    if( fdr(ix-1,iy) == FDR_EAST )then
+    if( fdr(ix-1,iy) == FDR__EAST )then
       call update_upper(upper, tx-1, ty, bsn(ix-1,iy))
     endif
-    if( fdr(ix-1,iy-1) == FDR_SOUTHEAST )then
+    if( fdr(ix-1,iy-1) == FDR__SOUTHEAST )then
       call update_upper(upper, tx-1, ty, bsn(ix-1,iy-1))
     endif
-    if( fdr(ix,iy+1) == FDR_NORTH )then
+    if( fdr(ix,iy+1) == FDR__NORTH )then
       call update_upper(upper, tx, ty+1, bsn(ix,iy+1))
     endif
-    if( fdr(ix+1,iy+1) == FDR_NORTHWEST )then
+    if( fdr(ix+1,iy+1) == FDR__NORTHWEST )then
       call update_upper(upper, tx, ty+1, bsn(ix+1,iy+1))
     endif
   endif
@@ -797,19 +797,19 @@ subroutine getUpperBasin(tx, ty)
   iy = 1
   if( bsn(ix,iy) /= BSN_MISS )then
     upper => lst_bsn(bsnId_to_idx(bsn(ix,iy)))%upper
-    if( fdr(ix+1,iy-1) == FDR_SOUTHWEST )then
+    if( fdr(ix+1,iy-1) == FDR__SOUTHWEST )then
       call update_upper(upper, tx+1, ty-1, bsn(ix+1,iy-1))
     endif
-    if( fdr(ix+1,iy) == FDR_WEST )then
+    if( fdr(ix+1,iy) == FDR__WEST )then
       call update_upper(upper, tx+1, ty, bsn(ix+1,iy))
     endif
-    if( fdr(ix+1,iy+1) == FDR_NORTHWEST )then
+    if( fdr(ix+1,iy+1) == FDR__NORTHWEST )then
       call update_upper(upper, tx+1, ty, bsn(ix+1,iy+1))
     endif
-    if( fdr(ix,iy-1) == FDR_SOUTH )then
+    if( fdr(ix,iy-1) == FDR__SOUTH )then
       call update_upper(upper, tx, ty-1, bsn(ix,iy-1))
     endif
-    if( fdr(ix-1,iy-1) == FDR_SOUTHEAST )then
+    if( fdr(ix-1,iy-1) == FDR__SOUTHEAST )then
       call update_upper(upper, tx, ty-1, bsn(ix-1,iy-1))
     endif
   endif
@@ -818,19 +818,19 @@ subroutine getUpperBasin(tx, ty)
   iy = MY
   if( bsn(ix,iy) /= BSN_MISS )then
     upper => lst_bsn(bsnId_to_idx(bsn(ix,iy)))%upper
-    if( fdr(ix+1,iy+1) == FDR_NORTHWEST )then
+    if( fdr(ix+1,iy+1) == FDR__NORTHWEST )then
       call update_upper(upper, tx+1, ty+1, bsn(ix+1,iy+1))
     endif
-    if( fdr(ix+1,iy) == FDR_WEST )then
+    if( fdr(ix+1,iy) == FDR__WEST )then
       call update_upper(upper, tx+1, ty, bsn(ix+1,iy))
     endif
-    if( fdr(ix+1,iy-1) == FDR_SOUTHWEST )then
+    if( fdr(ix+1,iy-1) == FDR__SOUTHWEST )then
       call update_upper(upper, tx+1, ty, bsn(ix+1,iy-1))
     endif
-    if( fdr(ix,iy+1) == FDR_NORTH )then
+    if( fdr(ix,iy+1) == FDR__NORTH )then
       call update_upper(upper, tx, ty+1, bsn(ix,iy+1))
     endif
-    if( fdr(ix-1,iy+1) == FDR_NORTHEAST )then
+    if( fdr(ix-1,iy+1) == FDR__NORTHEAST )then
       call update_upper(upper, tx, ty+1, bsn(ix-1,iy+1))
     endif
   endif
@@ -1087,18 +1087,18 @@ integer function bsnId_to_idx(bsnId, bsnId0, nBsn_fix, nBsn_tmp) result(iBsn)
   selectcase( bsnId )
   case( 1: )
     if( bsnId > bsnId0+nBsn_fix )then
-      call errend(msg_unexpected_condition()//&
-                '\n  bsnId > bsnId0+nBsn_fix'//&
-                '\n  bsnId          : '//str(bsnId)//&
-                '\n  bsnId0+nBsn_fix: '//str(bsnId0+nBsn_fix))
+      call errend(ERROR_CODE__CONDITION, &
+        'bsnId > bsnId0+nBsn_fix'//&
+      '\n  bsnId          : '//str(bsnId)//&
+      '\n  bsnId0+nBsn_fix: '//str(bsnId0+nBsn_fix))
     endif
     iBsn = bsnId - bsnId0
   case( :-1 )
     if( bsnId < -nBsn_tmp )then
-      call errend(msg_unexpected_condition()//&
-                '\n  bsnId < -nBsn_tmp'//&
-                '\n  bsnId    : '//str(bsnId)//&
-                '\n  -nBsn_tmp: '//str(-nBsn_tmp))
+      call errend(ERROR_CODE__CONDITION, &
+        'bsnId < -nBsn_tmp'//&
+      '\n  bsnId    : '//str(bsnId)//&
+      '\n  -nBsn_tmp: '//str(-nBsn_tmp))
     endif
     iBsn = nBsn_fix + (-bsnId)
   case( 0 )
@@ -1209,7 +1209,7 @@ subroutine makeTiledBasinMaps(tx, ty)
   !$omp parallel do
   do iy = 1, MY
   do ix = 1, MX
-    if( fdr(ix,iy) == FDR_MISS )then
+    if( fdr(ix,iy) == FDR__MISS )then
       bsn(ix,iy) = BSN_MISS
     else
       bsn(ix,iy) = BSN_UNDEF
@@ -1232,12 +1232,11 @@ subroutine makeTiledBasinMaps(tx, ty)
     case( -1 )
       exit
     case default
-      call errend(msg_io_error(f=f_source))
+      call errend(ERROR_CODE__IO, 'Reading error: '//str(f_source))
     endselect
 
     if( bsnId == 0 )then
-      call errend(msg_unexpected_condition()//&
-                '\n  bsnId == 0')
+      call errend(ERROR_CODE__VALUE, 'bsnId == 0')
     endif
 
     if( bsnId > 0 )then
@@ -1265,15 +1264,15 @@ subroutine makeTiledBasinMaps(tx, ty)
 
   do iy = 1, MY
   do ix = 1, MX
-    if( fdr(ix,iy) == FDR_MISS )then
+    if( fdr(ix,iy) == FDR__MISS )then
       if( bsn(ix,iy) /= BSN_MISS )then
-        call errend(msg_unexpected_condition()//&
-                  '\n  bsn('//str((/ix,iy/),4,',')//') /= BSN_MISS and fdr == FDR_MISS')
+        call errend(ERROR_CODE__CONDITION, &
+          'bsn('//str((/ix,iy/),4,',')//') /= BSN_MISS and fdr == MISS')
       endif
     else
       if( bsn(ix,iy) <= 0 )then
-        call errend(msg_unexpected_condition()//&
-                  '\n  bsn('//str((/ix,iy/),4,',')//') <= 0 and fdr /= FDR_MISS')
+        call errend(ERROR_CODE__CONDITION, &
+          'bsn('//str((/ix,iy/),4,',')//') <= 0 and fdr /= MISS')
       endif
     endif
   enddo
@@ -1323,7 +1322,7 @@ subroutine checkBasins(tx, ty)
   allocate(fdr(0:MX+1,0:MY+1))
   allocate(bsn(0:MX+1,0:MY+1))
 
-  call read_map_tile_margin(fdr, FDR_MISS, 'dir', tx, ty, info)
+  call read_map_tile_margin(fdr, FDR__MISS, 'dir', tx, ty, info)
   if( info /= 0 )then
     call logmsg('No data.')
     call logret(PRCNAM, MODNAM)
@@ -1343,20 +1342,20 @@ subroutine checkBasins(tx, ty)
   iy = 1
   do iy = 1, MY
   do ix = 1, MX
-    if( fdr(ix,iy) == FDR_MISS )then
+    if( fdr(ix,iy) == FDR__MISS )then
       if( bsn(ix,iy) /= BSN_MISS )then
-        call errend(msg_unexpected_condition()//&
-                  '\n  @('//str((/ix,iy/),4,',')//') '//&
-                    'fdr == FDR_MISS and bsn /= BSN_MISS')
+        call errend(ERROR_CODE__CONDITION, &
+          'fdr == MISS and bsn /= MISS'//&
+          ' @('//str((/ix,iy/),4,',')//')')
       endif
       cycle
     endif
     call get_nextxy(ix, iy, fdr(ix,iy), xx, yy)
-    if( xx == XY_RIVERMOUTH .or. xx == XY_INLAND ) cycle
+    if( xx == XY__RIVERMOUTH .or. xx == XY__INLAND ) cycle
     if( bsn(xx,yy) /= bsn(ix,iy) )then
-      call errend(msg_unexpected_condition()//&
-                '\n  @('//str((/ix,iy/),4,',')//') '//&
-                  'Basin id mismatch')
+      call errend(ERROR_CODE__CONDITION, &
+        'Basin id mismatch '//&
+        '@('//str((/ix,iy/),4,',')//')')
     endif
   enddo  ! ix/
   enddo  ! iy/
@@ -1625,7 +1624,7 @@ subroutine makeNewBasinMaps(tx, ty)
     case( -1 )
       exit
     case default
-      call errend(msg_io_error(f=f_source))
+      call errend(ERROR_CODE__IO, 'Reading error: '//str(f_source))
     endselect
 
     iBsn = bsn(ix,iy)
@@ -1721,7 +1720,7 @@ use c2_jflw_io, only: &
     case( -1 )
       exit
     case default
-      call errend(msg_io_error(f=f_id_all))
+      call errend(ERROR_CODE__IO, 'Reading error: '//str(f_id_all))
     endselect
   enddo
   close(un)
@@ -2234,7 +2233,7 @@ subroutine makeBasinTopoMap(var, bsnId)
   !-------------------------------------------------------------
   ! Case: Int1 (dir)
   case( 'dir' )
-    missi1 = FDR_MISS
+    missi1 = FDR__MISS
 
     allocate(dati1(gxi:gxf,gyi:gyf))
     call read_basin_map_from_tile(&
@@ -2254,7 +2253,7 @@ subroutine makeBasinTopoMap(var, bsnId)
     case( 'bsn' )
       missi4 = BSN_MISS
     case default
-      call errend(msg_invalid_value('var', var))
+      call errend(ERROR_CODE__VALUE, 'var == '//str(var))
     endselect
 
     allocate(dati4(gxi:gxf,gyi:gyf))
@@ -2277,7 +2276,7 @@ subroutine makeBasinTopoMap(var, bsnId)
     case( 'wth' )
       missr4 = WTH_MISS
     case default
-      call errend(msg_invalid_value('var', var))
+      call errend(ERROR_CODE__VALUE, 'var == '//str(var))
     endselect
 
     allocate(datr4(gxi:gxf,gyi:gyf))
@@ -2292,7 +2291,7 @@ subroutine makeBasinTopoMap(var, bsnId)
   !-------------------------------------------------------------
   ! Case: ERROR
   case default
-    call errend(msg_invalid_value('var', var))
+    call errend(ERROR_CODE__VALUE, 'var == '//str(var))
   endselect
 
   deallocate(bsn)

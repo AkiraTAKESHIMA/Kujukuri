@@ -104,14 +104,15 @@ integer(4) function assert_initialized(now, expected) result(info)
   ! Case: $now is True and $expected is False
   if( now .and. .not. expected )then
     info = 1
-    call errret('This module has already been initialized.')
+    call errret(ERROR_CODE__CONDITION, &
+      'This module has already been initialized.')
     return
   !-------------------------------------------------------------
   ! Case: $now is False and $expected is True
   elseif( .not. now .and. expected )then
     info = 1
-    call errret('This module has not yet been initialized or '//&
-                'already been finalized.')
+    call errret(ERROR_CODE__CONDITION, &
+      'This module has not yet been initialized or already been finalized.')
     return
   endif
   !-------------------------------------------------------------

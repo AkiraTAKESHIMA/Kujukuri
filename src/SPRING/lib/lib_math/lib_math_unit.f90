@@ -67,9 +67,8 @@ integer(4) function conv_unit_self_dble_1d(d, uin, uout) result(info)
 
   if( .not. is_ok )then
     info = 1
-    call errret(msg_invalid_value()//&
-              '\n  $uin : '//str(uin)//&
-              '\n  $uout: '//str(uout))
+    call errret(ERROR_CODE__VALUE, &
+      'uin : '//str(uin)//', uout: '//str(uout))
     return
   endif
   !-------------------------------------------------------------
@@ -121,9 +120,8 @@ integer(4) function conv_unit_self_dble_2d(d, uin, uout) result(info)
 
   if( .not. is_ok )then
     info = 1
-    call errret(msg_invalid_value()//&
-              '\n  $uin : '//str(uin)//&
-              '\n  $uout: '//str(uout))
+    call errret(ERROR_CODE__VALUE, &
+      'uin : '//str(uin)//', uout: '//str(uout))
     return
   endif
   !-------------------------------------------------------------

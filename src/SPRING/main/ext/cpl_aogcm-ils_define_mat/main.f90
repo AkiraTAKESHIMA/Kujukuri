@@ -16,7 +16,7 @@ program main
   type(rm_)     :: rm
   type(lsm_)    :: lsm
 
-  call logbgn('program main', '', '+tr')
+  call logbgn('', 'program main', '+tr')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
@@ -28,5 +28,5 @@ program main
 
   call finalize()
   !-------------------------------------------------------------
-  call logret('program main', '')
+  call logret('', 'program main')
 end program main

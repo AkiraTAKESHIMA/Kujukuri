@@ -81,19 +81,19 @@ function region_idx2str(i) result(res)
 
   selectcase( i )
   case( 0 )
-    res = trim(REGION_ALL)
+    res = trim(REGION__ALL)
   case( 1 )
-    res = trim(REGION_HOKKAIDO)
+    res = trim(REGION__HOKKAIDO)
   case( 2 )
-    res = trim(REGION_HONSHU)
+    res = trim(REGION__HONSHU)
   case( 3 )
-    res = trim(REGION_SHIKOKU)
+    res = trim(REGION__SHIKOKU)
   case( 4 )
-    res = trim(REGION_KYUSHU)
+    res = trim(REGION__KYUSHU)
   case( 5 )
-    res = trim(REGION_OKINAWA)
+    res = trim(REGION__OKINAWA)
   case default
-    call errend(msg_invalid_value('i', i))
+    call errend(ERROR_CODE__VALUE, 'i == '//str(i))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -111,20 +111,20 @@ integer function region_str2idx(s) result(res)
   !
   !-------------------------------------------------------------
   selectcase( s )
-  case( REGION_ALL )
+  case( REGION__ALL )
     res = 0
-  case( REGION_HOKKAIDO )
+  case( REGION__HOKKAIDO )
     res = 1
-  case( REGION_HONSHU )
+  case( REGION__HONSHU )
     res = 2
-  case( REGION_SHIKOKU )
+  case( REGION__SHIKOKU )
     res = 3
-  case( REGION_KYUSHU )
+  case( REGION__KYUSHU )
     res = 4
-  case( REGION_OKINAWA )
+  case( REGION__OKINAWA )
     res = 5
   case default
-    call errend(msg_invalid_value('s', s))
+    call errend(ERROR_CODE__VALUE, 's == '//str(s))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -152,7 +152,7 @@ subroutine read_strrank_all(wsCode, shp)
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
-  f_str = joined(DIR_STR, trim(wsCode)//'/Stream.shp')
+  f_str = joined(DIR_PRD, 'StrRank/'//trim(wsCode)//'/Stream.shp')
   call logmsg('Reading '//str(f_str))
   call traperr( shp_open(f_str) )
   call traperr( shp_get_all(shp) )
@@ -239,7 +239,7 @@ subroutine read_network(f, nwk)
   !
   !-------------------------------------------------------------
   if( .not. allocated(nwk%id) )then
-    call errend('ID of the network is undefined.')
+    call errend(ERROR_CODE__CONDITION, 'ID of the network is undefined.')
   endif
 
   open(newunit=un, file=f, form='unformatted', access='sequential', status='old')
@@ -482,14 +482,14 @@ character(CLEN_PATH) function get_f_stream_shp(region) result(f)
   call logbgn(PRCNAM, MODNAM, '-p')
   !-------------------------------------------------------------
   selectcase( region )
-  case( REGION_HOKKAIDO, &
-        REGION_HONSHU  , &
-        REGION_SHIKOKU , &
-        REGION_KYUSHU  , &
-        REGION_OKINAWA )
+  case( REGION__HOKKAIDO, &
+        REGION__HONSHU  , &
+        REGION__SHIKOKU , &
+        REGION__KYUSHU  , &
+        REGION__OKINAWA )
     f = joined(DIR_ORG, str(region)//'/StrRank-'//str(region)//'_Stream.shp')
   case default
-    call errend(msg_invalid_value('region', region))
+    call errend(ERROR_CODE__VALUE, 'region == '//str(region))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -505,14 +505,14 @@ character(CLEN_PATH) function get_f_stream_dbf(region) result(f)
   call logbgn(PRCNAM, MODNAM, '-p')
   !-------------------------------------------------------------
   selectcase( region )
-  case( REGION_HOKKAIDO, &
-        REGION_HONSHU  , &
-        REGION_SHIKOKU , &
-        REGION_KYUSHU  , &
-        REGION_OKINAWA )
+  case( REGION__HOKKAIDO, &
+        REGION__HONSHU  , &
+        REGION__SHIKOKU , &
+        REGION__KYUSHU  , &
+        REGION__OKINAWA )
     f = joined(DIR_ORG, str(region)//'/StrRank-'//str(region)//'_Stream.dbf')
   case default
-    call errend(msg_invalid_value('region', region))
+    call errend(ERROR_CODE__VALUE, 'region == '//str(region))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -528,14 +528,14 @@ character(CLEN_PATH) function get_f_rivernode_shp(region) result(f)
   call logbgn(PRCNAM, MODNAM, '-p')
   !-------------------------------------------------------------
   selectcase( region )
-  case( REGION_HOKKAIDO, &
-        REGION_HONSHU  , &
-        REGION_SHIKOKU , &
-        REGION_KYUSHU  , &
-        REGION_OKINAWA )
+  case( REGION__HOKKAIDO, &
+        REGION__HONSHU  , &
+        REGION__SHIKOKU , &
+        REGION__KYUSHU  , &
+        REGION__OKINAWA )
     f = joined(DIR_ORG, str(region)//'/StrRank-'//str(region)//'_RiverNode.shp')
   case default
-    call errend(msg_invalid_value('region', region))
+    call errend(ERROR_CODE__VALUE, 'region == '//str(region))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -551,14 +551,14 @@ character(CLEN_PATH) function get_f_rivernode_dbf(region) result(f)
   call logbgn(PRCNAM, MODNAM, '-p')
   !-------------------------------------------------------------
   selectcase( region )
-  case( REGION_HOKKAIDO, &
-        REGION_HONSHU  , &
-        REGION_SHIKOKU , &
-        REGION_KYUSHU  , &
-        REGION_OKINAWA )
+  case( REGION__HOKKAIDO, &
+        REGION__HONSHU  , &
+        REGION__SHIKOKU , &
+        REGION__KYUSHU  , &
+        REGION__OKINAWA )
     f = joined(DIR_ORG, str(region)//'/StrRank-'//str(region)//'_RiverNode.dbf')
   case default
-    call errend(msg_invalid_value('region', region))
+    call errend(ERROR_CODE__VALUE, 'region == '//str(region))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -635,7 +635,7 @@ character(CLEN_PATH) function get_f_tmp_network_channel(id, typ) result(f)
   case( 'sbin', 'json' )
     f = joined(DIR_PRD, 'tmp_network_channel/'//str(typ)//'/'//str(id)//'.'//str(typ))
   case default
-    call errend(msg_invalid_value('typ', typ))
+    call errend(ERROR_CODE__VALUE, 'typ == '//str(typ))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -685,7 +685,7 @@ character(CLEN_PATH) function get_f_network_channel(id, typ) result(f)
   case( 'sbin', 'json' )
     f = joined(DIR_PRD, 'network_channel/'//str(typ)//'/'//str(id)//'.'//str(typ))
   case default
-    call errend(msg_invalid_value('typ', typ))
+    call errend(ERROR_CODE__VALUE, 'typ == '//str(typ))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -727,7 +727,7 @@ character(CLEN_PATH) function get_f_network_mesh(&
   case( 'domain' )
     ext = 'txt'
   case default
-    call errend(msg_invalid_value('var', var))
+    call errend(ERROR_CODE__VALUE, 'var == '//str(var))
   endselect
 
   f = joined(DIR_PRD, 'network_mesh/'//str(resl)//'/'//str(var)//'/'//str(id)//'.'//str(ext))
@@ -839,16 +839,16 @@ character(CLEN_PATH) function get_f_isct_wsys(region) result(f)
   call logbgn(PRCNAM, MODNAM, '-p')
   !-------------------------------------------------------------
   selectcase( region )
-  case( REGION_HOKKAIDO, &
-        REGION_HONSHU  , &
-        REGION_SHIKOKU , &
-        REGION_KYUSHU  , &
-        REGION_OKINAWA , &
-        REGION_ALL     )
+  case( REGION__HOKKAIDO, &
+        REGION__HONSHU  , &
+        REGION__SHIKOKU , &
+        REGION__KYUSHU  , &
+        REGION__OKINAWA , &
+        REGION__ALL     )
     f = joined(DIR_PRD, 'isct_wsys/'//str(region)//'.txt')
     call traperr( mkdir(dirname(f)) )
   case default
-    call errend(msg_invalid_value('region', region))
+    call errend(ERROR_CODE__VALUE, 'region == '//str(region))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -864,16 +864,16 @@ character(CLEN_PATH) function get_f_incons_isct_wsys(region) result(f)
   call logbgn(PRCNAM, MODNAM, '-p')
   !-------------------------------------------------------------
   selectcase( region )
-  case( REGION_HOKKAIDO, &
-        REGION_HONSHU  , &
-        REGION_SHIKOKU , &
-        REGION_KYUSHU  , &
-        REGION_OKINAWA , &
-        REGION_ALL     )
+  case( REGION__HOKKAIDO, &
+        REGION__HONSHU  , &
+        REGION__SHIKOKU , &
+        REGION__KYUSHU  , &
+        REGION__OKINAWA , &
+        REGION__ALL     )
     f = joined(DIR_PRD, 'incons_isct_wsys/'//str(region)//'.txt')
     call traperr( mkdir(dirname(f)) )
   case default
-    call errend(msg_invalid_value('region', region))
+    call errend(ERROR_CODE__VALUE, 'region == '//str(region))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)

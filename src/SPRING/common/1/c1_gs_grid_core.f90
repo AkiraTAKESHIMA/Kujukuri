@@ -528,7 +528,7 @@ integer(4) function make_idxmap__latlon(&
               '\nidx min: '//str(al%idxmin)//&
                   ', max: '//str(al%idxmax))
   else
-    call logwrn('No valid index was found.')
+    call logwrn(ERROR_CODE__CONDITION, 'No valid index was found.')
   endif
 
   if( al%debug )then
@@ -773,7 +773,7 @@ integer(4) function make_grduwa__latlon(al) result(info)
                                       earth%e2)
   case default
     info = 1
-    call errret(msg_invalid_value('earth%shptyp', earth%shptyp))
+    call errret(ERROR_CODE__VALUE, 'earth%shptyp == '//str(earth%shptyp))
     return
   endselect
   !-------------------------------------------------------------
@@ -1005,13 +1005,11 @@ integer(4) function make_grdwgt__latlon(al) result(info)
         g%wgt(ij) = al%wgt_miss
       elseif( g%uwa(ij) == al%uwa_miss )then
         info = 1
-        call errret(msg_unexpected_condition()//&
-                  '\n  g%uwa(ij) == al%uwa_miss')
+        call errret(ERROR_CODE__CONDITION, 'g%uwa(ij) == al%uwa_miss')
         return
       elseif( g%uwa(ij) <= 0.d0 )then
         info = 1
-        call errret(msg_unexpected_condition()//&
-                  '\n  g%uwa(ij) <= 0')
+        call errret(ERROR_CODE__CONDITION, 'g%uwa(ij) <= 0')
         return
       else
         g%wgt(ij) = g%ara(ij) / g%uwa(ij)
@@ -1128,8 +1126,9 @@ integer(4) function make_grdxyz__latlon(al) result(info)
         r = sqrt(g%x(ij)**2 + g%y(ij)**2 + g%z(ij)**2)
         if( abs(r-earth%r)/earth%r > THRESH_EARTH_R_ERROR )then
           info = 1
-          call errret("Earth's diameter calculated from the input cartesian coordinate"//&
-                      ' differs from the true value.')
+          call errret(ERROR_CODE__CONDITION, &
+            "Earth's diameter calculated from the input cartesian coordinate"//&
+            " differs from the true value.")
           return
         endif
       else
@@ -1200,10 +1199,10 @@ integer(4) function make_grdxyz__latlon(al) result(info)
 
         if( g%x(ij) == 0.d0 .and. g%y(ij) == 0.d0 .and. g%z(ij) == 0.d0 )then
           info = 1
-          call errret(msg_unexpected_condition()//&
-                    '\n  (x,y,z) == (0,0,0)'//&
-                    '\n  ij: '//str(ij)//&
-                    '\n  idx: '//str(g%idx(ij)))
+          call errret(ERROR_CODE__CONDITION, &
+            '(x,y,z) == (0,0,0)'//&
+          '\n  ij: '//str(ij)//&
+          '\n  idx: '//str(g%idx(ij)))
           return
         endif
 
@@ -1313,13 +1312,15 @@ integer(4) function make_grdlonlat__latlon(al) result(info)
         if( g%msk(ij) )then
           if( g%lon(ij) < -180.d0 .or. g%lon(ij) > 360.d0 )then
             info = 1
-            call errret(msg_invalid_value('g%lon('//str(ij)//')', g%lon(ij))//&
-                      '\n Longitude is out of range.')
+            call errret(ERROR_CODE__VALUE, &
+              'g%lon('//str(ij)//') == '//str(g%lon(ij))//&
+            '\nLongitude is out of range.')
             return
           elseif( g%lat(ij) < -90.d0 .or. g%lat(ij) > 90.d0 )then
             info = 1
-            call errret(msg_invalid_value('g%lat('//str(ij)//')', g%lat(ij))//&
-                      '\n Latitude is out of range.')
+            call errret(ERROR_CODE__VALUE, &
+              'g%lat('//str(ij)//') == '//str(g%lat(ij))//&
+            '\nLatitude is out of range.')
             return
           endif
         else
@@ -1332,13 +1333,15 @@ integer(4) function make_grdlonlat__latlon(al) result(info)
         if( g%msk(ij) )then
           if( g%lon(ij) < -rad_180deg .or. g%lon(ij) > rad_360deg )then
             info = 1
-            call errret(msg_invalid_value('g%lon('//str(ij)//')', g%lon(ij))//&
-                      '\n Longitude is out of range.')
+            call errret(ERROR_CODE__VALUE, &
+              'g%lon('//str(ij)//') == '//str(g%lon(ij))//&
+            '\nLongitude is out of range.')
             return
           elseif( g%lat(ij) < -90.d0 .or. g%lat(ij) > 90.d0 )then
             info = 1
-            call errret(msg_invalid_value('g%lat('//str(ij)//')', g%lat(ij))//&
-                      '\n Latitude is out of range.')
+            call errret(ERROR_CODE__VALUE, &
+              'g%lat('//str(ij)//') == '//str(g%lat(ij))//&
+            '\nLatitude is out of range.')
             return
           endif
         else
@@ -1348,7 +1351,7 @@ integer(4) function make_grdlonlat__latlon(al) result(info)
       enddo
     case default
       info = 1
-      call errret(msg_invalid_value('fg_in%unit_lonlat', fg_in%unit_lonlat))
+      call errret(ERROR_CODE__VALUE, 'fg_in%unit_lonlat == '//str(fg_in%unit_lonlat))
       return
     endselect
 
@@ -1577,7 +1580,7 @@ integer(4) function make_idxmap__raster(&
               '\nidx min: '//str(ar%idxmin)//&
                   ', max: '//str(ar%idxmax))
   else
-    call logwrn('No valid index was found.')
+    call logwrn(ERROR_CODE__CONDITION, 'No valid index was found.')
   endif
 
   if( .not. ar%is_valid )then
@@ -1691,8 +1694,7 @@ integer(4) function make_wgtmap__raster(ar) result(info)
           ij = find_index(arz%idxmap(ih,iv), idx_prev, ij_prev, g%idx, g%idxarg, .false.)
           if( g%uwa(ij) <= 0.d0 .or. g%ara(ij) <= 0.d0 )then
             info = 1
-            call errret(msg_unexpected_condition()//&
-                      '\n  g%uwa(ij) <= 0 .or. g%ara(ij) <= 0.d0')
+            call errret(ERROR_CODE__CONDITION, 'uwa <= 0 or ara <= 0')
             return
           endif
           arz%wgtmap(ih,iv) = g%ara(ij) / g%uwa(ij)
@@ -1760,7 +1762,7 @@ integer(4) function make_wgtmap__raster(ar) result(info)
                         * ar%lonwidth(1)
     case default
       info = 1
-      call errret(msg_invalid_value('earth%shptyp', earth%shptyp))
+      call errret(ERROR_CODE__VALUE, 'earth%shptyp == '//str(earth%shptyp))
       return
     endselect
 
@@ -1787,11 +1789,11 @@ integer(4) function make_wgtmap__raster(ar) result(info)
           if( arz%mskmap(ih,iv) )then
             if( arz%wgtmap(ih,iv) < 0.d0 )then
               info = 1
-              call errret(msg_unexpected_condition()//&
-                        '\n  Negative value was found in aramap.'//&
-                        '\n  (ih, iv): ('//str((/ih,iv/),', ')//')'//&
-                        '\n  ara: '//str(arz%wgtmap(ih,iv))//&
-                        '\n  idx: '//str(arz%idxmap(ih,iv)))
+              call errret(ERROR_CODE__VALUE, &
+                'Negative value was found in areas.'//&
+              '\n  (ih, iv): ('//str((/ih,iv/),', ')//')'//&
+              '\n  ara: '//str(arz%wgtmap(ih,iv))//&
+              '\n  idx: '//str(arz%idxmap(ih,iv)))
               return
             endif
             arz%wgtmap(ih,iv) = arz%wgtmap(ih,iv) / rstuwa_col(iv)
@@ -1831,11 +1833,11 @@ integer(4) function make_wgtmap__raster(ar) result(info)
           if( arz%mskmap(ih,iv) )then
             if( arz%wgtmap(ih,iv) < 0.d0 )then
               info = 1
-              call errret(msg_unexpected_condition()//&
-                        '\n  Negative value was found in wgtmap.'//&
-                        '\n  (ih, iv): ('//str((/ih,iv/),', ')//')'//&
-                        '\n  wgt: '//str(arz%wgtmap(ih,iv))//&
-                        '\n  idx: '//str(arz%idxmap(ih,iv)))
+              call errret(ERROR_CODE__VALUE, &
+                'Negative value was found in weights.'//&
+              '\n  (ih, iv): ('//str((/ih,iv/),', ')//')'//&
+              '\n  wgt: '//str(arz%wgtmap(ih,iv))//&
+              '\n  idx: '//str(arz%idxmap(ih,iv)))
               return
             endif
           else
@@ -1939,27 +1941,27 @@ integer(4) function make_grdidx__raster(ar) result(info)
       if( ar%is_valid )then
         if( stat /= 0 )then
           info = 1
-          call errret(msg_unexpected_condition()//&
-                    '\nNo valid index found in the given set of indices.')
+          call errret(ERROR_CODE__CONDITION, &
+            'No valid index found in the given set of indices.')
           return
         elseif( g%idxmin /= ar%idxmin .or. g%idxmax /= ar%idxmax )then
           info = 1
           dgt_idx = dgt((/g%idxmin,g%idxmax,ar%idxmin,ar%idxmax/),DGT_OPT_MAX)
-          call errret(msg_unexpected_condition()//&
-                    '\nThe ranges of the given set of indices and the one '//&
-                      'generated from the raster map does not match.'//&
-                    '\n  Given as "grdidx"   : '//str((/g%idxmin,g%idxmax/),dgt_idx,' - ')//&
-                    '\n  Made from raster map: '//str((/ar%idxmin,ar%idxmax/),dgt_idx,' - '))
+          call errret(ERROR_CODE__CONDITION, &
+            'The ranges of the given set of indices and the one '//&
+            'generated from the raster map does not match.'//&
+          '\n  Given as "grdidx"   : '//str((/g%idxmin,g%idxmax/),dgt_idx,' - ')//&
+          '\n  Made from raster map: '//str((/ar%idxmin,ar%idxmax/),dgt_idx,' - '))
           return
         endif
       else
         if( stat == 0 )then
           info = 1
-          call errret(msg_unexpected_condition()//&
-                    '\nThe ranges of the given set of indices and the one '//&
-                      'generated from the raster map does not match.'//&
-                    '\n  Given as "grdidx"   : '//str((/g%idxmin,g%idxmax/),' - ')//&
-                    '\n  Made from raster map: (no valid index)')
+          call errret(ERROR_CODE__CONDITION, &
+            'The ranges of the given set of indices and the one '//&
+            'generated from the raster map does not match.'//&
+          '\n  Given as "grdidx"   : '//str((/g%idxmin,g%idxmax/),' - ')//&
+          '\n  Made from raster map: (no valid index)')
           return
         endif
       endif
@@ -1979,11 +1981,11 @@ integer(4) function make_grdidx__raster(ar) result(info)
             ij = find_index(arz%idxmap(ih,iv), idx_prev, ij_prev, g%idx, g%idxarg, .true.)
             if( ij == 0_8 )then
               info = 1
-              call errret(msg_unexpected_condition()//&
-                        '\nThe given set of grid indices and the one made from '//&
-                          'raster index map do not match.'//&
-                        '\nIndex '//str(g%idx(ij))//', that is in the given set, '//&
-                          'was not found in the raster map.')
+              call errret(ERROR_CODE__CONDITION, &
+                'The given set of grid indices and the one made from '//&
+                'raster index map do not match.'//&
+              '\nIndex '//str(g%idx(ij))//', that is in the given set, '//&
+                'was not found in the raster map.')
               return
             endif
             is_valid(arz%idxmap(ih,iv)) = .true.
@@ -1998,11 +2000,11 @@ integer(4) function make_grdidx__raster(ar) result(info)
         if( g%idx(ij) == ar%idx_miss ) cycle
         if( .not. is_valid(g%idx(ij)) )then
           info = 1
-          call errret(msg_unexpected_condition()//&
-                    '\nThe set of grid indices given as "grdidx" and the one '//&
-                      'made from raster index map do not match.'//&
-                    '\nIndex '//str(g%idx(ij))//', that is in the given set, '//&
-                      'was not found in the raster map.')
+          call errret(ERROR_CODE__CONDITION, &
+            'The set of grid indices given as "grdidx" and the one '//&
+            'made from raster index map do not match.'//&
+          '\nIndex '//str(g%idx(ij))//', that is in the given set, '//&
+            'was not found in the raster map.')
           return
         endif
       enddo  ! ij/
@@ -2028,19 +2030,19 @@ integer(4) function make_grdidx__raster(ar) result(info)
       if( ar%is_valid )then
         if( stat /= 0 )then
           info = 1
-          call errret(msg_unexpected_condition()//&
-                    '\nThe range of indices made from raster map '//&
-                      'is not in the range of the one given as "grdidx".'//&
-                    '\n  Made from raster map: '//str((/ar%idxmin,ar%idxmax/),' - ')//&
-                    '\n  Given as "grdidx"   : (no valid index)')
+          call errret(ERROR_CODE__CONDITION, &
+            'The range of indices made from raster map '//&
+            'is not in the range of the one given as "grdidx".'//&
+          '\n  Made from raster map: '//str((/ar%idxmin,ar%idxmax/),' - ')//&
+          '\n  Given as "grdidx"   : (no valid index)')
           return
         elseif( ar%idxmin < g%idxmin .or. g%idxmax < ar%idxmax )then
           info = 1
-          call errret(msg_unexpected_condition()//&
-                    '\nThe range of indices made from raster map '//&
-                      'is not in the range of the one given as "grdidx".'//&
-                    '\n  Made from raster map: '//str((/ar%idxmin,ar%idxmax/),' - ')//&
-                    '\n  Given as "grdidx"   : '//str((/g%idxmin,g%idxmax/),' - '))
+          call errret(ERROR_CODE__CONDITION, &
+            'The range of indices made from raster map '//&
+            'is not in the range of the one given as "grdidx".'//&
+          '\n  Made from raster map: '//str((/ar%idxmin,ar%idxmax/),' - ')//&
+          '\n  Given as "grdidx"   : '//str((/g%idxmin,g%idxmax/),' - '))
           return
         endif
       endif
@@ -2060,11 +2062,11 @@ integer(4) function make_grdidx__raster(ar) result(info)
             ij = find_index(arz%idxmap(ih,iv), idx_prev, ij_prev, g%idx, g%idxarg, .true.)
             if( ij == 0_8 )then
               info = 1
-              call errret(msg_unexpected_condition()//&
-                        '\nThe set of grid indices made from raster index map '//&
-                          'is not an element of the one given as "grdidx".'//&
-                        '\nIndex '//str(arz%idxmap(ih,iv))//', that is in the raster map, '//&
-                          'was not found in the given set.')
+              call errret(ERROR_CODE__CONDITION, &
+                'The set of grid indices made from raster index map '//&
+                'is not an element of the one given as "grdidx".'//&
+              '\nIndex '//str(arz%idxmap(ih,iv))//', that is in the raster map, '//&
+                'was not found in the given set.')
               return
             endif
 !            is_valid(arz%idxmap(ih,iv)) = .true.
@@ -2102,21 +2104,21 @@ integer(4) function make_grdidx__raster(ar) result(info)
           continue
         elseif( g%idxmin < ar%idxmin .or. ar%idxmax < g%idxmax )then
           info = 1
-          call errret(msg_unexpected_condition()//&
-                    '\nThe range of indices given as "grdidx" '//&
-                      'is not in the range of the one made from raster map.'//&
-                    '\n  Given as "grdidx"   : '//str((/g%idxmin,g%idxmax/),' - ')//&
-                    '\n  Made from raster map: '//str((/ar%idxmin,ar%idxmax/),' - '))
+          call errret(ERROR_CODE__CONDITION, &
+            'The range of indices given as "grdidx" '//&
+            'is not in the range of the one made from raster map.'//&
+          '\n  Given as "grdidx"   : '//str((/g%idxmin,g%idxmax/),' - ')//&
+          '\n  Made from raster map: '//str((/ar%idxmin,ar%idxmax/),' - '))
           return
         endif
       else
         if( stat == 0 )then
           info = 1
-          call errret(msg_unexpected_condition()//&
-                    '\nThe range of indices given as "grdidx" '//&
-                      'is not in the range of the one made from raster map.'//&
-                    '\n  Given as "grdidx"   : '//str((/g%idxmin,g%idxmax/),' - ')//&
-                    '\n  Made from raster map: (no valid index)')
+          call errret(ERROR_CODE__CONDITION, &
+            'The range of indices given as "grdidx" '//&
+            'is not in the range of the one made from raster map.'//&
+          '\n  Given as "grdidx"   : '//str((/g%idxmin,g%idxmax/),' - ')//&
+          '\n  Made from raster map: (no valid index)')
           return
         endif
       endif
@@ -2147,11 +2149,11 @@ integer(4) function make_grdidx__raster(ar) result(info)
         if( g%idx(ij) == ar%idx_miss ) cycle
         if( .not. is_valid(g%idx(ij)) )then
           info = 1
-          call errret(msg_unexpected_condition()//&
-                    '\nThe set of grid indices given as "grdidx" '//&
-                      'is not an element of the one made from raster index map.'//&
-                    '\nIndex '//str(g%idx(ij))//', that is in the given set, '//&
-                      'was not found in the raster map.')
+          call errret(ERROR_CODE__CONDITION, &
+            'The set of grid indices given as "grdidx" '//&
+            'is not an element of the one made from raster index map.'//&
+          '\nIndex '//str(g%idx(ij))//', that is in the given set, '//&
+            'was not found in the raster map.')
           return
         endif
       enddo
@@ -2175,14 +2177,13 @@ integer(4) function make_grdidx__raster(ar) result(info)
     ! Case: ERROR (undef)
     case( IDX_CONDITION__UNDEF )
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\n  ar%idx_condition: '//str(ar%idx_condition))
+      call errret(ERROR_CODE__VALUE, 'ar%idx_condition == '//str(ar%idx_condition))
       return
     !-----------------------------------------------------------
     ! Case: ERROR
     case default
       info = 1
-      call errret(msg_invalid_value('ar%idx_condition', ar%idx_condition))
+      call errret(ERROR_CODE__VALUE, 'ar%idx_condition == '//str(ar%idx_condition))
       return
     endselect
     !-----------------------------------------------------------
@@ -2334,7 +2335,7 @@ integer(4) function make_grduwa__raster(ar) result(info)
                       * ar%lonwidth(ar%hi)
   case default
     info = 1
-    call errret(msg_invalid_value('earth%shptyp', earth%shptyp))
+    call errret(ERROR_CODE__VALUE, 'earth%shptyp == '//str(earth%shptyp))
     return
   endselect
   !-----------------------------------------------------------
@@ -2360,11 +2361,10 @@ integer(4) function make_grduwa__raster(ar) result(info)
       if( g%msk(ij) )then
         if( g%uwa(ij) <= 0.d0 )then
           info = 1
-          call errret(msg_unexpected_condition()//&
-                    '\n  g%uwa(ij) <= 0.0'//&
-                    '\n  ij: '//str(ij)//&
-                    '\n  idx: '//str(g%idx(ij))//&
-                    '\n  uwa: '//str(g%uwa(ij)))
+          call errret(ERROR_CODE__VALUE, 'g%uwa <= 0'//&
+          '\n  ij: '//str(ij)//&
+          '\n  idx: '//str(g%idx(ij))//&
+          '\n  uwa: '//str(g%uwa(ij)))
           return
         endif
         g%uwa(ij) = g%uwa(ij) * earth%r**2
@@ -2377,11 +2377,10 @@ integer(4) function make_grduwa__raster(ar) result(info)
       if( g%msk(ij) )then
         if( g%uwa(ij) < 0.d0 )then
           info = 1
-          call errret(msg_unexpected_condition()//&
-                    '\n  g%uwa(ij) < 0.0'//&
-                    '\n  ij: '//str(ij)//&
-                    '\n  idx: '//str(g%idx(ij))//&
-                    '\n  uwa: '//str(g%uwa(ij)))
+          call errret(ERROR_CODE__VALUE, 'g%uwa < 0'//&
+          '\n  ij: '//str(ij)//&
+          '\n  idx: '//str(g%idx(ij))//&
+          '\n  uwa: '//str(g%uwa(ij)))
           return
         endif
         g%uwa(ij) = g%uwa(ij) * earth%r**2
@@ -2391,7 +2390,7 @@ integer(4) function make_grduwa__raster(ar) result(info)
     enddo
   case default
     info = 1
-    call errret(msg_invalid_value('ar%idx_condition', ar%idx_condition))
+    call errret(ERROR_CODE__VALUE, 'ar%idx_condition == '//str(ar%idx_condition))
     return
   endselect
 
@@ -2587,14 +2586,13 @@ integer(4) function make_grdara__raster(ar) result(info)
     !
     case( GRID_STATUS__TO_BE_PREPARED )
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\n  ar%status_wgtmap == GRID_STATUS__TO_BE_PREPARED')
+      call errret(ERROR_CODE__CONDITION, 'ar%status_wgtmap == GRID_STATUS__TO_BE_PREPARED')
       return
     !-----------------------------------------------------------
     !
     case default
       info = 1
-      call errret(msg_invalid_value('ar%status_wgtmap', ar%status_wgtmap))
+      call errret(ERROR_CODE__VALUE, 'ar%status_wgtmap == '//str(ar%status_wgtmap))
       return
     endselect
 
@@ -2625,11 +2623,10 @@ integer(4) function make_grdara__raster(ar) result(info)
     if( g%msk(ij) )then
       if( g%ara(ij) < 0.d0 )then
         info = 1
-        call errret(msg_unexpected_condition()//&
-                  '\n  g%ara(ij) < 0.d0'//&
-                  '\n  ij: '//str(ij)//&
-                  '\n  idx: '//str(g%idx(ij))//&
-                  '\n  ara: '//str(g%ara(ij)))
+        call errret(ERROR_CODE__VALUE, 'g%ara < 0'//&
+        '\n  ij: '//str(ij)//&
+        '\n  idx: '//str(g%idx(ij))//&
+        '\n  ara: '//str(g%ara(ij)))
         return
       endif
     else
@@ -2747,11 +2744,10 @@ integer(4) function make_grdwgt__raster(ar) result(info)
     if( g%msk(ij) )then
       if( g%wgt(ij) < 0.d0 )then
         info = 1
-        call errret(msg_unexpected_condition()//&
-                  '\n  g%ara(ij) < 0.d0'//&
-                  '\n  ij: '//str(ij)//&
-                  '\n  idx: '//str(g%idx(ij))//&
-                  '\n  wgt: '//str(g%wgt(ij)))
+        call errret(ERROR_CODE__VALUE, 'g%ara(ij) < 0'//&
+        '\n  ij: '//str(ij)//&
+        '\n  idx: '//str(g%idx(ij))//&
+        '\n  wgt: '//str(g%wgt(ij)))
         return
       endif
     else
@@ -2863,10 +2859,9 @@ integer(4) function make_grdxyz__raster(ar) result(info)
     if( g%msk(ij) )then
       if( g%x(ij) == 0.d0 .and. g%y(ij) == 0.d0 .and. g%z(ij) == 0.d0 )then
         info = 1
-        call errret(msg_unexpected_condition()//&
-                  '\n  (x,y,z) are zero.'//&
-                  '\n  ij: '//str(ij)//&
-                  '\n  idx: '//str(g%idx(ij)))
+        call errret(ERROR_CODE__VALUE, '(x,y,z) == (0,0,0)'//&
+        '\n  ij: '//str(ij)//&
+        '\n  idx: '//str(g%idx(ij)))
         return
       endif
 
@@ -3155,17 +3150,16 @@ integer(4) function make_grduwa__polygon(ap) result(info)
 
     if( area_sphere_polygon(p%lon, p%lat, p%arctyp, g%uwa(ij)) /= 0 )then
       info = 1
-      call errret('@ ij = '//str(ij))
+      call errret(msg='ij = '//str(ij))
       return
     endif
     g%uwa(ij) = g%uwa(ij) * earth%r**2
 
     if( g%uwa(ij) <= 0.d0 )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\n  g%uwa(ij) <= 0.0'//&
-                '\n  ij: '//str(ij)//&
-                '\n  uwa: '//str(g%uwa(ij)))
+      call errret(ERROR_CODE__VALUE, 'g%uwa <= 0'//&
+      '\n  ij: '//str(ij)//&
+      '\n  uwa: '//str(g%uwa(ij)))
       return
     endif
   enddo  ! ij/
@@ -3247,10 +3241,10 @@ integer(4) function make_grdara__polygon(ap) result(info)
       if( .not. g%msk(ij) ) cycle
       if( g%ara(ij) <= 0.d0 )then
         info = 1
-        call errret(msg_unexpected_condition()//&
-                  '\n  g%ara('//str(ij)//') <= 0.0'//&
-                  '\n  idx: '//str(g%idx(ij))//&
-                  '\n  ara: '//str(g%ara(ij)))
+        call errret(ERROR_CODE__VALUE, 'g%ara <= 0'//&
+        '\n  ij: '//str(ij)//&
+        '\n  idx: '//str(g%idx(ij))//&
+        '\n  ara: '//str(g%ara(ij)))
         return
       endif
     enddo
@@ -3412,11 +3406,10 @@ integer(4) function make_grdwgt__polygon(ap) result(info)
 
     if( g%wgt(ij) < 0.d0 )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\n  g%wgt(ij) < 0.d0'//&
-                '\n  ij: '//str(ij)//&
-                '\n  idx: '//str(g%idx(ij))//&
-                '\n  wgt: '//str(g%wgt(ij)))
+      call errret(ERROR_CODE__VALUE, 'g%wgt < 0'//&
+      '\n  ij: '//str(ij)//&
+      '\n  idx: '//str(g%idx(ij))//&
+      '\n  wgt: '//str(g%wgt(ij)))
       return
     endif
   enddo  ! ij/
@@ -3486,7 +3479,7 @@ integer(4) function make_grdxyz__polygon(ap) result(info)
     call logent('Case: Cartesian coordinate data were given', PRCNAM, MODNAM)
 
     info = 1
-    call errret('Not implemented.')
+    call errret(ERROR_CODE__NOIMPLEMENTATION)
     return
 
     call logext()
@@ -3496,7 +3489,7 @@ integer(4) function make_grdxyz__polygon(ap) result(info)
     call logent('Case: Spherical coordinate data were given', PRCNAM, MODNAM)
 
     info = 1
-    call errret('Not implemented.')
+    call errret(ERROR_CODE__NOIMPLEMENTATION)
     return
 
     call logext()
@@ -3591,7 +3584,7 @@ integer(4) function make_grdlonlat__polygon(ap) result(info)
     call logent('Case: Spherical coordinate data were given', PRCNAM, MODNAM)
 
     info = 1
-    call errret(msg_not_implemented())
+    call errret(ERROR_CODE__NOIMPLEMENTATION)
     return
 
     call logext()
@@ -3601,7 +3594,7 @@ integer(4) function make_grdlonlat__polygon(ap) result(info)
     call logent('Case: Cartesian coordinate data were given', PRCNAM, MODNAM)
 
     info = 1
-    call errret(msg_not_implemented())
+    call errret(ERROR_CODE__NOIMPLEMENTATION)
     return
 
     call logext()
@@ -3662,12 +3655,11 @@ integer(8) function find_index(&
   else
     call search(idx, grdidx, grdidxarg, loc)
     if( loc == 0_8 )then
-      if( allow_not_found )then
-        ij = 0_8
-      else
-        call logbgn(PRCNAM, MODNAM)
-        call errret(msg_unexpected_condition()//&
-                  '\n  Index '//str(idx)//' is not found')
+      ij = 0_8
+      if( .not. allow_not_found )then
+        call errret(ERROR_CODE__CONDITION, 'Index `'//str(idx)//'` is not found.', &
+          MODNAM, PRCNAM)
+        return
       endif
     else
       ij = grdidxarg(loc)

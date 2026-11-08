@@ -90,8 +90,9 @@ integer function intId(s) result(i)
   read(s,*,iostat=ios) i
 
   if( ios /= 0 )then
-    call errend('Failed to convert character to integer: '//str(s), &
-      '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__IO, &
+      'Failed to convert character to integer: '//str(s), &
+      MODNAM, PRCNAM)
   endif
 end function intId
 !===============================================================
@@ -103,8 +104,9 @@ character(DGT_BSNID_MAX) function strId(id) result(s)
   integer, intent(in) :: id
 
   if( dgt(id) > DGT_BSNID_MAX )then
-    call errend('Failed to convert integer to character: '//str(id), &
-      '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__IO, &
+      'Failed to convert integer to character: '//str(id), &
+      MODNAM, PRCNAM)
   endif
 
   s = str(id, -DGT_BSNID_MAX)
@@ -480,8 +482,7 @@ subroutine read_basin_map_from_tile__int1(&
     call xy_to_gxy(tx, ty, xf, yf, lgxf, lgyf)
 
     if( any(dat(lgxi:lgxf,lgyi:lgyf) /= undef) )then
-      call errend(msg_unexpected_condition()//&
-                  ' Data are overlapping.')
+      call errend(ERROR_CODE__CONDITION, 'Data are overlapping.')
     endif
 
     call traperr( rbin(&
@@ -547,8 +548,7 @@ subroutine read_basin_map_from_tile__int4(&
     call xy_to_gxy(tx, ty, xf, yf, lgxf, lgyf)
 
     if( any(dat(lgxi:lgxf,lgyi:lgyf) /= undef) )then
-      call errend(msg_unexpected_condition()//&
-                  ' Data are overlapping.')
+      call errend(ERROR_CODE__CONDITION, 'Data are overlapping.')
     endif
 
     call traperr( rbin(&
@@ -614,8 +614,7 @@ subroutine read_basin_map_from_tile__real(&
     call xy_to_gxy(tx, ty, xf, yf, lgxf, lgyf)
 
     if( any(dat(lgxi:lgxf,lgyi:lgyf) /= undef) )then
-      call errend(msg_unexpected_condition()//&
-                  ' Data are overlapping.')
+      call errend(ERROR_CODE__CONDITION, 'Data are overlapping.')
     endif
 
     call traperr( rbin(&
@@ -681,8 +680,7 @@ subroutine read_basin_map_from_tile__dble(&
     call xy_to_gxy(tx, ty, xf, yf, lgxf, lgyf)
 
     if( any(dat(lgxi:lgxf,lgyi:lgyf) /= undef) )then
-      call errend(msg_unexpected_condition()//&
-                  ' Data are overlapping.')
+      call errend(ERROR_CODE__CONDITION, 'Data are overlapping.')
     endif
 
     call traperr( rbin(&
@@ -745,7 +743,7 @@ character(CLEN_PATH) function get_f_map_tile(&
     f = joined(DIR_TILED, trim(resl)//'/Jaccard/lres.bin')
 
   case default
-    call errend(msg_invalid_value('var', var))
+    call errend(ERROR_CODE__VALUE, 'var == '//str(var))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -783,7 +781,7 @@ character(CLEN_PATH) function get_f_lst_tile(&
     f = joined(DIR_TILED, trim(resl)//'/'//trim(var)//'.txt')
 
   case default
-    call errend(msg_invalid_value('var', var))
+    call errend(ERROR_CODE__VALUE, 'var == '//str(var))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -827,8 +825,8 @@ character(CLEN_PATH) function get_f_dat_basin(&
                trim(resl)//'/'//trim(var)//'/'//trim(id)//'.txt')
 
   case default
-    call errend(msg_invalid_value('var', var), &
-                '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'var == '//str(var), &
+                MODNAM, PRCNAM)
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -860,7 +858,7 @@ character(CLEN_PATH) function get_f_lst_all(resl, var) result(res)
     res = joined(DIR_ALL, trim(resl)//'/'//trim(var)//'.txt')
 
   case default
-    call errend(msg_invalid_value('var', var))
+    call errend(ERROR_CODE__VALUE, 'var == '//str(var))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)

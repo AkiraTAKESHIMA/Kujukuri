@@ -36,7 +36,7 @@ integer function ratio_resolution(resolution) result(res)
   case( RESOLUTION_3SEC )
     res = 3
   case default
-    call errend(msg_invalid_value('resolution', resolution))
+    call errend(ERROR_CODE__VALUE, 'resolution == '//str(resolution))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -54,36 +54,35 @@ subroutine get_nextxy(x, y, fdr, xx, yy)
   character(CLEN_PROC), parameter :: PRCNAM = 'get_nextxy'
 
   selectcase( fdr )
-  case( FDR_WEST )
+  case( FDR__WEST )
     xx = x - 1
     yy = y
-  case( FDR_SOUTHWEST )
+  case( FDR__SOUTHWEST )
     xx = x - 1
     yy = y + 1
-  case( FDR_SOUTH )
+  case( FDR__SOUTH )
     xx = x
     yy = y + 1
-  case( FDR_SOUTHEAST )
+  case( FDR__SOUTHEAST )
     xx = x + 1
     yy = y + 1
-  case( FDR_EAST )
+  case( FDR__EAST )
     xx = x + 1
     yy = y
-  case( FDR_NORTHEAST )
+  case( FDR__NORTHEAST )
     xx = x + 1
     yy = y - 1
-  case( FDR_NORTH )
+  case( FDR__NORTH )
     xx = x
     yy = y - 1
-  case( FDR_NORTHWEST )
+  case( FDR__NORTHWEST )
     xx = x - 1
     yy = y - 1
-  case( FDR_RIVERMOUTH )
+  case( FDR__RIVERMOUTH )
     xx = 0
     yy = 0
   case default
-    call errend(msg_invalid_value('fdr', fdr), &
-                PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'fdr == '//str(fdr))
   endselect
 end subroutine get_nextxy
 !===============================================================
