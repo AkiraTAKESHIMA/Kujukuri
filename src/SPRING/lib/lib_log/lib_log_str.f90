@@ -1355,8 +1355,8 @@ function str_int1_1d_min_nodlm(x) result(c)
   selectcase( size(x) )
   case( :0 )
     c = ''
-    call logerr('Size of array is invalid.', &
-                '', PRCNAM, MODNAM)
+    call logerr(ERROR_CODE__ARGUMENT, 'Size of array is invalid.', &
+                MODNAM, PRCNAM)
     return
   case( 1 )
     write(c,"(i0)") x(1)
@@ -1386,8 +1386,8 @@ function str_int1_1d_min_dlm(x, dlm) result(c)
   selectcase( size(x) )
   case( :0 )
     c = ''
-    call logerr('Size of array is invalid.', &
-                '', PRCNAM, MODNAM)
+    call logerr(ERROR_CODE__ARGUMENT, 'Size of array is invalid.', &
+                MODNAM, PRCNAM)
     return
   case( 1 )
     c = str(x(1))
@@ -1418,8 +1418,8 @@ function str_int1_1d_fmt_nodlm(x, d) result(c)
   selectcase( size(x) )
   case( :0 )
     c = ''
-    call logerr('Size of array is invalid.', &
-                '', PRCNAM, MODNAM)
+    call logerr(ERROR_CODE__ARGUMENT, 'Size of array is invalid.', &
+                MODNAM, PRCNAM)
     return
   case( 1 )
     c = str(x(1), d)
@@ -1453,8 +1453,8 @@ function str_int1_1d_fmt_dlm(x, d, dlm) result(c)
   selectcase( size(x) )
   case( :0 )
     c = ''
-    call logerr('Size of array is invalid.', &
-                '', PRCNAM, MODNAM)
+    call logerr(ERROR_CODE__ARGUMENT, 'Size of array is invalid.', &
+                MODNAM, PRCNAM)
     return
   case( 1 )
     c = str(x(1), d)
@@ -1537,8 +1537,8 @@ function str_int2_1d_min_nodlm(x) result(c)
   selectcase( size(x) )
   case( :0 )
     c = ''
-    call logerr('Size of array is invalid.', &
-                '', PRCNAM, MODNAM)
+    call logerr(ERROR_CODE__ARGUMENT, 'Size of array is invalid.', &
+                MODNAM, PRCNAM)
     return
   case( 1 )
     write(c,"(i0)") x(1)
@@ -1568,8 +1568,8 @@ function str_int2_1d_min_dlm(x, dlm) result(c)
   selectcase( size(x) )
   case( :0 )
     c = ''
-    call logerr('Size of array is invalid.', &
-                '', PRCNAM, MODNAM)
+    call logerr(ERROR_CODE__ARGUMENT, 'Size of array is invalid.', &
+                MODNAM, PRCNAM)
     return
   case( 1 )
     c = str(x(1))
@@ -1600,8 +1600,8 @@ function str_int2_1d_fmt_nodlm(x, d) result(c)
   selectcase( size(x) )
   case( :0 )
     c = ''
-    call logerr('Size of array is invalid.', &
-                '', PRCNAM, MODNAM)
+    call logerr(ERROR_CODE__ARGUMENT, 'Size of array is invalid.', &
+                MODNAM, PRCNAM)
     return
   case( 1 )
     c = str(x(1), d)
@@ -1635,8 +1635,8 @@ function str_int2_1d_fmt_dlm(x, d, dlm) result(c)
   selectcase( size(x) )
   case( :0 )
     c = ''
-    call logerr('Size of array is invalid.', &
-                '', PRCNAM, MODNAM)
+    call logerr(ERROR_CODE__ARGUMENT, 'Size of array is invalid.', &
+                MODNAM, PRCNAM)
     return
   case( 1 )
     c = str(x(1), d)
@@ -1719,8 +1719,8 @@ function str_int4_1d_min_nodlm(x) result(c)
   selectcase( size(x) )
   case( :0 )
     c = ''
-    call logerr('Size of array is invalid.', &
-                '', PRCNAM, MODNAM)
+    call logerr(ERROR_CODE__ARGUMENT, 'Size of array is invalid.', &
+                MODNAM, PRCNAM)
     return
   case( 1 )
     write(c,"(i0)") x(1)
@@ -1750,8 +1750,8 @@ function str_int4_1d_min_dlm(x, dlm) result(c)
   selectcase( size(x) )
   case( :0 )
     c = ''
-    call logerr('Size of array is invalid.', &
-                '', PRCNAM, MODNAM)
+    call logerr(ERROR_CODE__ARGUMENT, 'Size of array is invalid.', &
+                MODNAM, PRCNAM)
     return
   case( 1 )
     c = str(x(1))
@@ -1782,8 +1782,8 @@ function str_int4_1d_fmt_nodlm(x, d) result(c)
   selectcase( size(x) )
   case( :0 )
     c = ''
-    call logerr('Size of array is invalid.', &
-                '', PRCNAM, MODNAM)
+    call logerr(ERROR_CODE__ARGUMENT, 'Size of array is invalid.', &
+                MODNAM, PRCNAM)
     return
   case( 1 )
     c = str(x(1), d)
@@ -1817,8 +1817,8 @@ function str_int4_1d_fmt_dlm(x, d, dlm) result(c)
   selectcase( size(x) )
   case( :0 )
     c = ''
-    call logerr('Size of array is invalid.', &
-                '', PRCNAM, MODNAM)
+    call logerr(ERROR_CODE__ARGUMENT, 'Size of array is invalid.', &
+                MODNAM, PRCNAM)
     return
   case( 1 )
     c = str(x(1), d)
@@ -1901,8 +1901,8 @@ function str_int8_1d_min_nodlm(x) result(c)
   selectcase( size(x) )
   case( :0 )
     c = ''
-    call logerr('Size of array is invalid.', &
-                '', PRCNAM, MODNAM)
+    call logerr(ERROR_CODE__ARGUMENT, 'Size of array is invalid.', &
+                MODNAM, PRCNAM)
     return
   case( 1 )
     write(c,"(i0)") x(1)
@@ -1932,8 +1932,8 @@ function str_int8_1d_min_dlm(x, dlm) result(c)
   selectcase( size(x) )
   case( :0 )
     c = ''
-    call logerr('Size of array is invalid.', &
-                '', PRCNAM, MODNAM)
+    call logerr(ERROR_CODE__ARGUMENT, 'Size of array is invalid.', &
+                MODNAM, PRCNAM)
     return
   case( 1 )
     c = str(x(1))
@@ -1964,8 +1964,8 @@ function str_int8_1d_fmt_nodlm(x, d) result(c)
   selectcase( size(x) )
   case( :0 )
     c = ''
-    call logerr('Size of array is invalid.', &
-                '', PRCNAM, MODNAM)
+    call logerr(ERROR_CODE__ARGUMENT, 'Size of array is invalid.', &
+                MODNAM, PRCNAM)
     return
   case( 1 )
     c = str(x(1), d)
@@ -1999,8 +1999,8 @@ function str_int8_1d_fmt_dlm(x, d, dlm) result(c)
   selectcase( size(x) )
   case( :0 )
     c = ''
-    call logerr('Size of array is invalid.', &
-                '', PRCNAM, MODNAM)
+    call logerr(ERROR_CODE__ARGUMENT, 'Size of array is invalid.', &
+                MODNAM, PRCNAM)
     return
   case( 1 )
     c = str(x(1), d)
@@ -2055,8 +2055,8 @@ function str_real_1d_nofmt_nodlm(x) result(c)
   selectcase( size(x) )
   case( :0 )
     c = ''
-    call logerr('Size of array is invalid.', &
-                '', PRCNAM, MODNAM)
+    call logerr(ERROR_CODE__ARGUMENT, 'Size of array is invalid.', &
+                MODNAM, PRCNAM)
     return
   case( 1 )
     c = str_real_0d_nofmt(x(1))
@@ -2081,8 +2081,8 @@ function str_real_1d_fmt_nodlm(x, fmt) result(c)
   selectcase( size(x) )
   case( :0 )
     c = ''
-    call logerr('Size of array is invalid.', &
-                '', PRCNAM, MODNAM)
+    call logerr(ERROR_CODE__ARGUMENT, 'Size of array is invalid.', &
+                MODNAM, PRCNAM)
     return
   case( 1 )
     c = str_real_0d_fmt(x(1), fmt)
@@ -2110,8 +2110,8 @@ function str_real_1d_fmt_dlm(x, fmt, dlm) result(c)
   selectcase( size(x) )
   case( 0 )
     c = ''
-    call logerr('Size of array is invalid.', &
-                '', PRCNAM, MODNAM)
+    call logerr(ERROR_CODE__ARGUMENT, 'Size of array is invalid.', &
+                MODNAM, PRCNAM)
     return
   case( 1 )
     c = str_real_0d_fmt(x(1), fmt)
@@ -2159,8 +2159,8 @@ function str_dble_1d_nofmt_nodlm(x) result(c)
   selectcase( size(x) )
   case( :0 )
     c = ''
-    call logerr('Size of array is invalid.', &
-                '', PRCNAM, MODNAM)
+    call logerr(ERROR_CODE__ARGUMENT, 'Size of array is invalid.', &
+                MODNAM, PRCNAM)
     return
   case( 1 )
     c = str_dble_0d_nofmt(x(1))
@@ -2185,8 +2185,8 @@ function str_dble_1d_fmt_nodlm(x, fmt) result(c)
   selectcase( size(x) )
   case( :0 )
     c = ''
-    call logerr('Size of array is invalid.', &
-                '', PRCNAM, MODNAM)
+    call logerr(ERROR_CODE__ARGUMENT, 'Size of array is invalid.', &
+                MODNAM, PRCNAM)
     return
   case( 1 )
     c = str_dble_0d_fmt(x(1), fmt)
@@ -2214,8 +2214,8 @@ function str_dble_1d_fmt_dlm(x, fmt, dlm) result(c)
   selectcase( size(x) )
   case( :0 )
     c = ''
-    call logerr('Size of array is invalid.', &
-                '', PRCNAM, MODNAM)
+    call logerr(ERROR_CODE__ARGUMENT, 'Size of array is invalid.', &
+                MODNAM, PRCNAM)
     return
   case( 1 )
     c = str_dble_0d_fmt(x(1), fmt)

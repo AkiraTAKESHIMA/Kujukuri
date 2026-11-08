@@ -107,9 +107,10 @@ subroutine calcWatsysAreas()
     dir_out_this = get_dir_bsnara_tile(itx, ity)
     f_grdara = joined(dir_out_this, 'area.bin')
     if( mod(filesize(f_grdara),8) /= 0 )then
-      call errend('File size is invalid.'//&
-                '\n  path: '//str(f_grdara)//&
-                '\n  size: '//str(filesize(f_grdara)))
+      call errend(ERROR_CODE__CONDITION, &
+        'File size is invalid.'//&
+      '\n  path: '//str(f_grdara)//&
+      '\n  size: '//str(filesize(f_grdara)))
     endif
     nij_this = int(filesize(f_grdara) / 8,4)
     call add(nij,nij_this)
@@ -505,16 +506,18 @@ subroutine mergeWsCodeRemappingTables()
       dir_rt = get_dir_rt_nlni2jflw_wsCode(itx, ity, jtx, jty)
       size_rt = int(filesize(str(dir_rt)//'/grid.bin'),4)
       if( mod(size_rt,8) /= 0 )then
-        call errend('Invalid file size.'//&
-                   '\n  path: '//str(str(dir_rt)//'/grid.bin')//&
-                   '\n  size: '//str(size_rt))
+        call errend(ERROR_CODE__CONDITION, &
+          'Invalid file size.'//&
+         '\n  path: '//str(str(dir_rt)//'/grid.bin')//&
+         '\n  size: '//str(size_rt))
       elseif( size_rt /= filesize(str(dir_rt)//'/area.bin') .or. &
               size_rt /= filesize(str(dir_rt)//'/coef.bin') )then
-        call errend('Sizes of the files mismatch.'//&
-                   '\n  directory: '//str(dir_rt)//&
-                   '\n  grid.bin: '//str(size_rt)//&
-                   '\n  area.bin: '//str(filesize(str(dir_rt)//'/area.bin'))//&
-                   '\n  coef.bin: '//str(filesize(str(dir_rt)//'/coef.bin')))
+        call errend(ERROR_CODE__CONDITION, &
+          'Sizes of the files mismatch.'//&
+         '\n  directory: '//str(dir_rt)//&
+         '\n  grid.bin: '//str(size_rt)//&
+         '\n  area.bin: '//str(filesize(str(dir_rt)//'/area.bin'))//&
+         '\n  coef.bin: '//str(filesize(str(dir_rt)//'/coef.bin')))
       endif
       if( size_rt == 0 ) cycle
 
@@ -796,9 +799,10 @@ subroutine calcWatsysCorresp()
 
       call search(rt_sidx(ij), bsnid_nlni, ibsn_nlni)
       if( ibsn_nlni == 0 )then
-        call errend('ibsn_nlni == 0'//&
-                  '\n  ij: '//str(ij)//&
-                  '\n  sidx: '//str(rt_sidx(ij)))
+        call errend(ERROR_CODE__CONDITION, &
+          'ibsn_nlni == 0'//&
+        '\n  ij: '//str(ij)//&
+        '\n  sidx: '//str(rt_sidx(ij)))
       endif
       Jaccard(ibsn_ovrlap) = rt_area(ij) / (bsnara(ibsn)+bsnara_nlni(ibsn_nlni)-rt_area(ij))
     enddo

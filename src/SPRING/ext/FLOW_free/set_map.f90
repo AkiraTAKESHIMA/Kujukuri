@@ -262,7 +262,7 @@ program main
         case( EARTH_SHPTYP__ELLIPS )
           nxtdst(iXX,iYY)=rgetlen_ellips(lon1,lat1,lon2,lat2)
         case default
-          call errend(msg_invalid_value('earth%shptyp', earth%shptyp))
+          call errend(ERROR_CODE__VALUE, 'earth%shptyp == '//str(earth%shptyp))
         endselect
       case( -9999 )
         nxtdst(iXX,iYY)=-9999

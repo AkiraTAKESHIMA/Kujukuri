@@ -219,7 +219,7 @@ integer(4) function define_mesh_latlon(&
 
   if( .not. associated(a) )then
     info = 1
-    call errret('No slot for grid system is left.')
+    call errret(ERROR_CODE__CONDITION, 'No slot for grid system is left.')
     return
   endif
   !-------------------------------------------------------------
@@ -231,10 +231,10 @@ integer(4) function define_mesh_latlon(&
   case( INPUTFORM__DBLE )
     if( size(lon) /= nx+1 )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\n  shape(lon): ('//str(size(lon))//')'//&
-                '\n  nx        : '//str(nx)//&
-                '\nSize of $lon must be equal to $nx+1.')
+      call errret(ERROR_CODE__CONDITION, &
+        'Size of $lon must be equal to $nx+1.'//&
+      '\n  shape(lon): ('//str(size(lon))//')'//&
+      '\n  nx        : '//str(nx))
       return
     endif
   endselect
@@ -243,10 +243,10 @@ integer(4) function define_mesh_latlon(&
   case( INPUTFORM__DBLE )
     if( size(lat) /= ny+1 )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\n  shape(lat): ('//str(size(lat))//')'//&
-                '\n  ny        : '//str(ny)//&
-                '\nSize of $lat must be equal to $ny+1.')
+      call errret(ERROR_CODE__CONDITION, &
+        'Size of $lat must be equal to $ny+1.'//&
+      '\n  shape(lat): ('//str(size(lat))//')'//&
+      '\n  ny        : '//str(ny))
       return
     endif
   endselect
@@ -299,7 +299,7 @@ integer(4) function define_mesh_latlon(&
     continue
   case default
     info = 1
-    call errret(msg_invalid_value('form_idx', form_idx))
+    call errret(ERROR_CODE__VALUE, 'form_idx == '//str(form_idx))
     return
   endselect
 
@@ -325,7 +325,7 @@ integer(4) function define_mesh_latlon(&
     fl%lon = file(path_lon, dtype_lon, endian_lon, rec_lon)
   case default
     info = 1
-    call errret(msg_invalid_value('form_lon', form_lon))
+    call errret(ERROR_CODE__VALUE, 'form_lon == '//str(form_lon))
     return
   endselect
 
@@ -337,7 +337,7 @@ integer(4) function define_mesh_latlon(&
     fl%lat = file(path_lat, dtype_lat, endian_lat, rec_lat)
   case default
     info = 1
-    call errret(msg_invalid_value('form_lat', form_lat))
+    call errret(ERROR_CODE__VALUE, 'form_lat == '//str(form_lat))
     return
   endselect
 
@@ -350,7 +350,7 @@ integer(4) function define_mesh_latlon(&
     al%is_south_to_north = .false.
   case default
     info = 1
-    call errret(msg_invalid_value('origin', origin))
+    call errret(ERROR_CODE__VALUE, 'origin == '//str(origin))
     return
   endselect
 
@@ -418,7 +418,7 @@ integer(4) function define_mesh_latlon(&
     endif
   case default
     info = 1
-    call errret(msg_invalid_value('form_idx', form_idx))
+    call errret(ERROR_CODE__VALUE, 'form_idx == '//str(form_idx))
     return
   endselect
 
@@ -502,7 +502,7 @@ integer(4) function define_mesh_raster(&
 
   if( .not. associated(a) )then
     info = 1
-    call errret('No slot for grid system is left.')
+    call errret(ERROR_CODE__CONDITION, 'No slot for grid system is left.')
     return
   endif
 
@@ -532,7 +532,7 @@ integer(4) function define_mesh_raster(&
     continue
   case default
     info = 1
-    call errret(msg_invalid_value('form_idx', form_idx))
+    call errret(ERROR_CODE__VALUE, 'form_idx == '//str(form_idx))
     return
   endselect
   !-------------------------------------------------------------
@@ -568,7 +568,7 @@ integer(4) function define_mesh_raster(&
     ar%is_south_to_north = .false.
   case default
     info = 1
-    call errret(msg_invalid_value('origin', origin))
+    call errret(ERROR_CODE__VALUE, 'origin == '//str(origin))
     return
   endselect
 
@@ -635,7 +635,7 @@ integer(4) function define_mesh_raster(&
     endif
   case default
     info = 1
-    call errret(msg_invalid_value('form_idx', form_idx))
+    call errret(ERROR_CODE__VALUE, 'form_idx == '//str(form_idx))
     return
   endselect
 
@@ -685,7 +685,7 @@ integer(4) function point_mesh(name, a) result(info)
   enddo
 
   info = 1
-  call errret('The mesh "'//str(name)//'" is undefined.')
+  call errret(ERROR_CODE__CONDITION, 'The mesh "'//str(name)//'" is undefined.')
   return
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -865,8 +865,8 @@ integer(4) function spring_define_mesh_latlon(&
   if( present(path_lon) ) call add(n_lon)
   if( n_lon > 1 )then
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\nMultiple inputs for longit. of grid lines.')
+    call errret(ERROR_CODE__ARGUMENT, &
+      'Multiple inputs for longit. of grid lines.')
     return
   endif
 
@@ -875,8 +875,8 @@ integer(4) function spring_define_mesh_latlon(&
   if( present(path_lon) ) call add(n_lat)
   if( n_lat > 1 )then
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\nMultiple inputs for latit. of grid lines.')
+    call errret(ERROR_CODE__ARGUMENT, &
+      'Multiple inputs for latit. of grid lines.')
     return
   endif
 
@@ -900,7 +900,7 @@ integer(4) function spring_define_mesh_latlon(&
     allocate(lon_(1))
   case default
     info = 1
-    call errret(msg_invalid_value('form_lon', form_lon))
+    call errret(ERROR_CODE__VALUE, 'form_lon == '//str(form_lon))
     return
   endselect
 
@@ -916,7 +916,7 @@ integer(4) function spring_define_mesh_latlon(&
     allocate(lat_(1))
   case default
     info = 1
-    call errret(msg_invalid_value('form_lat', form_lat))
+    call errret(ERROR_CODE__VALUE, 'form_lat == '//str(form_lat))
     return
   endselect
 
@@ -930,7 +930,7 @@ integer(4) function spring_define_mesh_latlon(&
   if( present(idx8) ) call add(n_idx)
   if( n_idx > 1 )then
     info = 1
-    call errret('Multiple index maps were given.')
+    call errret(ERROR_CODE__ARGUMENT, 'Multiple index maps were given.')
     return
   endif
 
@@ -976,7 +976,7 @@ integer(4) function spring_define_mesh_latlon(&
     continue
   case default
     info = 1
-    call errret(msg_invalid_value('form_idx', form_idx))
+    call errret(ERROR_CODE__VALUE, 'form_idx == '//str(form_idx))
     return
   endselect
 
@@ -994,8 +994,8 @@ integer(4) function spring_define_mesh_latlon(&
   if( present(idx8_miss) ) call add(n_idx_miss)
   if( n_idx_miss > 1 )then
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\nMultiple inputs for missing value of index.')
+    call errret(ERROR_CODE__ARGUMENT, &
+      'Multiple inputs for missing value of index.')
     return
   endif
 
@@ -1031,14 +1031,14 @@ integer(4) function spring_define_mesh_latlon(&
         idx8_miss_ = IDX8_MISS_DEFAULT
       case default
         info = 1
-        call errret(msg_invalid_value('dtype_idx_', dtype_idx_))
+        call errret(ERROR_CODE__VALUE, 'dtype_idx_ == '//str(dtype_idx_))
         return
       endselect
     case( INPUTFORM__NOT_GIVEN )
       idx8_miss_ = IDX8_MISS_DEFAULT
     case default
       info = 1
-      call errret(msg_invalid_value('form_idx', form_idx))
+      call errret(ERROR_CODE__VALUE, 'form_idx == '//str(form_idx))
       return
     endselect
   endif
@@ -1163,11 +1163,11 @@ integer(4) function spring_define_mesh_raster(&
   if( present(path_idx) ) call add(n_idx)
   if( n_idx == 0 )then
     info = 1
-    call errret('Index map was not given.')
+    call errret(ERROR_CODE__ARGUMENT, 'Index map was not given.')
     return
   elseif( n_idx > 1 )then
     info = 1
-    call errret('Multiple index maps were given.')
+    call errret(ERROR_CODE__ARGUMENT, 'Multiple index maps were given.')
     return
   endif
 
@@ -1207,12 +1207,11 @@ integer(4) function spring_define_mesh_raster(&
     if( present(rec_idx   ) ) rec_idx_    = rec_idx
   case( INPUTFORM__NOT_GIVEN )
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\n  form_idx: '//str(form_idx))
+    call errret(ERROR_CODE__VALUE, 'form_idx == '//str(form_idx))
     return
   case default
     info = 1
-    call errret(msg_invalid_value('form_idx', form_idx))
+    call errret(ERROR_CODE__VALUE, 'form_idx == '//str(form_idx))
     return
   endselect
 
@@ -1230,8 +1229,8 @@ integer(4) function spring_define_mesh_raster(&
   if( present(idx8_miss) ) call add(n_idx_miss)
   if( n_idx_miss > 1 )then
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\nMultiple inputs for missing value of index.')
+    call errret(ERROR_CODE__ARGUMENT, &
+      'Multiple inputs for missing value of index.')
     return
   endif
 
@@ -1267,12 +1266,12 @@ integer(4) function spring_define_mesh_raster(&
         idx8_miss_ = IDX8_MISS_DEFAULT
       case default
         info = 1
-        call errret(msg_invalid_value('dtype_idx_', dtype_idx_))
+        call errret(ERROR_CODE__VALUE, 'dtype_idx_ == '//str(dtype_idx_))
         return
       endselect
     case default
       info = 1
-      call errret(msg_invalid_value('form_idx', form_idx))
+      call errret(ERROR_CODE__VALUE, 'form_idx == '//str(form_idx))
       return
     endselect
   endif
@@ -1312,7 +1311,7 @@ integer(4) function spring_define_mesh_raster(&
     deallocate(idx1_, idx2_, idx4_, idx8_)
   case default
     info = 1
-    call errret(msg_invalid_value('form_idx', form_idx))
+    call errret(ERROR_CODE__VALUE, 'form_idx == '//str(form_idx))
     return
   endselect
   !-------------------------------------------------------------
@@ -1416,7 +1415,7 @@ integer(4) function spring_print_mesh(name) result(info)
     call logmsg('  np: '//str(ap%np)//', nij: '//str(ap%nij))
   case default
     info = 1
-    call errret(msg_invalid_value('a%typ', a%typ))
+    call errret(ERROR_CODE__VALUE, 'a%typ == '//str(a%typ))
     return
   endselect
   !-------------------------------------------------------------
@@ -1445,10 +1444,10 @@ integer(4) function check_shape_2d(varname, shp, nx, ny) result(info)
   !-------------------------------------------------------------
   if( shp(1) /= nx .or. shp(2) /= ny )then
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\nShapes mismatch.'//&
-              '\n  shape('//varname//'): '//str(shp,',')//&
-              '\n  nx, ny: '//str((/nx,ny/),','))
+    call errret(ERROR_CODE__CONDITION, &
+      'Shapes mismatch.'//&
+    '\n  shape('//varname//'): '//str(shp,',')//&
+    '\n  nx, ny: '//str((/nx,ny/),','))
     return
   endif
   !-------------------------------------------------------------

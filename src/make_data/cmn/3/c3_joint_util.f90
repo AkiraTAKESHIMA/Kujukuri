@@ -37,6 +37,10 @@ subroutine get_miss__i1(dataName, varName, miss)
   character(*), intent(in) :: varName
   integer(1), intent(out) :: miss
 
+  call logbgn(PRCNAM, MODNAM, '-p')
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
   selectcase( dataName )
   case( DATANAME__JFLW )
     selectcase( varName )
@@ -45,8 +49,7 @@ subroutine get_miss__i1(dataName, varName, miss)
     case( VARNAME__LANDUSE )
       miss = JFLW_LANDUSE_MISS
     case default
-      call errend(msg_invalid_value('varName', varName), &
-        '', PRCNAM, MODNAM)
+      call errend(ERROR_CODE__VALUE, 'varName == '//str(varName))
     endselect
   case( DATANAME__RRI )
     selectcase( varName )
@@ -55,13 +58,13 @@ subroutine get_miss__i1(dataName, varName, miss)
     case( VARNAME__LANDUSE )
       miss = RRI_LANDUSE_MISS
     case default
-      call errend(msg_invalid_value('varName', varName), &
-        '', PRCNAM, MODNAM)
+      call errend(ERROR_CODE__VALUE, 'varName == '//str(varName))
     endselect
   case default
-    call errend(msg_invalid_value('dataName', dataName), &
-      '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'dataName == '//str(dataName))
   endselect
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
 end subroutine get_miss__i1
 !===============================================================
 !
@@ -75,27 +78,30 @@ subroutine get_miss__i4(dataName, varName, miss)
   character(*), intent(in) :: varName
   integer(4), intent(out) :: miss
 
+  call logbgn(PRCNAM, MODNAM, '-p')
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
   selectcase( dataName )
   case( DATANAME__JFLW )
     selectcase( varName )
     case( VARNAME__UPG )
       miss = JFLW_UPG_MISS
     case default
-      call errend(msg_invalid_value('varName', varName), &
-        '', PRCNAM, MODNAM)
+      call errend(ERROR_CODE__VALUE, 'varName == '//str(varName))
     endselect
   case( DATANAME__RRI )
     selectcase( varName )
     case( VARNAME__UPG )
       miss = RRI_ACC_MISS
     case default
-      call errend(msg_invalid_value('varName', varName), &
-        '', PRCNAM, MODNAM)
+      call errend(ERROR_CODE__VALUE, 'varName == '//str(varName))
     endselect
   case default
-    call errend(msg_invalid_value('dataName', dataName), &
-      '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'dataName == '//str(dataName))
   endselect
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
 end subroutine get_miss__i4
 !===============================================================
 !
@@ -109,6 +115,10 @@ subroutine get_miss__r4(dataName, varName, miss)
   character(*), intent(in) :: varName
   real(4), intent(out) :: miss
 
+  call logbgn(PRCNAM, MODNAM, '-p')
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
   selectcase( dataName )
   case( DATANAME__JFLW )
     selectcase( varName )
@@ -119,8 +129,7 @@ subroutine get_miss__r4(dataName, varName, miss)
     case( VARNAME__WTH )
       miss = JFLW_WTH_MISS
     case default
-      call errend(msg_invalid_value('varName', varName), &
-        '', PRCNAM, MODNAM)
+      call errend(ERROR_CODE__VALUE, 'varName == '//str(varName))
     endselect
   case( DATANAME__RRI )
     selectcase( varName )
@@ -131,13 +140,13 @@ subroutine get_miss__r4(dataName, varName, miss)
     case( VARNAME__WTH )
       miss = real(RRI_WIDTH_MISS,4)
     case default
-      call errend(msg_invalid_value('varName', varName), &
-        '', PRCNAM, MODNAM)
+      call errend(ERROR_CODE__VALUE, 'varName == '//str(varName))
     endselect
   case default
-    call errend(msg_invalid_value('dataName', dataName), &
-      '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'dataName == '//str(dataName))
   endselect
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
 end subroutine get_miss__r4
 !===============================================================
 !

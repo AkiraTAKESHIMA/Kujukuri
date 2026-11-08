@@ -105,9 +105,9 @@ integer(4) function make_rt_polygon_polygon(&
   if( s%typ /= MESHTYPE__POLYGON .or. &
       t%typ /= MESHTYPE__POLYGON )then
     info = 1
-    call errret(msg_invalid_value()//&
-              '\n  s%typ: '//str(s%typ)//&
-              '\n  t%typ: '//str(t%typ))
+    call errret(ERROR_CODE__VALUE, &
+    '\n  s%typ: '//str(s%typ)//&
+    '\n  t%typ: '//str(t%typ))
     return
   endif
 
@@ -248,7 +248,7 @@ integer(4) function make_rt_polygon_polygon(&
               barea     ,                                           &
               area) /= 0 )then
           info = 1
-          call errret('@ aij = '//str(aij)//', bij = '//str(bij))
+          call errret(msg='aij = '//str(aij)//', bij = '//str(bij))
           return
         endif
 
@@ -543,8 +543,8 @@ integer(4) recursive function make_region_tree(&
       east = min(rgn%east, ap%east)
     case default
       info = 1
-      call errret(msg_invalid_value('ap%pos', ap%pos), &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__VALUE, 'ap%pos == '//str(ap%pos), &
+                  MODNAM, PRCNAM)
       return
     endselect
 
@@ -553,17 +553,13 @@ integer(4) recursive function make_region_tree(&
 
     if( west > east )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\n  west > east', &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__CONDITION, 'west > east', MODNAM, PRCNAM)
       return
     endif
 
     if( south > north )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\n  south > north', &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__CONDITION, 'south > north', MODNAM, PRCNAM)
       return
     endif
 
@@ -604,8 +600,7 @@ integer(4) recursive function make_region_tree(&
       east = min(rgn%east, bp%east)
     case default
       info = 1
-      call errret(msg_invalid_value('bp%pos', bp%pos), &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__VALUE, 'bp%pos == '//str(bp%pos), MODNAM, PRCNAM)
       return
     endselect
 
@@ -614,17 +609,13 @@ integer(4) recursive function make_region_tree(&
 
     if( west > east )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\n  west > east', &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__CONDITION, 'west > east', MODNAM, PRCNAM)
       return
     endif
 
     if( south > north )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\n  south > north', &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__CONDITION, 'south > north', MODNAM, PRCNAM)
       return
     endif
 
@@ -828,7 +819,7 @@ integer(4) recursive function make_region_tree(&
   !-------------------------------------------------------------
   do iRegion = 1, rgn%nRegions
     if( make_region_tree(rgn%rgn(iRegion), agp, bgp, nRegions) /= 0 )then
-      info = 1; call errret('', PRCNAM, MODNAM); return
+      info = 1; call errret(mod=MODNAM, prc=PRCNAM); return
     endif
   enddo
   !-------------------------------------------------------------
@@ -856,11 +847,11 @@ integer(4) recursive function remove_ineffective_divisions(&
     selectcase( rgn%rgn(iRegion)%nRegions )
     case( NREGIONS_UNDEF )
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\n  nRegions == NREGIONS_UNDEF'//&
-                '\n  rank: '//str(rgn%rank)//&
-                '\n  iRegion: '//str(iRegion), &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__CONDITION, &
+        'nRegions == NREGIONS_UNDEF'//&
+      '\n  rank: '//str(rgn%rank)//&
+      '\n  iRegion: '//str(iRegion), &
+        MODNAM, PRCNAM)
       return
     case( NREGIONS_EMPTY )
       continue
@@ -868,15 +859,14 @@ integer(4) recursive function remove_ineffective_divisions(&
       continue
     case( 1: )
       if( remove_ineffective_divisions(rgn%rgn(iRegion), nRegions) /= 0 )then
-        info = 1; call errret('', PRCNAM, MODNAM); return
+        info = 1; call errret(mod=MODNAM, prc=PRCNAM); return
       endif
     case default
       info = 1
-      call errret(msg_invalid_value(&
-                    'rgn%rgn('//str(iRegion)//')%nRegions', &
-                    rgn%rgn(iRegion)%nRegions)//&
-                '\n  rank: '//str(rgn%rank), &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__VALUE, &
+        'rgn%rgn('//str(iRegion)//')%nRegions == '//str(rgn%rgn(iRegion)%nRegions)//&
+      '\n  rank: '//str(rgn%rank), &
+        MODNAM, PRCNAM)
       return
     endselect
   enddo
@@ -918,11 +908,11 @@ integer(4) recursive function make_region_1d(&
   selectcase( rgn%nRegions )
   case( NREGIONS_UNDEF )
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\n  nRegions == NREGIONS_UNDEF'//&
-              '\n  rank: '//str(rgn%rank)//&
-              '\n  iRegion: '//str(iRegion), &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__CONDITION, &
+      'nRegions == NREGIONS_UNDEF'//&
+    '\n  rank: '//str(rgn%rank)//&
+    '\n  iRegion: '//str(iRegion), &
+      MODNAM, PRCNAM)
     return
   case( NREGIONS_EMPTY )
     continue
@@ -938,16 +928,15 @@ integer(4) recursive function make_region_1d(&
   case( 1: )
     do iRegion = 1, rgn%nRegions
       if( make_region_1d(rgn%rgn(iRegion), regions) /= 0 )then
-        info = 1; call errret('', PRCNAM, MODNAM); return
+        info = 1; call errret(mod=MODNAM, prc=PRCNAM); return
       endif
     enddo
   case default
     info = 1
-    call errret(msg_invalid_value(&
-                  'rgn%rgn('//str(iRegion)//')%nRegions', &
-                  rgn%rgn(iRegion)%nRegions)//&
-              '\n  rank: '//str(rgn%rank), &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__VALUE, &
+      'rgn%rgn('//str(iRegion)//')%nRegions == '//str(rgn%rgn(iRegion)%nRegions)//&
+    '\n  rank: '//str(rgn%rank), &
+      MODNAM, PRCNAM)
     return
   endselect
   !-------------------------------------------------------------
@@ -1090,11 +1079,11 @@ integer(4) recursive function free_region_tree(rgn) result(info)
   selectcase( rgn%nRegions )
   case( NREGIONS_UNDEF )
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\n  nRegions == NREGIONS_UNDEF'//&
-              '\n  rank: '//str(rgn%rank)//&
-              '\n  iRegion: '//str(iRegion), &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__CONDITION, &
+      '  nRegions == NREGIONS_UNDEF'//&
+    '\n  rank: '//str(rgn%rank)//&
+    '\n  iRegion: '//str(iRegion), &
+      MODNAM, PRCNAM)
     return
   case( NREGIONS_EMPTY )
     continue
@@ -1102,23 +1091,22 @@ integer(4) recursive function free_region_tree(rgn) result(info)
     if( associated(rgn%rgn) )then
       do iRegion = 1, size(rgn%rgn)
         if( free_region_tree(rgn%rgn(iRegion)) /= 0 )then
-          info = 1; call errret('', PRCNAM, MODNAM); return
+          info = 1; call errret(mod=MODNAM, prc=PRCNAM); return
         endif
       enddo
     endif
   case( 1: )
     do iRegion = 1, rgn%nRegions
       if( free_region_tree(rgn%rgn(iRegion)) /= 0 )then
-        info = 1; call errret('', PRCNAM, MODNAM); return
+        info = 1; call errret(mod=MODNAM, prc=PRCNAM); return
       endif
     enddo
   case default
     info = 1
-    call errret(msg_invalid_value(&
-                  'rgn%rgn('//str(iRegion)//')%nRegions', &
-                  rgn%rgn(iRegion)%nRegions)//&
-              '\n  rank: '//str(rgn%rank), &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__VALUE, &
+      'rgn%rgn('//str(iRegion)//')%nRegions == '//str(rgn%rgn(iRegion)%nRegions)//&
+    '\n  rank: '//str(rgn%rank), &
+      MODNAM, PRCNAM)
     return
   endselect
 
@@ -1190,9 +1178,9 @@ integer(4) recursive function write_regions(rgn, un) result(info)
   selectcase( rgn%nRegions )
   case( NREGIONS_UNDEF )
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\nrgn%nRegions: '//str(rgn%nRegions), &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__CONDITION, &
+      'rgn%nRegions == '//str(rgn%nRegions), &
+      MODNAM, PRCNAM)
     return
   case( NREGIONS_EMPTY )
     continue
@@ -1203,16 +1191,15 @@ integer(4) recursive function write_regions(rgn, un) result(info)
   case( 1: )
     do iRegion = 1, rgn%nRegions
       if( write_regions(rgn%rgn(iRegion), un) /= 0 )then
-        info = 1; call errret('', PRCNAM, MODNAM); return
+        info = 1; call errret(mod=MODNAM, prc=PRCNAM); return
       endif
     enddo
   case default
     info = 1
-    call errret(msg_invalid_value(&
-                  'rgn%rgn('//str(iRegion)//')%nRegions', &
-                  rgn%rgn(iRegion)%nRegions)//&
-              '\n  rank: '//str(rgn%rank), &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__VALUE, &
+      'rgn%rgn('//str(iRegion)//')%nRegions == '//str(rgn%rgn(iRegion)%nRegions)//&
+    '\n  rank: '//str(rgn%rank), &
+      MODNAM, PRCNAM)
     return
   endselect
   !-------------------------------------------------------------

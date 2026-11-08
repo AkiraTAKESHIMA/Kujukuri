@@ -133,8 +133,8 @@ subroutine read_settings(a)
     !-------------------------------------------------------------
     ! Case: ERROR
     case default
-      call errend(msg_invalid_value('blockName', blockName)//&
-                '\nCheck the name of block.')
+      call errend(ERROR_CODE__VALUE, 'blockName == '//str(blockName)//&
+      '\nCheck the name of block.')
     endselect
   enddo
 
@@ -190,7 +190,7 @@ subroutine read_settings(a)
   case( MESHTYPE__POLYGON )
     call echo_settings_gs_polygon(a%polygon)
   case default
-    call errend(msg_invalid_value(str(a%id)//'%typ', a%typ))
+    call errend(ERROR_CODE__VALUE, str(a%id)//'%typ == '//str(a%typ))
   endselect
 
   call echo_settings_opt(opt)
@@ -230,13 +230,13 @@ subroutine update_counter(n, blockName)
         BLOCKNAME__MESH_RASTER, &
         BLOCKNAME__MESH_POLYGON )
     if( n > 1 )then
-      call errend(msg_invalid_input(line_number())//&
-                '\nBlocks of mesh appeared more than once.')
+      call errend(ERROR_CODE__SYNTAX, '@ line '//str(line_number())//&
+        ': Blocks of mesh appeared more than once.')
     endif
   case( BLOCKNAME__OPT )
     call check_num_of_key(n, blockName, 0, 1)
   case default
-    call errend(msg_invalid_value('blockName', blockName))
+    call errend(ERROR_CODE__SYNTAX, 'blockName == '//str(blockName))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -249,8 +249,8 @@ subroutine check_number_of_blocks()
   call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
   if( counter%gs /= 1 )then
-    call errend(msg_invalid_input()//&
-              '\nBlocks of mesh appeared more than once.')
+    call errend(ERROR_CODE__SYNTAX, &
+      'Blocks of mesh appeared more than once.')
   endif
 
   call check_num_of_key(counter%opt, BLOCKNAME__OPT, 0, 1)
@@ -575,52 +575,51 @@ subroutine check_keynum_relations()
   !-------------------------------------------------------------
   if( keynum('west') == 0 .and. keynum('east') == 0 )then
     if( keynum('f_lon_bound') == 0 )then
-      call errend(msg_invalid_input()//&
-                '\nInformation of longitude is missing.'//&
-                  ' Give "west" and "east", or give "f_lon_bound".')
+      call errend(ERROR_CODE__CONDITION, &
+        'Information of longitude is missing.'//&
+        ' Give "west" and "east", or give "f_lon_bound".')
     endif
   elseif( keynum('west') == 1 .and. keynum('east') == 1 )then
     if( keynum('f_lon_bound') == 1 )then
-      call errend(msg_invalid_input()//&
-                '\nInformation of longitude is duplicated.'//&
-                  ' Give "west" and "east", or give "f_lon_bound".')
+      call errend(ERROR_CODE__CONDITION, &
+        'Information of longitude is duplicated.'//&
+        ' Give "west" and "east", or give "f_lon_bound".')
     endif
   elseif( keynum('west') == 1 .neqv. keynum('east') == 1 )then
-    call errend(msg_invalid_input()//&
-              '\nIf either "west" or "east" is given, both must be given.')
+    call errend(ERROR_CODE__CONDITION, &
+      'If either "west" or "east" is given, both must be given.')
   endif
 
   if( keynum('south') == 0 .and. keynum('north') == 0 )then
     if( keynum('f_lon_bound') == 0 )then
-      call errend(msg_invalid_input()//&
-                '\nInformation of longitude is missing.'//&
-                  ' Give "south" and "north", or give "f_lon_bound".')
+      call errend(ERROR_CODE__CONDITION, &
+        'Information of longitude is missing.'//&
+        ' Give "south" and "north", or give "f_lon_bound".')
     endif
   elseif( keynum('south') == 1 .and. keynum('north') == 1 )then
     if( keynum('f_lon_bound') == 1 )then
-      call errend(msg_invalid_input()//&
-                '\nInformation of longitude is duplicated.'//&
-                  ' Give "south" and "north", or give "f_lon_bound".')
+      call errend(ERROR_CODE__CONDITION, &
+        'Information of longitude is duplicated.'//&
+        ' Give "south" and "north", or give "f_lon_bound".')
     endif
   elseif( keynum('south') == 1 .neqv. keynum('north') == 1 )then
-    call errend(msg_invalid_input()//&
-              '\nIf either "south" or "north" is given both must be given.')
+    call errend(ERROR_CODE__CONDITION, &
+      'If either "south" or "north" is given both must be given.')
   endif
 
   if( keynum('f_lon_bound') == 0 .and. keynum('f_lat_bound') == 0 .and. &
       keynum('coord_unit') == 1 )then
-    call logwrn(msg_undesirable_input()//&
-              '\n"coord_unit" is given but '//&
-                'neither "f_lon_bound" or "f_lat_bound" is given.'//&
-                ' The input given by "coord_unit" is ignored.')
+    call logwrn(ERROR_CODE__CONDITION, &
+      '"coord_unit" is given but neither "f_lon_bound" or "f_lat_bound" is given.'//&
+      ' The input given by "coord_unit" is ignored.')
   endif
   !-------------------------------------------------------------
   ! Grid data
   !-------------------------------------------------------------
   if( keynum('idx_bgn') == 1 .and. keynum('fin_grdidx') == 1 )then
-    call logwrn(msg_undesirable_input()//&
-              '\n"idx_bgn" is given but "fin_grdidx" is also given.'//&
-                ' The input given by "idx_bgn" is ignored.')
+    call logwrn(ERROR_CODE__CONDITION, &
+      '"idx_bgn" is given but "fin_grdidx" is also given.'//&
+      ' The input given by "idx_bgn" is ignored.')
   endif
 
   if( keynum('fin_grdidx') == 0 .and. &
@@ -629,12 +628,12 @@ subroutine check_keynum_relations()
       (keynum('in_grid_sz') == 1 .or. &
        keynum('in_grid_lb') == 1 .or. &
        keynum('in_grid_ub') == 1) )then
-    call errend(msg_invalid_input()//&
-              '\nThere are inputs for the following keys:'//&
-              '\n  "in_grid_sz", "in_grid_lb", "in_grid_ub"'//&
-              '\nbut no input for:'//&
-              '\n  "in_grdidx", "in_grdara", "in_grdwgt".'//&
-              '\nThe former inputs are ignored.')
+    call errend(ERROR_CODE__CONDITION, &
+      'There are inputs for the following keys:'//&
+    '\n  "in_grid_sz", "in_grid_lb", "in_grid_ub"'//&
+    '\nbut no input for:'//&
+    '\n  "in_grdidx", "in_grdara", "in_grdwgt".'//&
+    '\nThe former inputs are ignored.')
   endif
 
   selectcase( fg_out%form )
@@ -642,13 +641,13 @@ subroutine check_keynum_relations()
     continue
   case( GRID_FORM_INDEX )
     if( keynum('fin_grdidx') == 0 )then
-      call errend(msg_invalid_input()//&
-                '\n  "fin_grdidx" must be given when '//&
-                  'the value of "out_form" is "'//str(GRID_FORM_INDEX)//'".')
+      call errend(ERROR_CODE__CONDITION, &
+        '"fin_grdidx" must be given when '//&
+        'the value of "out_form" is "'//str(GRID_FORM_INDEX)//'".')
     endif
   case default
-    call errend(msg_invalid_value('fg_out%form', fg_out%form)//&
-              '\nCheck the value of "out_form".')
+    call errend(ERROR_CODE__VALUE, 'fg_out%form == '//str(fg_out%form)//&
+    '\nCheck the value of "out_form".')
   endselect
 
   if( keynum('fout_grdidx') == 0 .and. &
@@ -662,50 +661,45 @@ subroutine check_keynum_relations()
       (keynum('out_grid_sz') == 1 .or. &
        keynum('out_grid_lb') == 1 .or. &
        keynum('out_grid_ub') == 1) )then
-    call errend(msg_invalid_input()//&
-              '\nThere are inputs for any of the following keys:'//&
-              '\n  "in_grid_sz", "in_grid_lb", "in_grid_ub"'//&
-              '\nbut no input for:'//&
-              '\n  "in_grdidx", "in_grdara", "in_grdwgt".'//&
-              '\nThe former inputs are ignored.')
+    call errend(ERROR_CODE__CONDITION, &
+      'There are inputs for any of the following keys:'//&
+    '\n  "in_grid_sz", "in_grid_lb", "in_grid_ub"'//&
+    '\nbut no input for:'//&
+    '\n  "in_grdidx", "in_grdara", "in_grdwgt".'//&
+    '\nThe former inputs are ignored.')
   endif
 
   if( keynum('fin_grdidx') == 0 .and. keynum('idx_miss') == 1 )then
-    call logwrn(msg_undesirable_input()//&
-              '\nThe value for "idx_miss" is given although'//&
-                ' that for "fin_grdidx" is not given.'//&
-                ' The input for "idx_miss" is ignored.')
+    call logwrn(ERROR_CODE__CONDITION, &
+      'The value for "idx_miss" is given although that for "fin_grdidx" is not given.'//&
+      ' The input for "idx_miss" is ignored.')
   endif
 
   if( keynum('fout_grdara') == 0 .and. keynum('ara_miss') == 1 )then
-    call logwrn(msg_undesirable_input()//&
-              '\nThe value for "ara_miss" is given although'//&
-                ' that for "fout_grdara" is not given.'//&
-                ' The input for "ara_miss" is ignored.')
+    call logwrn(ERROR_CODE__CONDITION, &
+      'The value for "ara_miss" is given although that for "fout_grdara" is not given.'//&
+      ' The input for "ara_miss" is ignored.')
   endif
 
   if( keynum('fout_grdwgt') == 0 .and. keynum('wgt_miss') == 1 )then
-    call logwrn(msg_undesirable_input()//&
-              '\nThe value for "wgt_miss" is given although'//&
-                ' that for "fout_grdwgt" is not given.'//&
-                ' The input for "wgt_miss" is ignored.')
+    call logwrn(ERROR_CODE__CONDITION, &
+      'The value for "wgt_miss" is given although that for "fout_grdwgt" is not given.'//&
+      ' The input for "wgt_miss" is ignored.')
   endif
 
   if( (keynum('fout_grdx') == 0 .and. keynum('fout_grdy') == 0 .and. &
        keynum('fout_grdz') == 0) .and. &
       keynum('xyz_miss') == 1 )then
-    call logwrn(msg_undesirable_input()//&
-              '\nThe value for "xyz_miss" is given although that for "fout_grdx", '//&
-                '"fout_grdy" or "fout_grdz" is not given.'//&
-                ' The input for "xyz_miss" is ignored.')
+    call logwrn(ERROR_CODE__CONDITION, &
+      'The value for "xyz_miss" is given although that for "fout_grdx", '//&
+      '"fout_grdy" or "fout_grdz" is not given. The input for "xyz_miss" is ignored.')
   endif
 
   if( (keynum('fout_grdlon') == 0 .and. keynum('fout_grdlat') == 0) .and. &
       keynum('lonlat_miss') == 1 )then
-    call logwrn(msg_undesirable_input()//&
-              '\nThe value for "lonlat_miss" is given although that for "fout_grdlon" or '//&
-                '"fout_grdlat" is not given.'//&
-                ' The input for "lonlat_miss" is ignored.')
+    call logwrn(ERROR_CODE__CONDITION, &
+      'The value for "lonlat_miss" is given although that for "fout_grdlon" or '//&
+      '"fout_grdlat" is not given. The input for "lonlat_miss" is ignored.')
   endif
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -1030,28 +1024,27 @@ subroutine check_keynum_relations()
   !-------------------------------------------------------------
   if( keynum('fin_grdidx') == 0 )then
     if( keynum('fin_grdara') == 1 .or. keynum('fin_grdwgt') == 1 )then
-      call errend(msg_invalid_input()//&
-                '\n"fin_grdara" or "fin_grdwgt"'//&
-                  ' cannot be given when "fin_grdidx" is not given.')
+      call errend(ERROR_CODE__CONDITION, &
+        '"fin_grdara" or "fin_grdwgt" cannot be given when "fin_grdidx" is not given.')
     endif
 
     if( keynum('in_grid_sz') == 1 .or. &
         keynum('in_grid_lb') == 1 .or. &
         keynum('in_grid_ub') == 1 )then
-      call errend(msg_invalid_input()//&
-                '\n"in_grid_sz", "in_grid_lb" or "in_grid_ub"'//&
-                  '" cannot be given when "fin_grdidx" is not given.')
+      call errend(ERROR_CODE__CONDITION, &
+        '"in_grid_sz", "in_grid_lb" or "in_grid_ub"'//&
+        '" cannot be given when "fin_grdidx" is not given.')
     endif
   endif
 
   if( keynum('fin_grdidx') == 1 .and. keynum('in_grid_sz') == 0 )then
-    call errend(msg_invalid_input()//&
-              '\n"in_grid_sz" must be given when "fin_grdidx" is given.')
+    call errend(ERROR_CODE__CONDITION, &
+      '"in_grid_sz" must be given when "fin_grdidx" is given.')
   endif
 
   if( keynum('fin_grdara') == 1 .and. keynum('fin_grdwgt') == 1 )then
-    call errend(msg_invalid_input()//&
-              '\n"fin_grdara" and "fin_grdwgt" cannot be given at the same time.')
+    call errend(ERROR_CODE__CONDITION, &
+      '"fin_grdara" and "fin_grdwgt" cannot be given at the same time.')
   endif
 
   selectcase( fg_out%form )
@@ -1059,12 +1052,12 @@ subroutine check_keynum_relations()
     continue
   case( GRID_FORM_INDEX )
     if( keynum('fin_grdidx') == 0 )then
-      call errend(msg_invalid_input()//&
-                '\n"fin_grdidx" must be given when '//&
-                  'the value of "out_form" is "'//str(GRID_FORM_INDEX)//'".')
+      call errend(ERROR_CODE__CONDITION, &
+        '"fin_grdidx" must be given when '//&
+        'the value of "out_form" is "'//str(GRID_FORM_INDEX)//'".')
     endif
   case default
-    call errend(msg_invalid_value('fg_out%form', fg_out%form))
+    call errend(ERROR_CODE__VALUE, 'fg_out%form == '//str(fg_out%form))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -1340,9 +1333,9 @@ subroutine read_settings_gs_polygon(a)
   !-------------------------------------------------------------
   call logent('Setting the related values', PRCNAM, MODNAM)
 
-  call traperr( set_bounds_file_polygon_in(fp, ap%ijs, ap%ije, ap%np, ap%nij) )
-  call traperr( set_bounds_file_grid_in(fg_in, ap%nij, 1_8) )
-  call traperr( set_bounds_file_grid_out(fg_out, ap%nij, 1_8) )
+  call traperr( set_bounds_file_polygon_in(ap) )
+  call traperr( set_bounds_file_grid_in(fg_in, 1_8, ap%nij) )
+  call traperr( set_bounds_file_grid_out(fg_out, 1_8, ap%nij) )
 
   ! Coords.
   !-------------------------------------------------------------
@@ -1354,10 +1347,9 @@ subroutine read_settings_gs_polygon(a)
     else
       if( ap%coord_unit /= UNIT_DEGREE .and. &
           ap%coord_unit /= UNIT_RADIAN )then
-        call errend(msg_invalid_input()//&
-                  '\n  ap%coord_unit: '//str(ap%coord_unit)//&
-                  '\nThis value is invalid when "f_lon_vertex"'//&
-                    ' is given. Check the value of "coord_unit".')
+        call errend(ERROR_CODE__CONDITION, &
+          'ap%coord_unit == '//str(ap%coord_unit)//&
+        '\nThis value is invalid when "f_lon_vertex" is given. Check the value of "coord_unit".')
       endif
     endif
 
@@ -1370,10 +1362,9 @@ subroutine read_settings_gs_polygon(a)
     else
       if( ap%coord_unit /= UNIT_METER .and. &
           ap%coord_unit /= UNIT_KILOMETER )then
-        call errend(msg_invalid_input()//&
-                  '\n  ap%coord_unit: '//str(ap%coord_unit)//&
-                  '\nThis value is invalid when "f_x_vertex"'//&
-                    ' is given. Check the value of "coord_unit".')
+        call errend(ERROR_CODE__CONDITION, &
+          'ap%coord_unit == '//str(ap%coord_unit)//&
+        '\nThis value is invalid when "f_x_vertex" is given. Check the value of "coord_unit".')
       endif
     endif
 
@@ -1395,29 +1386,29 @@ subroutine check_keynum_relations()
   ! Relations
   !-------------------------------------------------------------
   if( keynum('f_lon_vertex') == 1 .neqv. keynum('f_lat_vertex') == 1 )then
-    call errend(msg_invalid_input()//&
-              '\nBoth "f_lon_vertex" and "f_lat_vertex" must be given'//&
-                ' when any of them is given.')
+    call errend(ERROR_CODE__CONDITION, &
+      'Both "f_lon_vertex" and "f_lat_vertex" must be given'//&
+      ' when any of them is given.')
   endif
 
   if( (keynum('f_x_vertex') == 1 .neqv. keynum('f_y_vertex') == 1) .or. &
       (keynum('f_x_vertex') == 1 .neqv. keynum('f_z_vertex') == 1) )then
-    call errend(msg_invalid_input()//&
-              '\nAll of "f_x_vertex", "f_y_vertex" and "f_z_vertex" must be given'//&
-                ' when any of them is given.')
+    call errend(ERROR_CODE__CONDITION, &
+      'All of "f_x_vertex", "f_y_vertex" and "f_z_vertex" must be given'//&
+      ' when any of them is given.')
   endif
 
   if( keynum('f_lon_vertex') == 1 .and. keynum('f_x_vertex') == 1 )then
-    call errend(msg_invalid_input()//&
-              '\n"f_lon_vertex" and "f_x_vertex" must not be given at the same time.')
+    call errend(ERROR_CODE__CONDITION, &
+      '"f_lon_vertex" and "f_x_vertex" must not be given at the same time.')
   elseif( keynum('f_lon_vertex') == 0 .and. keynum('f_x_vertex') == 0 )then
-    call errend(msg_invalid_input()//&
-              '\nNeither "f_lon_vertex" nor "f_x_vertex" is given.')
+    call errend(ERROR_CODE__CONDITION, &
+      'Neither "f_lon_vertex" nor "f_x_vertex" is given.')
   endif
 
   if( keynum('arc_parallel') == 1 .and. keynum('f_arctyp') == 1 )then
-    call errend(msg_invalid_input()//&
-              '\n"arc_parallel" and "f_arctyp" must not be given at the same time.')
+    call errend(ERROR_CODE__CONDITION, &
+      '"arc_parallel" and "f_arctyp" must not be given at the same time.')
   endif
 
   if( (keynum('fin_grdidx') == 0 .and. &
@@ -1426,20 +1417,20 @@ subroutine check_keynum_relations()
       (keynum('in_grid_sz') == 1 .or. &
        keynum('in_grid_lb') == 1 .or. &
        keynum('in_grid_ub') == 1) )then
-    call errend(msg_invalid_input()//&
-              '\nAny of "in_grid_sz", "in_grid_lb" or "in_grid_ub" must not be given'//&
-              '\n when none of "fin_grdidx", "fin_grdara" or "fin_grdwgt" is given.')
+    call errend(ERROR_CODE__CONDITION, &
+      'Any of "in_grid_sz", "in_grid_lb" or "in_grid_ub" must not be given'//&
+      ' when none of "fin_grdidx", "fin_grdara" or "fin_grdwgt" is given.')
   endif
 
   if( keynum('fin_grdidx') == 0 .and. keynum('idx_miss') == 1 )then
-    call logwrn(msg_undesirable_input()//&
-              '\nThe value for "idx_miss" is given although that for "fin_grdidx" is not given.'//&
-                ' The input for "idx_miss" is ignored.')
+    call logwrn(ERROR_CODE__CONDITION, &
+      'The value for "idx_miss" is given although that for "fin_grdidx" is not given.'//&
+      ' The input for "idx_miss" is ignored.')
   endif
 
   if( keynum('fin_grdara') == 1 .and. keynum('fin_grdwgt') == 1 )then
-    call errend(msg_invalid_input()//&
-              '\n"fin_grdara" and "fin_grdwgt" must not be given at the same time.')
+    call errend(ERROR_CODE__CONDITION, &
+      '"fin_grdara" and "fin_grdwgt" must not be given at the same time.')
   endif
 
   selectcase( fg_out%form )
@@ -1447,12 +1438,12 @@ subroutine check_keynum_relations()
     continue
   case( GRID_FORM_INDEX )
     if( keynum('fin_grdidx') == 0 )then
-      call errend(msg_invalid_input()//&
-                '\n"fin_grdidx" must be given when '//&
-                  'the value of "out_form" is "'//str(GRID_FORM_INDEX)//'".')
+      call errend(ERROR_CODE__CONDITION, &
+        '"fin_grdidx" must be given when '//&
+        'the value of "out_form" is "'//str(GRID_FORM_INDEX)//'".')
     endif
   case default
-    call errend(msg_invalid_value('fg_out%form', fg_out%form))
+    call errend(ERROR_CODE__VALUE, 'fg_out%form == '//str(fg_out%form))
   endselect
   !--------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -1623,11 +1614,11 @@ subroutine check_input(a, opt_earth)
   !-------------------------------------------------------------
   if( opt_earth%shptyp == EARTH_SHPTYP__ELLIPS )then
     if( a%typ == MESHTYPE__POLYGON )then
-      call errend(msg_unexpected_condition()//&
-                '\n  opt%earth%shptyp == '//str(opt_earth%shptyp)//&
-                  ' and '//str(a%id)//'%typ == '//str(a%typ)//&
-                '\nEarth shape "'//str(opt_earth%shptyp)//'" is '//&
-                  'not implemented yet for '//str(a%typ)//' meshes.')
+      call errend(ERROR_CODE__CONDITION, &
+        'opt%earth%shptyp == '//str(opt_earth%shptyp)//&
+        ' and '//str(a%id)//'%typ == '//str(a%typ)//&
+      '\nEarth shape "'//str(opt_earth%shptyp)//'" is '//&
+        'not implemented yet for '//str(a%typ)//' meshes.')
     endif
   endif
   !-------------------------------------------------------------
@@ -1677,7 +1668,7 @@ subroutine check_paths(a, opt_sys)
     call traperr( check_permission(fp%lat, allow_empty=.true.) )
     call traperr( check_permission(fp%arctyp, allow_empty=.true.) )
   case default
-    call errend(msg_invalid_value('a%typ', a%typ))
+    call errend(ERROR_CODE__VALUE, 'a%typ == '//str(a%typ))
   endselect
 
   fg_in => a%cmn%f_grid_in
@@ -1689,7 +1680,7 @@ subroutine check_paths(a, opt_sys)
   case( GRID_FORM_INDEX )
     allow_empty = .false.
   case default
-    call errend(msg_invalid_value('fg_out%form', fg_out%form))
+    call errend(ERROR_CODE__VALUE, 'fg_out%form == '//str(fg_out%form))
   endselect
 
   call traperr( check_permission(fg_in%idx, allow_empty=allow_empty) )
@@ -2013,7 +2004,7 @@ subroutine echo_settings_gs_polygon(ap)
     call logmsg('    y: '//str(fileinfo(fp%y)))
     call logmsg('    z: '//str(fileinfo(fp%z)))
   case default
-    call errend(msg_invalid_value('ap%coord_sys', ap%coord_sys))
+    call errend(ERROR_CODE__VALUE, 'ap%coord_sys == '//str(ap%coord_sys))
   endselect
   call logmsg('  Unit: '//str(ap%coord_unit))
 

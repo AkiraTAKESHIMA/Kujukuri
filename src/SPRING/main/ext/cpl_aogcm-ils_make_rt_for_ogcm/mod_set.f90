@@ -143,8 +143,8 @@ subroutine read_settings(&
     !-----------------------------------------------------------
     ! ERROR
     case default
-      call errend(msg_invalid_value('blockName', blockName)//&
-                '\nCheck the name of the block.')
+      call errend(ERROR_CODE__VALUE, 'blockName == '//str(blockName)//&
+      '\nCheck the name of the block.')
     endselect
   enddo
 
@@ -773,7 +773,7 @@ subroutine read_settings_output_rt(rt)
       case( MESH__TARGET )
         rtv => rt%vrf_tgt
       case default
-        call errend(msg_invalid_value('mesh_vrf', mesh_vrf))
+        call errend(ERROR_CODE__VALUE, 'mesh_vrf == '//str(mesh_vrf))
       endselect
 
     case( 'fout_vrf_grdidx' )
@@ -822,21 +822,20 @@ subroutine read_value_fvrf_file(f)
       key() /= 'fout_vrf_grdara_rt'   .and. &
       key() /= 'fout_vrf_rerr_grdara' .and. &
       key() /= 'fout_vrf_grdnum'      )then
-    call errend(msg_invalid_input(line_number())//&
-              '\nOnly the following keys can be used for the group of'//&
-                ' verification data:'//&
-              '\n  "fout_vrf_grdidx"'//&
-              '\n  "fout_vrf_grdara_true"'//&
-              '\n  "fout_vrf_grdara_rt"'//&
-              '\n  "fout_vrf_rerr_grdara"'//&
-              '\n  "fout_vrf_grdnum"')
+    call errend(ERROR_CODE__SYNTAX, '@ line '//str(line_number())//&
+      ': Only the following keys can be used for the group of verification data:'//&
+    '\n  "fout_vrf_grdidx"'//&
+    '\n  "fout_vrf_grdara_true"'//&
+    '\n  "fout_vrf_grdara_rt"'//&
+    '\n  "fout_vrf_rerr_grdara"'//&
+    '\n  "fout_vrf_grdnum"')
   endif
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
   if( f%path /= '' )then
-    call errend(msg_invalid_input(line_number())//&
-              '\nDuplicated input of "'//str(key())//'".')
+    call errend(ERROR_CODE__SYNTAX, '@ line '//str(line_number())//&
+      ': Duplicated input of "'//str(key())//'".')
   endif
   !-------------------------------------------------------------
   !

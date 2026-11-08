@@ -94,10 +94,9 @@ subroutine rasterize_latlon(a, b, output)
         GRID_STATUS__TO_BE_PREPARED )
     case_wgtmap_a = 0
   case( GRID_STATUS__UNDEF )
-    call errend(msg_unexpected_condition()//&
-              '\n  al%status_wgtmap == '//str(al%status_wgtmap))
+    call errend(ERROR_CODE__VALUE, 'al%status_wgtmap == '//str(al%status_wgtmap))
   case default
-    call errend(msg_invalid_value('al%status_wgtmap', al%status_wgtmap))
+    call errend(ERROR_CODE__VALUE, 'al%status_wgtmap == '//str(al%status_wgtmap))
   endselect
   selectcase( br%status_wgtmap )
   case( GRID_STATUS__PREPARED )
@@ -106,10 +105,9 @@ subroutine rasterize_latlon(a, b, output)
         GRID_STATUS__TO_BE_PREPARED )
     case_wgtmap_b = 0
   case( GRID_STATUS__UNDEF )
-    call errend(msg_unexpected_condition()//&
-              '\n  br%status_wgtmap == '//str(br%status_wgtmap))
+    call errend(ERROR_CODE__VALUE, 'al%status_wgtmap == '//str(al%status_wgtmap))
   case default
-    call errend(msg_invalid_value('br%status_wgtmap', br%status_wgtmap))
+    call errend(ERROR_CODE__VALUE, 'al%status_wgtmap == '//str(al%status_wgtmap))
   endselect
 
   case_wgtmap = case_wgtmap_a*10 + case_wgtmap_b
@@ -233,7 +231,7 @@ subroutine rasterize_latlon(a, b, output)
         !-------------------------------------------------------
         ! Case: ERROR
         case default
-          call errend(msg_invalid_value('case_wgtmap', case_wgtmap))
+          call errend(ERROR_CODE__VALUE, 'case_wgtmap == '//str(case_wgtmap))
         endselect
         !-------------------------------------------------------
         !

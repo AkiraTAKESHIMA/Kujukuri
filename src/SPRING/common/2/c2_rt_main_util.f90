@@ -63,7 +63,7 @@ integer(4) function merge_elems_same_index(&
     notsortidx => sidx
   case default
     info = 1
-    call errret(msg_invalid_value('mesh_sort', mesh_sort))
+    call errret(ERROR_CODE__VALUE, 'mesh_sort == '//str(mesh_sort))
     return
   endselect
 
@@ -163,7 +163,7 @@ integer(4) function modify_rt_area(&
     coefidx => rtm%tidx
   case default
     info = 1
-    call errret(msg_invalid_value('rtm%mesh_coef', rtm%mesh_coef))
+    call errret(ERROR_CODE__VALUE, 'rtm%mesh_coef == '//str(rtm%mesh_coef))
     return
   endselect
   !-------------------------------------------------------------
@@ -176,9 +176,8 @@ integer(4) function modify_rt_area(&
 
     if( loc == 0_8 )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\nIndex '//str(coefidx(ij))//' was not found '//&
-                  'in the set of grid indices.')
+      call errret(ERROR_CODE__CONDITION, &
+        'Index `'//str(coefidx(ij))//'` was not found in the set of grid indices.')
       return
     endif
 
@@ -186,10 +185,10 @@ integer(4) function modify_rt_area(&
 
     if( grdara(gij) <= 0.d0 )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\ngrdara <= 0.0'//&
-                '\n  Index: '//str(grdidx(gij))//&
-                '\n  Area : '//str(grdara(gij)))
+      call errret(ERROR_CODE__CONDITION, &
+        'grdara <= 0.0'//&
+      '\n  Index: '//str(grdidx(gij))//&
+      '\n  Area : '//str(grdara(gij)))
       return
     endif
 
@@ -243,11 +242,11 @@ integer(4) function check_coef_after_modification(&
     do ij = 1_8, nij
       if( coef(ij) > 0.d0 .and. coef(ij) < opt_coef%zero_positive )then
         info = 1
-        call errret(msg_unexpected_condition()//&
-                  '\ncoef(ij) is in (0.0, zero_positive)'//&
-                  '\n  ij: '//str(ij)//&
-                  '\n  coef(ij): '//str(coef(ij))//&
-                  '\n  zero_positive: '//str(opt_coef%zero_positive))
+        call errret(ERROR_CODE__CONDITION, &
+          'coef(ij) is in (0.0, zero_positive)'//&
+        '\n  ij: '//str(ij)//&
+        '\n  coef(ij): '//str(coef(ij))//&
+        '\n  zero_positive: '//str(opt_coef%zero_positive))
         return
       endif
     enddo  ! ij/
@@ -257,11 +256,11 @@ integer(4) function check_coef_after_modification(&
     do ij = 1_8, nij
       if( coef(ij) < 0.d0 .and. coef(ij) > opt_coef%zero_negative )then
         info = 1
-        call errret(msg_unexpected_condition()//&
-                  '\ncoef(ij) in (zero_negative, 0.0)'//&
-                  '\n  ij: '//str(ij)//&
-                  '\n  coef(ij): '//str(coef(ij))//&
-                  '\n  zero_negative: '//str(opt_coef%zero_negative))
+        call errret(ERROR_CODE__CONDITION, &
+          'coef(ij) in (zero_negative, 0.0)'//&
+        '\n  ij: '//str(ij)//&
+        '\n  coef(ij): '//str(coef(ij))//&
+        '\n  zero_negative: '//str(opt_coef%zero_negative))
         return
       endif
     enddo  ! ij/
@@ -271,11 +270,11 @@ integer(4) function check_coef_after_modification(&
     do ij = 1_8, nij
       if( coef(ij) > 1.d0 + opt_coef%error_excess )then
         info = 1
-        call errret(msg_unexpected_condition()//&
-                  '\ncoef(ij) > 1.0 + error_excess'//&
-                  '\n  ij: '//str(ij)//&
-                  '\n  coef(ij): '//str(coef(ij))//&
-                  '\n  error_excess: '//str(opt_coef%error_excess))
+        call errret(ERROR_CODE__CONDITION, &
+          'coef(ij) > 1.0 + error_excess'//&
+        '\n  ij: '//str(ij)//&
+        '\n  coef(ij): '//str(coef(ij))//&
+        '\n  error_excess: '//str(opt_coef%error_excess))
         return
       endif
     enddo  ! ij/
@@ -312,13 +311,12 @@ integer(4) function remove_zero(rtm) result(info)
 
   if( rtm%ijsize == 0_8 )then
     if( rtm%allow_empty )then
-      call logwrn('Remapping table is empty.')
+      call logwrn(ERROR_CODE__CONDITION, 'Remapping table is empty.')
       call logret(PRCNAM, MODNAM)
       return
     else
       info = 1
-      call errret(msg_unexpected_condition()//&
-               '\nrtm%ijsize == 0')
+      call errret(ERROR_CODE__CONDITION, 'rtm%ijsize == 0')
       return
     endif
   endif
@@ -490,7 +488,7 @@ integer(4) function sort_rt(rtm, mesh_sort) result(info)
     rtm%is_sorted_by_tidx = .true.
   case default
     info = 1
-    call errret(msg_invalid_value('rtm%mesh_sort', rtm%mesh_sort))
+    call errret(ERROR_CODE__VALUE, 'rtm%mesh_sort == '//str(rtm%mesh_sort))
     return
   endselect
 
@@ -550,7 +548,7 @@ integer(4) function trap_rt_empty(rtm) result(info)
   !-------------------------------------------------------------
   if( rtm%nij == 0_8 .and. .not. rtm%allow_empty )then
     info = 1
-    call errret('The remapping table is empty.')
+    call errret(ERROR_CODE__CONDITION, 'The remapping table is empty.')
     return
   endif
   !-------------------------------------------------------------

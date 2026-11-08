@@ -147,7 +147,7 @@ program main
   case( EARTH_SHPTYP__ELLIPS )
     pixare(:) = area_ellips_rect(pixlat(0:ny-1), pixlat(1:ny), earth%e2) * rad_360deg/nx
   case default
-    call errend(msg_invalid_value('earth%shptyp', earth%shptyp))
+    call errend(ERROR_CODE__VALUE, 'earth%shptyp == '//str(earth%shptyp))
   endselect
 
   pixare(:) = pixare(:) * earth%r**2

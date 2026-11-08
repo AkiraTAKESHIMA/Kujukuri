@@ -129,8 +129,7 @@ subroutine reverse_log1_2d(arr, d)
     enddo
     deallocate(tmp)
   case default
-    call logerr(msg_invalid_value('d', d), &
-                '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'd == '//str(d), MODNAM, PRCNAM)
   endselect
 end subroutine reverse_log1_2d
 !===============================================================
@@ -169,8 +168,7 @@ subroutine reverse_log1_3d(arr, d)
     enddo
     deallocate(tmp)
   case default
-    call logerr(msg_invalid_value('d', d), &
-                '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'd == '//str(d), MODNAM, PRCNAM)
   endselect
 end subroutine reverse_log1_3d
 !===============================================================
@@ -218,8 +216,7 @@ subroutine reverse_log4_2d(arr, d)
     enddo
     deallocate(tmp)
   case default
-    call logerr(msg_invalid_value('d', d), &
-                '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'd == '//str(d), MODNAM, PRCNAM)
   endselect
 end subroutine reverse_log4_2d
 !===============================================================
@@ -258,8 +255,7 @@ subroutine reverse_log4_3d(arr, d)
     enddo
     deallocate(tmp)
   case default
-    call logerr(msg_invalid_value('d', d), &
-                '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'd == '//str(d), MODNAM, PRCNAM)
   endselect
 end subroutine reverse_log4_3d
 !===============================================================
@@ -307,8 +303,7 @@ subroutine reverse_int1_2d(arr, d)
     enddo
     deallocate(tmp)
   case default
-    call logerr(msg_invalid_value('d', d), &
-                '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'd == '//str(d), MODNAM, PRCNAM)
   endselect
 end subroutine reverse_int1_2d
 !===============================================================
@@ -347,8 +342,7 @@ subroutine reverse_int1_3d(arr, d)
     enddo
     deallocate(tmp)
   case default
-    call logerr(msg_invalid_value('d', d), &
-                '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'd == '//str(d), MODNAM, PRCNAM)
   endselect
 end subroutine reverse_int1_3d
 !===============================================================
@@ -398,8 +392,7 @@ subroutine reverse_int2_2d(arr, d)
     enddo
     deallocate(tmp)
   case default
-    call logerr(msg_invalid_value('d', d), &
-                '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'd == '//str(d), MODNAM, PRCNAM)
   endselect
 end subroutine reverse_int2_2d
 !===============================================================
@@ -438,8 +431,7 @@ subroutine reverse_int2_3d(arr, d)
     enddo
     deallocate(tmp)
   case default
-    call logerr(msg_invalid_value('d', d), &
-                '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'd == '//str(d), MODNAM, PRCNAM)
   endselect
 end subroutine reverse_int2_3d
 !===============================================================
@@ -487,8 +479,7 @@ subroutine reverse_int4_2d(arr, d)
     enddo
     deallocate(tmp)
   case default
-    call logerr(msg_invalid_value('d', d), &
-                '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'd == '//str(d), MODNAM, PRCNAM)
   endselect
 end subroutine reverse_int4_2d
 !===============================================================
@@ -527,8 +518,7 @@ subroutine reverse_int4_3d(arr, d)
     enddo
     deallocate(tmp)
   case default
-    call logerr(msg_invalid_value('d', d), &
-                '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'd == '//str(d), MODNAM, PRCNAM)
   endselect
 end subroutine reverse_int4_3d
 !===============================================================
@@ -579,8 +569,7 @@ subroutine reverse_int8_2d(arr, d)
     enddo
     deallocate(tmp)
   case default
-    call logerr(msg_invalid_value('d', d), &
-                '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'd == '//str(d), MODNAM, PRCNAM)
   endselect
 end subroutine reverse_int8_2d
 !===============================================================
@@ -619,8 +608,7 @@ subroutine reverse_int8_3d(arr, d)
     enddo
     deallocate(tmp)
   case default
-    call logerr(msg_invalid_value('d', d), &
-                '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'd == '//str(d), MODNAM, PRCNAM)
   endselect
 end subroutine reverse_int8_3d
 !===============================================================
@@ -670,8 +658,7 @@ subroutine reverse_real_2d(arr, d)
     enddo
     deallocate(tmp)
   case default
-    call logerr(msg_invalid_value('d', d), &
-                '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'd == '//str(d), MODNAM, PRCNAM)
   endselect
 end subroutine reverse_real_2d
 !===============================================================
@@ -710,8 +697,7 @@ subroutine reverse_real_3d(arr, d)
     enddo
     deallocate(tmp)
   case default
-    call logerr(msg_invalid_value('d', d), &
-                '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'd == '//str(d), MODNAM, PRCNAM)
   endselect
 end subroutine reverse_real_3d
 !===============================================================
@@ -759,8 +745,7 @@ subroutine reverse_dble_2d(arr, d)
     enddo
     deallocate(tmp)
   case default
-    call logerr(msg_invalid_value('d', d), &
-                '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'd == '//str(d), MODNAM, PRCNAM)
   endselect
 end subroutine reverse_dble_2d
 !===============================================================
@@ -799,8 +784,7 @@ subroutine reverse_dble_3d(arr, d)
     enddo
     deallocate(tmp)
   case default
-    call logerr(msg_invalid_value('d', d), &
-                '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'd == '//str(d), MODNAM, PRCNAM)
   endselect
 end subroutine reverse_dble_3d
 !===============================================================

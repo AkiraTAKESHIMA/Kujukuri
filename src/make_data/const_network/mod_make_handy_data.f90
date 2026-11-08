@@ -93,8 +93,8 @@ subroutine makeWscodeMasks()
 
     call search(wsCode_rvunknown, lst_wsCode, i)
     if( i /= 0 )then
-      call errend('wsCode_rvunknown '//str(wsCode_rvunknown)//&
-             ' was found in the list.')
+      call errend(ERROR_CODE__CONDITION, &
+        'wsCode_rvunknown '//str(wsCode_rvunknown)//' was found in the list.')
     endif
 
     call add(nWsCode)
@@ -140,7 +140,8 @@ subroutine makeWscodeMasks()
         
         call search(wsCode(ix,iy), lst_wsCode, i)
         if( i == 0 )then
-          call errend('wsCode '//str(wsCode(ix,iy))//' was not found in the list.')
+          call errend(ERROR_CODE__CONDITION, &
+            'wsCode '//str(wsCode(ix,iy))//' was not found in the list.')
         endif
       endif
       ws => tbl_ws(i)
@@ -314,7 +315,7 @@ subroutine divideStrrankIntoTiles()
       tye = ty_of_gy(gye_of_lat(ent%ymax))
       if( txs < TXMIN .or. txe > TXMAX .or. &
           tys < TYMIN .or. tye > TYMAX )then
-        call logwrn('Tile index is out of range. iEnt: '//str(iEnt))
+        call logwrn(ERROR_CODE__CONDITION, 'Tile index is out of range. iEnt: '//str(iEnt))
         txs = max(txs, TXMIN)
         txe = min(txe, TXMAX)
         tys = max(tys, TYMIN)

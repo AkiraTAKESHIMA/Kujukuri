@@ -59,7 +59,7 @@ subroutine merge_grid_data(input, output, opt)
   else
     call logent('Calculatin ulim. of length of arrays', PRCNAM, MODNAM)
 
-    call errend(msg_not_implemented())
+    call errend(ERROR_CODE__NOIMPLEMENTATION)
 
     call logext()
   endif
@@ -258,7 +258,7 @@ subroutine merge_grid_data(input, output, opt)
   !-------------------------------------------------------------
   ! Case: ERROR
   case default
-    call errend(msg_invalid_value('input%opt_idx_dup', input%opt_idx_dup))
+    call errend(ERROR_CODE__VALUE, 'input%opt_idx_dup == '//str(input%opt_idx_dup))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -539,8 +539,7 @@ subroutine check_index_duplication(nmax, grdidx, grdara)
     enddo
 
     if( ne /= ns )then
-      call errend(msg_unexpected_condition()//&
-                '\n  Grid index duplicated.')
+      call errend(ERROR_CODE__CONDITION, 'Grid index duplicated.')
     endif
   enddo
   !-------------------------------------------------------------
@@ -634,8 +633,7 @@ subroutine count_valid_grids(input, nmax_valid, idxmin, idxmax)
   nmax_valid = sum(input%list_f_grid(:)%nmax_valid)
 
   if( nmax_valid == 0_8 )then
-    call errend(msg_unexpected_condition()//&
-              '\n  Valid index was not found.')
+    call errend(ERROR_CODE__CONDITION, 'Valid index was not found.')
   endif
 
   deallocate(grdidx)

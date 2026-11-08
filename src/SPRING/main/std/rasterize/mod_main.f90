@@ -78,8 +78,7 @@ subroutine run(s, t, output)
   !-------------------------------------------------------------
   ! Case: Raster
   case( MESHTYPE__RASTER )
-    call errend(msg_unexpected_condition()//&
-              '\n  s%typ: '//str(s%typ))
+    call errend(ERROR_CODE__VALUE, 's%typ == '//str(s%typ))
   !-------------------------------------------------------------
   ! Case: Polygon
   case( MESHTYPE__POLYGON )
@@ -96,7 +95,7 @@ subroutine run(s, t, output)
   !-------------------------------------------------------------
   ! Case: ERROR
   case default
-    call errend(msg_invalid_value('s%typ', s%typ))
+    call errend(ERROR_CODE__VALUE, 's%typ == '//str(s%typ))
   endselect
   !-------------------------------------------------------------
   !

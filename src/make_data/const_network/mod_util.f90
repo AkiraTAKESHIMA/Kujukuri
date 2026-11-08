@@ -157,8 +157,7 @@ real(8) function get_entity_length(ent) result(leng)
   integer :: i
 
   if( ent%nPart > 1 )then
-    call errend(msg_unexpected_condition()//&
-              '\n  ent%nPart > 1', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, 'ent%nPart > 1', MODNAM, PRCNAM)
   endif
 
   part => ent%part(1)
@@ -182,9 +181,9 @@ real(8) function intersection_hline(&
   real(8), intent(in) :: y
 
   if( y0 == y1 )then
-    call errend('y0 == y1', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, 'y0 == y1', MODNAM, PRCNAM)
   elseif( y < min(y0,y1) .or. y > max(y0,y1) )then
-    call errend('y is out of range', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, 'y is out of range', MODNAM, PRCNAM)
   endif
 
   x = x0 + (x1-x0) * (y-y0) / (y1-y0)
@@ -200,9 +199,9 @@ real(8) function intersection_vline(&
   real(8), intent(in) :: x
 
   if( x0 == x1 )then
-    call errend('x0 == x1', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, 'x0 == x1', MODNAM, PRCNAM)
   elseif( x < min(x0,x1) .or. x > max(x0,x1) )then
-    call errend('x is out of range', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, 'x is out of range', MODNAM, PRCNAM)
   endif
 
   y = y0 + (y1-y0) * (x-x0) / (x1-x0)
@@ -244,11 +243,11 @@ real(8) function calc_elv(&
   dlat = lat - center_of_gy(gy)
   if( dlon < 0.d0 .or. dlon > GRIDSIZE_LON .or. &
       dlat < 0.d0 .or. dlat > GRIDSIZE_LAT )then
-    call errend(msg_unexpected_condition()//&
-      '\n  dlon not in [0, GRIDSIZE_LON] or dlat not in [0, GRIDSIZE_LAT]'//&
-      '\ndlon: '//str(dlon)//' dlat: '//str(dlat)//&
-      '\nGRIDSIZE_LON: '//str(GRIDSIZE_LON)//' GRIDSIZE_LAT: '//str(GRIDSIZE_LAT), &
-        '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      '\ndlon not in [0, GRIDSIZE_LON] or dlat not in [0, GRIDSIZE_LAT]'//&
+      '\n  dlon: '//str(dlon)//' dlat: '//str(dlat)//&
+      '\n  GRIDSIZE_LON: '//str(GRIDSIZE_LON)//' GRIDSIZE_LAT: '//str(GRIDSIZE_LAT), &
+        MODNAM, PRCNAM)
   endif
 
   elv_ll = elvmap(gx  , gy+1)
@@ -306,13 +305,13 @@ real(8) function calc_elv(&
         str_elvmin = str(minval(elvmap, mask=elvmap/=ELV_MISS))
         str_elvmax = str(maxval(elvmap, mask=elvmap/=ELV_MISS))
       endif
-      call errend('elv('//str((/elv_ll,elv_lr,elv_ul,elv_ur/),'es10.3',',')//&
-                  ') -> '//str(elv,'es10.3')//&
-          ' (dlon,dlat): ('//str((/dlon,dlat/),'es10.3',',')//')'//&
-          ' (lonsize,latsize): ('//str((/GRIDSIZE_LON,GRIDSIZE_LAT/),'es10.3',',')//')'//&
-        '\nxy: '//str((/gxs,gxe,gys,gye/),8,', ')//&
-        '\nelv min: '//str(str_elvmin)//', max: '//(str_elvmax), &
-          '', PRCNAM, MODNAM)
+      call errend(ERROR_CODE__CONDITION, &
+        'elv('//str((/elv_ll,elv_lr,elv_ul,elv_ur/),'es10.3',',')//') -> '//str(elv,'es10.3')//&
+        ' (dlon,dlat): ('//str((/dlon,dlat/),'es10.3',',')//')'//&
+        ' (lonsize,latsize): ('//str((/GRIDSIZE_LON,GRIDSIZE_LAT/),'es10.3',',')//')'//&
+      '\n  xy: '//str((/gxs,gxe,gys,gye/),8,', ')//&
+      '\n  elv min: '//str(str_elvmin)//', max: '//(str_elvmax), &
+        MODNAM, PRCNAM)
     endif
   endif
 end function calc_elv

@@ -588,7 +588,7 @@ integer(4) function set_default_values_rt_main(&
     rtm%is_sorted_by_tidx = .false.
   case default
     info = 1
-    call errret(msg_invalid_value('mesh_sorted', mesh_sorted_))
+    call errret(ERROR_CODE__VALUE, 'mesh_sorted == '//str(mesh_sorted_))
     return
   endselect
 
@@ -852,13 +852,13 @@ integer(4) function apply_oldfiles_rt_main_file(&
       status = STATUS_UNKNOWN
       action = ACTION_READWRITE
     case default
-      call errret(msg_invalid_value('opt_old_files', opt_old_files))
+      call errret(ERROR_CODE__VALUE, 'opt_old_files == '//str(opt_old_files))
     endselect
   case( RT_STATUS__READ )
     status = STATUS_OLD
     action = ACTION_READ
   case default
-    call errret(msg_invalid_value('rt%status', rt%status))
+    call errret(ERROR_CODE__VALUE, 'rt%status == '//str(rt%status))
   endselect
 
   f_rtm => rt%main%f

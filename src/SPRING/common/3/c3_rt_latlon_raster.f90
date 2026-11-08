@@ -84,9 +84,9 @@ integer(4) function make_rt_latlon_raster(&
     b => s
   else
     info = 1
-    call errret(msg_invalid_value()//&
-              '\n  s%typ: '//str(s%typ)//&
-              '\n  t%typ: '//str(t%typ))
+    call errret(ERROR_CODE__VALUE, &
+    '\n  s%typ: '//str(s%typ)//&
+    '\n  t%typ: '//str(t%typ))
     return
   endif
 
@@ -138,8 +138,7 @@ integer(4) function make_rt_latlon_raster(&
     case_wgtmap = 2
   else
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\nbr%status_wgtmap == '//str(br%status_wgtmap))
+    call errret(ERROR_CODE__VALUE, 'br%status_wgtmap == '//str(br%status_wgtmap))
     return
   endif
 
@@ -184,8 +183,8 @@ integer(4) function make_rt_latlon_raster(&
         call search(aidx, al%grid%idx, al%grid%idxarg, loc)
         if( loc == 0_8 )then
           info = 1
-          call errret(msg_unexpected_condition()//&
-                    '\nIndex of $a, '//str(aidx)//' was not found.')
+          call errret(ERROR_CODE__CONDITION, &
+            'Index of $a '//str(aidx)//' was not found.')
           return
         endif
         aij = al%grid%idxarg(loc)

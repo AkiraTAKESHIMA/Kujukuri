@@ -208,9 +208,9 @@ subroutine print_latlon(nam, ugl, ih, iv)
   idx = ugl%idxmap(ih,iv)
   call search(idx, ugl%grid%idx, ugl%grid%idxarg, loc)
   if( loc == 0_8 )then
-    call errend(msg_unexpected_condition()//&
-              '\nIndex '//str(idx)//' was not found in the list of indices.'//&
-              '\n  nam: '//str(nam))
+    call errend(ERROR_CODE__CONDITION, &
+      'Index '//str(idx)//' was not found in the list of indices.'//&
+    '\n  nam: '//str(nam))
   endif
   ij = ugl%grid%idxarg(loc)
 

@@ -13,8 +13,8 @@ include $(TOPSRCDIR)/Mkinclude
 TARGET = lib_base.a
 
 OBJ_F = \
-  lib_base_message.o\
-  lib_base_char.o\
+  lib_base_language_eng.o\
+  lib_base_log.o\
   lib_base.o
 
 OBJ_C = \

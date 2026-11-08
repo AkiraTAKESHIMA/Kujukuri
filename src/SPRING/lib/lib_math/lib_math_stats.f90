@@ -65,8 +65,7 @@ integer(4) function get_minmax__int1_1d(&
   if( present(mask) )then
     if( size(mask,kind=8) /= nx )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\n  size(mask) /= size(dat)')
+      call errret(ERROR_CODE__CONDITION, 'size(mask) /= size(dat)')
       return
     endif
   endif
@@ -249,8 +248,7 @@ integer(4) function get_minmax__int2_1d(&
   if( present(mask) )then
     if( size(mask,kind=8) /= nx )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\n  size(mask) /= size(dat)')
+      call errret(ERROR_CODE__CONDITION, 'size(mask) /= size(dat)')
       return
     endif
   endif
@@ -433,8 +431,7 @@ integer(4) function get_minmax__int4_1d(&
   if( present(mask) )then
     if( size(mask,kind=8) /= nx )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\n  size(mask) /= size(dat)')
+      call errret(ERROR_CODE__CONDITION, 'size(mask) /= size(dat)')
       return
     endif
   endif
@@ -617,8 +614,7 @@ integer(4) function get_minmax__int8_1d(&
   if( present(mask) )then
     if( size(mask,kind=8) /= nx )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\n  size(mask) /= size(dat)')
+      call errret(ERROR_CODE__CONDITION, 'size(mask) /= size(dat)')
       return
     endif
   endif
@@ -801,8 +797,7 @@ integer(4) function get_minmax__real_1d(&
   if( present(mask) )then
     if( size(mask,kind=8) /= nx )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\n  size(mask) /= size(dat)')
+      call errret(ERROR_CODE__CONDITION, 'size(mask) /= size(dat)')
       return
     endif
   endif
@@ -985,8 +980,7 @@ integer(4) function get_minmax__dble_1d(&
   if( present(mask) )then
     if( size(mask,kind=8) /= nx )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\n  size(mask) /= size(dat)')
+      call errret(ERROR_CODE__CONDITION, 'size(mask) /= size(dat)')
       return
     endif
   endif
@@ -1159,8 +1153,7 @@ integer(4) function get_minmax__int1_2d(&
   if( present(mask) )then
     if( any(shape(mask) /= shape(dat)) )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\n  shape(mask) /= shape(dat)')
+      call errret(ERROR_CODE__CONDITION, 'size(mask) /= size(dat)')
       return
     endif
   endif
@@ -1367,8 +1360,7 @@ integer(4) function get_minmax__int2_2d(&
   if( present(mask) )then
     if( any(shape(mask) /= shape(dat)) )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\n  shape(mask) /= shape(dat)')
+      call errret(ERROR_CODE__CONDITION, 'size(mask) /= size(dat)')
       return
     endif
   endif
@@ -1575,8 +1567,7 @@ integer(4) function get_minmax__int4_2d(&
   if( present(mask) )then
     if( any(shape(mask) /= shape(dat)) )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\n  shape(mask) /= shape(dat)')
+      call errret(ERROR_CODE__CONDITION, 'size(mask) /= size(dat)')
       return
     endif
   endif
@@ -1783,8 +1774,7 @@ integer(4) function get_minmax__int8_2d(&
   if( present(mask) )then
     if( any(shape(mask) /= shape(dat)) )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\n  shape(mask) /= shape(dat)')
+      call errret(ERROR_CODE__CONDITION, 'size(mask) /= size(dat)')
       return
     endif
   endif
@@ -1991,8 +1981,7 @@ integer(4) function get_minmax__real_2d(&
   if( present(mask) )then
     if( any(shape(mask) /= shape(dat)) )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\n  shape(mask) /= shape(dat)')
+      call errret(ERROR_CODE__CONDITION, 'size(mask) /= size(dat)')
       return
     endif
   endif
@@ -2199,8 +2188,7 @@ integer(4) function get_minmax__dble_2d(&
   if( present(mask) )then
     if( any(shape(mask) /= shape(dat)) )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\n  shape(mask) /= shape(dat)')
+      call errret(ERROR_CODE__CONDITION, 'size(mask) /= size(dat)')
       return
     endif
   endif

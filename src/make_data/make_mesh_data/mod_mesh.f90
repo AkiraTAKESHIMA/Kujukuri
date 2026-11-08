@@ -186,7 +186,7 @@ subroutine calc_mesh_intersections(resl, id)
     ye = gye_of_lat(minval(ch%node(:)%lat))
     nMesh_tmp = (xe - xs + 1) * (ye - ys + 1) * 4
     if( nMesh_tmp < 0 )then
-      call errend('nMesh_tmp: '//str(nMesh_tmp))
+      call errend(ERROR_CODE__VALUE, 'nMesh_tmp == '//str(nMesh_tmp))
     endif
     allocate(ci%gx(nMesh_tmp))
     allocate(ci%gy(nMesh_tmp))
@@ -217,7 +217,7 @@ subroutine calc_mesh_intersections(resl, id)
 
         if( ynorth > ysouth )then
           if( ch%lat(jPt) /= ch%lat(jPt+1) )then
-            call errend('ysouth < ynorth. ch#'//str(jCh))
+            call errend(ERROR_CODE__CONDITION, 'ysouth < ynorth. ch#'//str(jCh))
           endif
           ynorth = ysouth
         endif
@@ -253,7 +253,7 @@ subroutine calc_mesh_intersections(resl, id)
 
         if( ysouth < ynorth )then
           if( ch%lat(jPt) /= ch%lat(jPt+1) )then
-            call errend('ysouth < ynorth. ch#'//str(jCh))
+            call errend(ERROR_CODE__CONDITION, 'ysouth < ynorth. ch#'//str(jCh))
           endif
           ynorth = ysouth
         endif      
@@ -417,7 +417,8 @@ subroutine update()
 
     if( abs(ci%gx(ci%n) - ix) > 1 .or. &
         abs(ci%gy(ci%n) - iy) > 1 )then
-      call errend('Discontinuity was found in the intersection. ch#'//str(jCh)//&
+      call errend(ERROR_CODE__CONDITION, &
+        'Discontinuity was found in the intersection. ch#'//str(jCh)//&
       '\n  isct#'//str(ci%n)//' ('//str((/ci%gx(ci%n),ci%gy(ci%n)/),DGT_GXY,',')//')'//&
       '\n  isct#'//str(ci%n+1)//' ('//str((/ix,iy/),DGT_GXY,',')//')')
     endif
@@ -562,8 +563,8 @@ subroutine make_hires_network_mask(&
   integer, intent(out) :: gxs, gxe, gys, gye
 
   type(network_), pointer :: nwk, nwk_self
-  type(isct_), pointer :: isct, isct_self
-  integer :: nNwk, jNwk
+  type(isct_), pointer :: isct_self
+  integer :: nNwk
 
   integer :: iPix
   integer :: nEdgePix
@@ -621,12 +622,12 @@ subroutine make_hires_network_mask(&
 
   allocate(fdrmap(gxs_outer:gxe_outer,gys_outer:gye_outer))
   call read_map_from_tile(&
-    RESOLUTION_1SEC, 'dir', DTYPE_INT1, FDR_MISS, &
+    RESOLUTION_1SEC, 'dir', DTYPE_INT1, FDR__MISS, &
     gxs_outer, gys_outer, &
     fdrmap &
   )
 
-  where( fdrmap == FDR_MISS )
+  where( fdrmap == FDR__MISS )
     nwkmap = STAT_NWKMESH__OCEAN
   endwhere
 
@@ -700,7 +701,7 @@ subroutine make_hires_network_mask(&
           size(fdrmap,2) /= gye_outer - gys_outer + 1 )then
         call realloc(fdrmap, (/gxs_outer,gys_outer/), (/gxe_outer,gye_outer/), clear=.true.)
         call read_map_from_tile(&
-          RESOLUTION_1SEC, 'dir', DTYPE_INT1, FDR_MISS, &
+          RESOLUTION_1SEC, 'dir', DTYPE_INT1, FDR__MISS, &
           gxs_outer, gys_outer, &
           fdrmap &
         )
@@ -835,8 +836,7 @@ subroutine make_hires_network_mask(&
   !call traperr( wbin(nwkmap(gxs:gxe,gys:gye), 'tmp/nwkmap.bin', replace=.true.) )
 
   if( any(nwkmap(gxs:gxe,gys:gye) == STAT_NWKMESH__UNKNOWN) )then
-    call errend(msg_unexpected_condition()//&
-        '\n  any(nwkmap == UNKNOWN)')
+    call errend(ERROR_CODE__CONDITION, 'any(nwkmap == UNKNOWN)')
   endif
 
   call logext()
@@ -935,7 +935,8 @@ subroutine read_isct_with_mesh(nwk)
   open(newunit=un, file=f, form='unformatted', access='sequential', status='old')
   read(un) nCh
   if( nCh /= nwk%nCh )then
-    call errend('The number of channels mismatch. Record in the file: '//str(nCh)//&
+    call errend(ERROR_CODE__CONDITION, &
+      'The number of channels mismatch. Record in the file: '//str(nCh)//&
       ', stored value: '//str(nwk%nCh))
   endif
 
@@ -985,7 +986,7 @@ subroutine read_isct_with_mesh(nwk)
     enddo
 
     if( any(ni%gx(is:ie) /= ni%gx(is)) )then
-      call errend('Sorting failed (1)')
+      call errend(ERROR_CODE__CONDITION, 'Sorting failed (1)')
     endif
     call argsort(ni%gy(is:ie), arg(is:ie))
     call sort(ni%gy(is:ie), arg(is:ie))
@@ -1000,7 +1001,7 @@ subroutine read_isct_with_mesh(nwk)
         iie = iie + 1
       enddo
       if( any(ni%gy(iis:iie) /= ni%gy(iis)) )then
-        call errend('Sorting failed (2)')
+        call errend(ERROR_CODE__CONDITION, 'Sorting failed (2)')
       endif
 
       call add(ni%n)
@@ -1094,8 +1095,8 @@ logical function reached_nwk(gx, gy) result(res)
     !-----------------------------------------------------------
     ! Case: ERROR
     case default
-      call errend(msg_invalid_value('nwkmap', nwkmap(igx,igy)), &
-        '', PRCNAM, MODNAM)
+      call errend(ERROR_CODE__VALUE, 'nwkmap == '//str(nwkmap(igx,igy)), &
+        MODNAM, PRCNAM)
     endselect
     !-----------------------------------------------------------
     ! Check if it reached outlet
@@ -1103,17 +1104,16 @@ logical function reached_nwk(gx, gy) result(res)
     selectcase( fdrmap(igx,igy) )
     case( 1_1: )
       continue
-    case( FDR_RIVERMOUTH, &
-          FDR_INLAND )
+    case( FDR__RIVERMOUTH, &
+          FDR__INLAND )
       stat = STAT_NWKMESH__OUT
       exit
-    case( FDR_MISS, &
-          FDR_UNDEF )
-      call errend(msg_unexpected_condition()//&
-        '\nfdr == '//str(fdrmap(igx,igy))//&
-        '\n(gx,gy): '//str((/gx,gy/),','))
+    case( FDR__MISS, &
+          FDR__UNDEF )
+      call errend(ERROR_CODE__VALUE, 'fdr == '//str(fdrmap(igx,igy))//&
+      '\n  (gx,gy): '//str((/gx,gy/),','))
     case default
-      call errend(msg_invalid_value('fdrmap', fdrmap(igx,igy)))
+      call errend(ERROR_CODE__VALUE, 'fdr == '//str(fdrmap(igx,igy)))
     endselect
     !-----------------------------------------------------------
     ! Move to the next grid
@@ -1398,7 +1398,7 @@ subroutine scale_up__core(&
   allocate(upg(nx,ny))
 
   elv(:,:) = ELV_MISS
-  fdr(:,:) = FDR_MISS
+  fdr(:,:) = FDR__MISS
   upg(:,:) = UPG_MISS
   call traperr( rbin(elv(xs:xe,ys:ye), f_elv) )
   call traperr( rbin(fdr(xs:xe,ys:ye), f_fdr) )
@@ -1525,7 +1525,7 @@ subroutine scale_up__core(&
   !-------------------------------------------------------------
   call logent('Finding the neighbor')
 
-  fdr2(:,:) = FDR_MISS
+  fdr2(:,:) = FDR__MISS
   do iy2 = 1, ny2
   do ix2 = 1, nx2
     if( elv2(ix2,iy2) == ELV_MISS ) cycle
@@ -1550,8 +1550,8 @@ subroutine scale_up__core(&
 
     xx2 = (xx-1) / ratio + 1
     yy2 = (yy-1) / ratio + 1
-    if( fdr(ix,iy) == FDR_RIVERMOUTH )then
-      fdr2(xx2,yy2) = FDR_RIVERMOUTH
+    if( fdr(ix,iy) == FDR__RIVERMOUTH )then
+      fdr2(xx2,yy2) = FDR__RIVERMOUTH
     else
       fdr2(ix2,iy2) = get_fdr(ix2, iy2, xx2, yy2)
     endif
@@ -1794,9 +1794,10 @@ subroutine trim_catm(&
     rri_get_f_data, &
     rri_read_map  , &
     rri_write_map
+  use c3_joint_grid, only: &
+    joint_conv_fdr_jflw2rri => conv_fdr_jflw2rri
   use c3_joint_util, only: &
-    joint_conv_fdr_jflw2rri => conv_fdr_jflw2rri, &
-    joint_get_miss          => get_miss
+    joint_get_miss => get_miss
   implicit none
   character(CLEN_PATH), parameter :: PRCNAM = 'trim_catm'
   character(*), intent(in) :: catmType
@@ -1815,7 +1816,6 @@ subroutine trim_catm(&
   real(4)    :: r4miss
   integer :: nx, ny, gxs, gxe, gys, gye
   real(8) :: west, east, south, north
-  integer :: igx, igy
   character(CLEN_VAR) :: inputDataName
   character(CLEN_KEY) :: dtype
   character(CLEN_PATH) :: f_msk, f_var
@@ -1930,12 +1930,11 @@ subroutine trim_catm(&
   !-------------------------------------------------------------
   ! Case: Network set mesh
   case( CATMTYPE__NETWORKSET )
-    call errend(msg_not_implemented()//&
-      '\n  catmType: '//str(catmType))
+    call errend(ERROR_CODE__NOIMPLEMENTATION, 'catmType == '//str(catmType))
   !-------------------------------------------------------------
   ! Case: ERROR
   case default
-    call errend(msg_invalid_value('catmType', catmType))
+    call errend(ERROR_CODE__VALUE, 'catmType == '//str(catmType))
   endselect
 
   call logext()
@@ -1956,7 +1955,7 @@ subroutine trim_catm(&
       case( OUTFMT__RRI )
         inputDataName = DATANAME__RRI
       case default
-        call errend(msg_invalid_value('outFmt', outFmt))
+        call errend(ERROR_CODE__VALUE, 'outFmt == '//str(outFmt))
       endselect
 
       selectcase( varName )
@@ -2003,7 +2002,7 @@ subroutine trim_catm(&
       !-----------------------------------------------------------
       ! Case: ERROR
       case default
-        call errend(msg_invalid_value('varName', varName))
+        call errend(ERROR_CODE__VALUE, 'varName == '//str(varName))
       endselect
       !-----------------------------------------------------------
       ! Output
@@ -2022,17 +2021,13 @@ subroutine trim_catm(&
         case( DTYPE_REAL )
           call traperr( wbin(r4map, f_var, replace=.true.) )
         case default
-          call errend(msg_invalid_value('dtype', dtype))
+          call errend(ERROR_CODE__VALUE, 'dtype == '//str(dtype))
         endselect
       !---------------------------------------------------------
       ! Case: RRI
       case( OUTFMT__RRI )
         if( varName == VARNAME__FDR )then
-          do igy = gys, gye
-          do igx = gxs, gxe
-            call joint_conv_fdr_jflw2rri(int(i4map(igx,igy),1), i4map(igx,igy))
-          enddo  ! igx/
-          enddo  ! igy/
+          call joint_conv_fdr_jflw2rri(int(i4map,1), i4map)
         endif
 
         selectcase( dtype )
@@ -2049,12 +2044,12 @@ subroutine trim_catm(&
             west, south, JFLW_GRIDSIZE_LON &
           )
         case default
-          call errend(msg_invalid_value('dtype', dtype))
+          call errend(ERROR_CODE__VALUE, 'dtype == '//str(dtype))
         endselect
       !---------------------------------------------------------
       ! Case: ERROR
       case default
-        call errend(msg_invalid_value('outFmt', outFmt))
+        call errend(ERROR_CODE__VALUE, 'outFmt == '//str(outFmt))
       endselect
     enddo  ! iOutfmt
   enddo  ! iVar
@@ -2086,15 +2081,14 @@ character(CLEN_PATH) function get_f_var(&
     case( CATMTYPE__NETWORK )
       f = strnk_get_f_network_mesh(resl, varName, id)
     case( CATMTYPE__NETWORKSET )
-      call errend(msg_not_implemented()//&
-        '\n  catmType: '//str(catmType))
+      call errend(ERROR_CODE__NOIMPLEMENTATION, 'catmType == '//str(catmType))
     case default
-      call errend(msg_invalid_value('catmType', catmType))
+      call errend(ERROR_CODE__VALUE, 'catmType == '//str(catmType))
     endselect
   case( OUTFMT__RRI )
     f = rri_get_f_data(catmType, resl, varName, id)
   case default
-    call errend(msg_invalid_value('outfmt', outfmt))
+    call errend(ERROR_CODE__VALUE, 'outFmt == '//str(outFmt))
   endselect
 
   call logext()

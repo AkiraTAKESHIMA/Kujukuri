@@ -546,7 +546,7 @@ subroutine separate_network(id)
           ch2 => nwk%channel(jCh2)
           if( ch2%wsCode_i /= ch%wsCode_i )then
             if( n == size(lst_wsCode_i) )then
-              call errend('n == size(lst_wsCode_i)')
+              call errend(ERROR_CODE__CONDITION, 'n == size(lst_wsCode_i)')
             endif
             call add(n)
             lst_wsCode_i(n) = ch2%wsCode_i
@@ -1001,7 +1001,8 @@ subroutine separate_network(id)
   call logmsg('New networks: '//str(nNwk))
 
   if( sum(snetwork_tmp(:)%nCh) /= nwk%nCh_valid )then
-    call errend('Total number of channel mismatch.'//&
+    call errend(ERROR_CODE__CONDITION, &
+      'Total number of channel mismatch.'//&
     '\n  sntework_tmp(:)%nCh: '//str(snetwork_tmp(:)%nCh)//&
     '\n  nwk%nCh_valid: '//str(nwk%nCh_valid))
   endif
@@ -1268,8 +1269,9 @@ subroutine set_separated_network_ids(lst_nwk, lst_jNwk)
     enddo
 
     if( ie - is + 1 > NLIM_SAME_WSCODE )then
-      call errend('More than '//str(NLIM_SAME_WSCODE)//&
-          ' networks with same wsCode '//str(lst_wsCode_i(is)))
+      call errend(ERROR_CODE__CONDITION, &
+        'More than '//str(NLIM_SAME_WSCODE)//&
+        ' networks with same wsCode '//str(lst_wsCode_i(is)))
     endif
 
     call argsort(lst_wsLeng(is:ie), arg(is:ie))
@@ -1315,7 +1317,7 @@ subroutine set_separated_network_ids(lst_nwk, lst_jNwk)
   call argsort(lst_id_i, lst_jNwk)
   do jjNwk = 1, nNwk-1
     if( lst_id_i(lst_jNwk(jjNwk+1)) == lst_id_i(lst_jNwk(jjNwk)) )then
-      call errend('Duplicated id: '//str(lst_id_i(lst_jNwk(jjNwk))))
+      call errend(ERROR_CODE__CONDITION, 'Duplicated id: '//str(lst_id_i(lst_jNwk(jjNwk))))
     endif
   enddo  ! jNwk/
   deallocate(lst_id_i)
@@ -1518,7 +1520,7 @@ subroutine make_separated_network_data(&
   do iiCh = 1, nwk%nCh
     jCh = nwk%jCh(iiCh)
     if( jCh2jNwk(jCh) /= 0 )then
-      call errend('jCh2jNwk(jCh) /= 0')
+      call errend(ERROR_CODE__CONDITION, 'jCh2jNwk(jCh) /= 0')
     endif
     jCh2jNwk(jCh) = jNwk
   enddo
@@ -1555,7 +1557,7 @@ subroutine make_separated_network_data(&
 
     call search(jCh, nwk%jCh, iiCh)
     if( iiCh == 0 )then
-      call errend('jCh was not found in nwk%jCh')
+      call errend(ERROR_CODE__CONDITION, 'jCh was not found in nwk%jCh')
     endif
     ch => nwk%channel(iiCh)
 
@@ -1634,7 +1636,8 @@ subroutine make_separated_network_data(&
          ' - '//slonlat(ch2%node(2)%lon,ch2%node(2)%lat))
 
     if( ch%n == 0 .or. ch2%n == 0 )then
-      call errend('ch#'//str(jCh)//' n: '//str(ch%n)//&
+      call errend(ERROR_CODE__CONDITION, &
+          'ch#'//str(jCh)//' n: '//str(ch%n)//&
           ', ch#'//str(jCh2)//' n: '//str(ch2%n))
     endif
 
@@ -1651,7 +1654,7 @@ subroutine make_separated_network_data(&
       call swap_chnode(ch2)
     endif
     if( ch%lon(ch%n) /= ch2%lon(1) .or. ch%lat(ch%n) /= ch2%lat(1) )then
-      call errend(&
+      call errend(ERROR_CODE__CONDITION, &
         'jNode: '//str(jNode)//' jNode2: '//str(jNode2)//&
       '\nch  node(1): '//slonlat(ch%node(1)%lon,ch%node(1)%lat)//&
           ', node(2): '//slonlat(ch%node(2)%lon,ch%node(2)%lat)//&
@@ -1691,7 +1694,7 @@ subroutine make_separated_network_data(&
     jNode = 2
     nwknode => nwk%node(ch2%node(jNode)%iNode)
     if( .not. any(nwknode%jCh(:) == jCh2) )then
-      call errend('jCh2 not found in nwknode%jCh')
+      call errend(ERROR_CODE__CONDITION, 'jCh2 not found in nwknode%jCh')
     endif
     do iiCh = 1, nwknode%nCh
       if( nwknode%jCh(iiCh) /= jCh2 ) cycle
@@ -1909,7 +1912,7 @@ subroutine calc_distance_to_outlet(nwk)
   call search_for_outlet(is_outlet_exist)
 
   if( .not. is_outlet_exist )then
-    call logwrn('Outlet was not found.')
+    call logwrn(ERROR_CODE__CONDITION, 'Outlet was not found.')
     call logret(PRCNAM, MODNAM)
     return
   endif
@@ -1986,10 +1989,11 @@ subroutine calc_distance_to_outlet(nwk)
     if( nwknode%typ == NODETYPE_NEW__OUT ) cycle
 
     if( nwknode%iNode_down == 0 )then
-      call errend('%iNode_down is missing: node('//str(iNode)//')'//&
-        '\njCh: '//str(nwknode%jCh(:))//&
-        '\niNode: '//str(iNode)//&
-        '\ntyp: '//str(nwknode%typ))
+      call errend(ERROR_CODE__CONDITION, &
+        '%iNode_down is missing: node('//str(iNode)//')'//&
+      '\n  jCh: '//str(nwknode%jCh(:))//&
+      '\n  iNode: '//str(iNode)//&
+      '\n  typ: '//str(nwknode%typ))
     endif
 
     nwknode%iCh_down = 0
@@ -1999,10 +2003,11 @@ subroutine calc_distance_to_outlet(nwk)
       endif
     enddo
     if( nwknode%iCh_down == 0 )then
-      call errend('%iNode_down was not found in %iNode(:).'//&
-        '\niNode_down: '//str(nwknode%iNode_down)//&
-        '\niNode: '//str(iNode)//&
-        '\ntyp: '//str(nwknode%typ))
+      call errend(ERROR_CODE__CONDITION, &
+        '%iNode_down was not found in %iNode(:).'//&
+      '\n  iNode_down: '//str(nwknode%iNode_down)//&
+      '\n  iNode: '//str(iNode)//&
+      '\n  typ: '//str(nwknode%typ))
     endif
   enddo  ! iNode/
 

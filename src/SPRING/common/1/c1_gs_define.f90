@@ -71,8 +71,8 @@ integer(4) function set_mesh__any(a) result(info)
 
   case default
     info = 1
-    call errret(msg_invalid_value('a%typ', a%typ)//&
-              '\n  Mesh: '//str(a%nam))
+    call errret(ERROR_CODE__VALUE, 'a%typ == '//str(a%typ)//&
+    '\n  Mesh: '//str(a%nam))
     return
   endselect
   !-------------------------------------------------------------
@@ -119,7 +119,7 @@ integer(4) function set_gs__latlon(ul, lon, lat) result(info)
     coef = 1.d0
   case default
     info = 1
-    call errret(msg_invalid_value('ul%coord_unit', ul%coord_unit))
+    call errret(ERROR_CODE__VALUE, 'ul%coord_unit == '//str(ul%coord_unit))
     return
   endselect
 
@@ -495,11 +495,11 @@ integer(4) function modify_lon_deg(lon, id) result(info)
     continue
   else
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\nlon < -180 .or. 360 < lon'//&
-              '\n  id: '//str(id)//&
-              '\n  lon: '//str(lon), &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__CONDITION, &
+      'lon < -180 or 360 < lon'//&
+    '\n  id: '//str(id)//&
+    '\n  lon: '//str(lon), &
+      MODNAM, PRCNAM)
     return
   endif
   !-------------------------------------------------------------
@@ -628,12 +628,12 @@ integer(4) function check_bounds_lon(west, east) result(info)
   if( west < -180.d0 .or. west > 360.d0 .or. &
       east < -180.d0 .or. east > 360.d0 )then
     info = 0
-    call errret(msg_unexpected_condition()//&
-              '\nRange of longitudes is invalid.'//&
-              '\n  west: '//str(west)//&
-              '\n  east: '//str(east)//&
-              '\nLongitudes must be in the range of'//&
-                ' [-180, 180] or [0, 360].')
+    call errret(ERROR_CODE__CONDITION, &
+      'The range of longitudes is invalid.'//&
+    '\n  west: '//str(west)//&
+    '\n  east: '//str(east)//&
+    '\nLongitudes must be in the range of'//&
+      ' [-180, 180] or [0, 360].')
     return
   endif
   !-------------------------------------------------------------
@@ -643,11 +643,11 @@ integer(4) function check_bounds_lon(west, east) result(info)
   if( west < 0.d0 )then
     if( east < -180.d0 .or. east > 180.d0 )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\nRange of longitudes is invalid:'//&
-                '\n  west < 0 .and. (east < -180 .or. east > 180)'//&
-                '\nLongitudes must be in the range of [-180, 180]'//&
-                  ' when $west is negative.')
+      call errret(ERROR_CODE__CONDITION, &
+      'The range of longitudes is invalid:'//&
+      '\n  west < 0 .and. (east < -180 .or. east > 180)'//&
+      '\nLongitudes must be in the range of [-180, 180]'//&
+        ' when `west` is negative.')
       return
     endif
   !-------------------------------------------------------------
@@ -655,11 +655,11 @@ integer(4) function check_bounds_lon(west, east) result(info)
   elseif( west > 180.d0 )then
     if( east < 0.d0 )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\nRange of longitudes is invalid:'//&
-                '\n  west > 180 .and. east < 0'//&
-                '\nLongitudes must be in the range of [0, 360]'//&
-                  ' when $west is negative.')
+      call errret(ERROR_CODE__CONDITION, &
+      'The range of longitudes is invalid:'//&
+      '\n  west > 180 .and. east < 0'//&
+      '\nLongitudes must be in the range of [0, 360]'//&
+        ' when `west` is negative.')
       return
     endif
   endif
@@ -682,12 +682,11 @@ integer(4) function check_bounds_lat(south, north) result(info)
   if( south < -90.d0 .or. south > 90.d0 .or. &
       north < -90.d0 .or. north > 90.d0 )then
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\nRange of latitudes is invalid.'//&
-              '\n  south: '//str(south)//&
-              '\n  north: '//str(north)//&
-              '\nLatitudes must be in the range of'//&
-                ' [-90, 90].')
+    call errret(ERROR_CODE__CONDITION, &
+    '\nThe range of latitudes is invalid.'//&
+    '\n  south: '//str(south)//&
+    '\n  north: '//str(north)//&
+    '\nLatitudes must be in the range of [-90, 90].')
     return
   endif
   !-------------------------------------------------------------
@@ -695,10 +694,10 @@ integer(4) function check_bounds_lat(south, north) result(info)
   !-------------------------------------------------------------
   if( south >= north )then
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\n  south >= north'//&
-              '\n  south: '//str(south)//&
-              '\n  north: '//str(north))
+    call errret(ERROR_CODE__CONDITION, &
+      'south >= north'//&
+    '\n  south: '//str(south)//&
+    '\n  north: '//str(north))
     return
   endif
   !-------------------------------------------------------------

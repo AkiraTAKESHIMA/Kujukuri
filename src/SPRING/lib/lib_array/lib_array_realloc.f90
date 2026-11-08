@@ -3824,8 +3824,8 @@ subroutine realloc_log1_2d_size4(arr, sz)
     if( associated(arr) ) deallocate(arr)
     nullify(arr)
   else
-    call errend(msg_unexpected_condition()//&
-              '\nsz > 0', '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'sz > 0', MODNAM, PRCNAM)
   endif
 end subroutine realloc_log1_2d_size4
 !===============================================================
@@ -3843,8 +3843,8 @@ subroutine realloc_log1_2d_size8(arr, sz)
     if( associated(arr) ) deallocate(arr)
     nullify(arr)
   else
-    call errend(msg_unexpected_condition()//&
-              '\nsz > 0', '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'sz > 0', MODNAM, PRCNAM)
   endif
 end subroutine realloc_log1_2d_size8
 !===============================================================
@@ -3862,8 +3862,8 @@ subroutine realloc_log1_3d_size4(arr, sz)
     if( associated(arr) ) deallocate(arr)
     nullify(arr)
   else
-    call errend(msg_unexpected_condition()//&
-              '\nsz > 0', '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'sz > 0', MODNAM, PRCNAM)
   endif
 end subroutine realloc_log1_3d_size4
 !===============================================================
@@ -3882,8 +3882,8 @@ subroutine realloc_log1_3d_size8(arr, sz)
     allocate(arr(0,0,0))
     deallocate(arr)
   else
-    call errend(msg_unexpected_condition()//&
-              '\nsz > 0', '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'sz > 0', MODNAM, PRCNAM)
   endif
 end subroutine realloc_log1_3d_size8
 !===============================================================
@@ -3953,8 +3953,8 @@ subroutine realloc_log4_2d_size4(arr, sz)
     if( associated(arr) ) deallocate(arr)
     nullify(arr)
   else
-    call errend(msg_unexpected_condition()//&
-              '\nsz > 0', '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'sz > 0', MODNAM, PRCNAM)
   endif
 end subroutine realloc_log4_2d_size4
 !===============================================================
@@ -3972,8 +3972,8 @@ subroutine realloc_log4_2d_size8(arr, sz)
     if( associated(arr) ) deallocate(arr)
     nullify(arr)
   else
-    call errend(msg_unexpected_condition()//&
-              '\nsz > 0', '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'sz > 0', MODNAM, PRCNAM)
   endif
 end subroutine realloc_log4_2d_size8
 !===============================================================
@@ -3992,8 +3992,8 @@ subroutine realloc_log4_3d_size4(arr, sz)
     allocate(arr(0,0,0))
     deallocate(arr)
   else
-    call errend(msg_unexpected_condition()//&
-              '\nsz > 0', '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'sz > 0', MODNAM, PRCNAM)
   endif
 end subroutine realloc_log4_3d_size4
 !===============================================================
@@ -4012,8 +4012,8 @@ subroutine realloc_log4_3d_size8(arr, sz)
     allocate(arr(0,0,0))
     deallocate(arr)
   else
-    call errend(msg_unexpected_condition()//&
-              '\nsz > 0', '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'sz > 0', MODNAM, PRCNAM)
   endif
 end subroutine realloc_log4_3d_size8
 !===============================================================
@@ -4083,8 +4083,8 @@ subroutine realloc_int1_2d_size4(arr, sz)
     if( associated(arr) ) deallocate(arr)
     nullify(arr)
   else
-    call errend(msg_unexpected_condition()//&
-              '\nsz > 0', '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'sz > 0', MODNAM, PRCNAM)
   endif
 end subroutine realloc_int1_2d_size4
 !===============================================================
@@ -4102,8 +4102,8 @@ subroutine realloc_int1_2d_size8(arr, sz)
     if( associated(arr) ) deallocate(arr)
     nullify(arr)
   else
-    call errend(msg_unexpected_condition()//&
-              '\nsz > 0', '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'sz > 0', MODNAM, PRCNAM)
   endif
 end subroutine realloc_int1_2d_size8
 !===============================================================
@@ -4122,8 +4122,8 @@ subroutine realloc_int1_3d_size4(arr, sz)
     allocate(arr(0,0,0))
     deallocate(arr)
   else
-    call errend(msg_unexpected_condition()//&
-              '\nsz > 0', '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'sz > 0', MODNAM, PRCNAM)
   endif
 end subroutine realloc_int1_3d_size4
 !===============================================================
@@ -4142,8 +4142,8 @@ subroutine realloc_int1_3d_size8(arr, sz)
     allocate(arr(0,0,0))
     deallocate(arr)
   else
-    call errend(msg_unexpected_condition()//&
-              '\nsz > 0', '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'sz > 0', MODNAM, PRCNAM)
   endif
 end subroutine realloc_int1_3d_size8
 !===============================================================
@@ -4213,8 +4213,8 @@ subroutine realloc_int2_2d_size4(arr, sz)
     if( associated(arr) ) deallocate(arr)
     nullify(arr)
   else
-    call errend(msg_unexpected_condition()//&
-              '\nsz > 0', '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'sz > 0', MODNAM, PRCNAM)
   endif
 end subroutine realloc_int2_2d_size4
 !===============================================================
@@ -4232,8 +4232,8 @@ subroutine realloc_int2_2d_size8(arr, sz)
     if( associated(arr) ) deallocate(arr)
     nullify(arr)
   else
-    call errend(msg_unexpected_condition()//&
-              '\nsz > 0', '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'sz > 0', MODNAM, PRCNAM)
   endif
 end subroutine realloc_int2_2d_size8
 !===============================================================
@@ -4251,8 +4251,8 @@ subroutine realloc_int2_3d_size4(arr, sz)
     if( associated(arr) ) deallocate(arr)
     nullify(arr)
   else
-    call errend(msg_unexpected_condition()//&
-              '\nsz > 0', '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'sz > 0', MODNAM, PRCNAM)
   endif
 end subroutine realloc_int2_3d_size4
 !===============================================================
@@ -4270,8 +4270,8 @@ subroutine realloc_int2_3d_size8(arr, sz)
     if( associated(arr) ) deallocate(arr)
     nullify(arr)
   else
-    call errend(msg_unexpected_condition()//&
-              '\nsz > 0', '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'sz > 0', MODNAM, PRCNAM)
   endif
 end subroutine realloc_int2_3d_size8
 !===============================================================
@@ -4341,8 +4341,8 @@ subroutine realloc_int4_2d_size4(arr, sz)
     if( associated(arr) ) deallocate(arr)
     nullify(arr)
   else
-    call errend(msg_unexpected_condition()//&
-              '\nsz > 0', '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'sz > 0', MODNAM, PRCNAM)
   endif
 end subroutine realloc_int4_2d_size4
 !===============================================================
@@ -4360,8 +4360,8 @@ subroutine realloc_int4_2d_size8(arr, sz)
     if( associated(arr) ) deallocate(arr)
     nullify(arr)
   else
-    call errend(msg_unexpected_condition()//&
-              '\nsz > 0', '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'sz > 0', MODNAM, PRCNAM)
   endif
 end subroutine realloc_int4_2d_size8
 !===============================================================
@@ -4379,8 +4379,8 @@ subroutine realloc_int4_3d_size4(arr, sz)
     if( associated(arr) ) deallocate(arr)
     nullify(arr)
   else
-    call errend(msg_unexpected_condition()//&
-              '\nsz > 0', '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'sz > 0', MODNAM, PRCNAM)
   endif
 end subroutine realloc_int4_3d_size4
 !===============================================================
@@ -4398,8 +4398,8 @@ subroutine realloc_int4_3d_size8(arr, sz)
     if( associated(arr) ) deallocate(arr)
     nullify(arr)
   else
-    call errend(msg_unexpected_condition()//&
-              '\nsz > 0', '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'sz > 0', MODNAM, PRCNAM)
   endif
 end subroutine realloc_int4_3d_size8
 !===============================================================
@@ -4469,8 +4469,8 @@ subroutine realloc_int8_2d_size4(arr, sz)
     if( associated(arr) ) deallocate(arr)
     nullify(arr)
   else
-    call errend(msg_unexpected_condition()//&
-              '\nsz > 0', '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'sz > 0', MODNAM, PRCNAM)
   endif
 end subroutine realloc_int8_2d_size4
 !===============================================================
@@ -4488,8 +4488,8 @@ subroutine realloc_int8_2d_size8(arr, sz)
     if( associated(arr) ) deallocate(arr)
     nullify(arr)
   else
-    call errend(msg_unexpected_condition()//&
-              '\nsz > 0', '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'sz > 0', MODNAM, PRCNAM)
   endif
 end subroutine realloc_int8_2d_size8
 !===============================================================
@@ -4507,8 +4507,8 @@ subroutine realloc_int8_3d_size4(arr, sz)
     if( associated(arr) ) deallocate(arr)
     nullify(arr)
   else
-    call errend(msg_unexpected_condition()//&
-              '\nsz > 0', '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'sz > 0', MODNAM, PRCNAM)
   endif
 end subroutine realloc_int8_3d_size4
 !===============================================================
@@ -4526,8 +4526,8 @@ subroutine realloc_int8_3d_size8(arr, sz)
     if( associated(arr) ) deallocate(arr)
     nullify(arr)
   else
-    call errend(msg_unexpected_condition()//&
-              '\nsz > 0', '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'sz > 0', MODNAM, PRCNAM)
   endif
 end subroutine realloc_int8_3d_size8
 !===============================================================
@@ -4597,8 +4597,8 @@ subroutine realloc_real_2d_size4(arr, sz)
     if( associated(arr) ) deallocate(arr)
     nullify(arr)
   else
-    call errend(msg_unexpected_condition()//&
-              '\nsz > 0', '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'sz > 0', MODNAM, PRCNAM)
   endif
 end subroutine realloc_real_2d_size4
 !===============================================================
@@ -4616,8 +4616,8 @@ subroutine realloc_real_2d_size8(arr, sz)
     if( associated(arr) ) deallocate(arr)
     nullify(arr)
   else
-    call errend(msg_unexpected_condition()//&
-              '\nsz > 0', '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'sz > 0', MODNAM, PRCNAM)
   endif
 end subroutine realloc_real_2d_size8
 !===============================================================
@@ -4635,8 +4635,8 @@ subroutine realloc_real_3d_size4(arr, sz)
     if( associated(arr) ) deallocate(arr)
     nullify(arr)
   else
-    call errend(msg_unexpected_condition()//&
-              '\nsz > 0', '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'sz > 0', MODNAM, PRCNAM)
   endif
 end subroutine realloc_real_3d_size4
 !===============================================================
@@ -4654,8 +4654,8 @@ subroutine realloc_real_3d_size8(arr, sz)
     if( associated(arr) ) deallocate(arr)
     nullify(arr)
   else
-    call errend(msg_unexpected_condition()//&
-              '\nsz > 0', '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'sz > 0', MODNAM, PRCNAM)
   endif
 end subroutine realloc_real_3d_size8
 !===============================================================
@@ -4725,8 +4725,8 @@ subroutine realloc_dble_2d_size4(arr, sz)
     if( associated(arr) ) deallocate(arr)
     nullify(arr)
   else
-    call errend(msg_unexpected_condition()//&
-              '\nsz > 0', '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'sz > 0', MODNAM, PRCNAM)
   endif
 end subroutine realloc_dble_2d_size4
 !===============================================================
@@ -4744,8 +4744,8 @@ subroutine realloc_dble_2d_size8(arr, sz)
     if( associated(arr) ) deallocate(arr)
     nullify(arr)
   else
-    call errend(msg_unexpected_condition()//&
-              '\nsz > 0', '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'sz > 0', MODNAM, PRCNAM)
   endif
 end subroutine realloc_dble_2d_size8
 !===============================================================
@@ -4763,8 +4763,8 @@ subroutine realloc_dble_3d_size4(arr, sz)
     if( associated(arr) ) deallocate(arr)
     nullify(arr)
   else
-    call errend(msg_unexpected_condition()//&
-              '\nsz > 0', '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'sz > 0', MODNAM, PRCNAM)
   endif
 end subroutine realloc_dble_3d_size4
 !===============================================================
@@ -4782,8 +4782,8 @@ subroutine realloc_dble_3d_size8(arr, sz)
     if( associated(arr) ) deallocate(arr)
     nullify(arr)
   else
-    call errend(msg_unexpected_condition()//&
-              '\nsz > 0', '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'sz > 0', MODNAM, PRCNAM)
   endif
 end subroutine realloc_dble_3d_size8
 !===============================================================

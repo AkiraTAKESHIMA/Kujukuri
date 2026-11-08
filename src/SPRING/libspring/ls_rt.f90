@@ -131,7 +131,7 @@ integer(4) function point_rt(name, rt) result(info)
   enddo
 
   info = 1
-  call errret('Remapping table "'//str(name)//'" is undefined.')
+  call errret(ERROR_CODE__VALUE, 'Remapping table "'//str(name)//'" is undefined.')
   return
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -179,8 +179,8 @@ integer(4) function spring_make_rmptbl(&
 
   if( name == '' )then
     info = 1
-    call errret(msg_invalid_value('name', name)//&
-              '\n$name must not be an empty string.')
+    call errret(ERROR_CODE__VALUE, 'name == '//str(name)//&
+      '`name` must not be an empty string.')
     return
   endif
 
@@ -195,8 +195,8 @@ integer(4) function spring_make_rmptbl(&
 
   if( .not. associated(rt) )then
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\nNo slot for remapping table is left.')
+    call errret(ERROR_CODE__CONDITION, &
+      'No slot for remapping table is left.')
     return
   endif
   !-------------------------------------------------------------
@@ -333,10 +333,10 @@ integer(4) function spring_get_rmptbl_data(&
   if( present(sidx) )then
     if( rtm%nij /= size(sidx) )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\nSize of $sidx is invalid.'//&
-                '\n  Size of $sidx             : '//str(size(sidx))//&
-                '\n  Actual length of the table: '//str(rtm%nij))
+      call errret(ERROR_CODE__CONDITION, &
+        'Size of $sidx is invalid.'//&
+      '\n  Size of $sidx             : '//str(size(sidx))//&
+      '\n  Actual length of the table: '//str(rtm%nij))
       return
     endif
     sidx(:) = rtm%sidx(:)
@@ -345,10 +345,10 @@ integer(4) function spring_get_rmptbl_data(&
   if( present(tidx) )then
     if( rtm%nij /= size(tidx) )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\nSize of $tidx is invalid.'//&
-                '\n  Size of $tidx             : '//str(size(tidx))//&
-                '\n  Actual length of the table: '//str(rtm%nij))
+      call errret(ERROR_CODE__CONDITION, &
+        'Size of $tidx is invalid.'//&
+      '\n  Size of $tidx             : '//str(size(tidx))//&
+      '\n  Actual length of the table: '//str(rtm%nij))
       return
     endif
     tidx(:) = rtm%tidx(:)
@@ -357,10 +357,10 @@ integer(4) function spring_get_rmptbl_data(&
   if( present(area) )then
     if( rtm%nij /= size(area) )then
       info = 1
-      call errend(msg_unexpected_condition()//&
-                '\nSize of $area is invalid.'//&
-                '\n  Size of $area             : '//str(size(area))//&
-                '\n  Actual length of the table: '//str(rtm%nij))
+      call errret(ERROR_CODE__CONDITION, &
+        'Size of $area is invalid.'//&
+      '\n  Size of $area             : '//str(size(area))//&
+      '\n  Actual length of the table: '//str(rtm%nij))
       return
     endif
     area(:) = rtm%area(:rtm%nij)
@@ -369,10 +369,10 @@ integer(4) function spring_get_rmptbl_data(&
   if( present(coef) )then
     if( rtm%nij /= size(coef) )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\nSize of $coef is invalid.'//&
-                '\n  Size of $coef             : '//str(size(coef))//&
-                '\n  Actual length of the table: '//str(rtm%nij))
+      call errret(ERROR_CODE__CONDITION, &
+        'Size of $coef is invalid.'//&
+      '\n  Size of $coef             : '//str(size(coef))//&
+      '\n  Actual length of the table: '//str(rtm%nij))
       return
     endif
     coef(:) = rtm%coef(:)

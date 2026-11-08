@@ -129,7 +129,7 @@ logical function is_nan__condition_dble_1d(x, condition) result(res)
       endif
     enddo
   case default
-    call errend(msg_invalid_value('condition', condition))
+    call errend(ERROR_CODE__VALUE, 'condition == '//str(condition))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -173,7 +173,7 @@ logical function is_nan__condition_dble_2d(x, condition) result(res)
     enddo&
     loop_any
   case default
-    call errend(msg_invalid_value('condition', condition))
+    call errend(ERROR_CODE__VALUE, 'condition == '//str(condition))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)

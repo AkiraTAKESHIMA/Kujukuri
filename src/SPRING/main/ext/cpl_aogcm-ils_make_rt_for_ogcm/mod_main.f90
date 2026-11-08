@@ -256,8 +256,8 @@ subroutine make_rt(&
   do ij_a_o = 1_8, rtim_a_o%nij
     call search(rtim_a_o%sidx(ij_a_o), agcm%idx, agcm%idxarg, loc)
     if( loc == 0_8 )then
-      call errend(msg_unexpected_condition()//&
-                '\n  Index of AGCM '//str(rtim_a_o%sidx(ij_a_o))//' was not found.')
+      call errend(ERROR_CODE__CONDITION, &
+        'Index of AGCM '//str(rtim_a_o%sidx(ij_a_o))//' was not found.')
     endif
 
     call add(agcm%lndfrc(agcm%idxarg(loc)), rtim_a_o%area(ij_a_o))
@@ -266,14 +266,14 @@ subroutine make_rt(&
   do aij = 1_8, agcm%nij
     exceedance = (agcm%lndfrc(aij) - agcm%ara(aij)) / agcm%ara(aij)
     if( exceedance > exceedance_grdara_ulim )then
-      call errend(msg_unexpected_condition()//&
-                '\n  exceedance > thresh @ ij '//str(aij)//&
-                '\n  exceedance = ((ocean area) - (grid area)) / (grid area)'//&
-                '\n  idx: '//str(agcm%idx(aij))//&
-                '\n  ocean area: '//str(agcm%lndfrc(aij),'es20.13')//&
-                '\n  grid area : '//str(agcm%ara(aij),'es20.13')//&
-                '\n  exceedance: '//str(exceedance,'es20.13')//&
-                '\n  thresh    : '//str(exceedance_grdara_ulim,'es20.13'))
+      call errend(ERROR_CODE__CONDITION, &
+        'exceedance > thresh @ ij '//str(aij)//&
+      '\n  exceedance = ((ocean area) - (grid area)) / (grid area)'//&
+      '\n  idx: '//str(agcm%idx(aij))//&
+      '\n  ocean area: '//str(agcm%lndfrc(aij),'es20.13')//&
+      '\n  grid area : '//str(agcm%ara(aij),'es20.13')//&
+      '\n  exceedance: '//str(exceedance,'es20.13')//&
+      '\n  thresh    : '//str(exceedance_grdara_ulim,'es20.13'))
     endif
 
     agcm%lndfrc(aij) = (agcm%ara(aij) - agcm%lndfrc(aij)) / agcm%ara(aij)
@@ -394,7 +394,7 @@ subroutine make_rt(&
               list_agcm%dist(list_agcm%n) &
                 = dist_sphere(lsm%lon(lij), lsm%lat(lij), agcm%lon(aij), agcm%lat(aij))
             case default
-              call errend(msg_invalid_value('opt_ext%method_rivwat', opt_ext%method_rivwat))
+              call errend(ERROR_CODE__VALUE, 'opt_ext%method_rivwat == '//str(opt_ext%method_rivwat))
             endselect
 
             dist_agcm_min = min(dist_agcm_min, list_agcm%dist(list_agcm%n))
@@ -422,7 +422,7 @@ subroutine make_rt(&
             dist_new_block &
               = dist_sphere(lsm%lon(lij), lsm%lat(lij), layer%lon(ilx), layer%lat(ily))
           case default
-            call errend(msg_invalid_value('opt_ext%method_rivwat', opt_ext%method_rivwat))
+            call errend(ERROR_CODE__VALUE, 'opt_ext%method_rivwat == '//str(opt_ext%method_rivwat))
           endselect
           dist_new_block_min = min(dist_new_block_min, dist_new_block)
           !-----------------------------------------------------
@@ -454,11 +454,10 @@ subroutine make_rt(&
       call add(irng)
       if( irng > layer%nx/2 )then
       !if( irng > 5 )then
-        call errend(msg_unexpected_condition()//&
-                  '\n  irng > layer%nx/2'//&
-                  '\n  irng: '//str(irng)//&
-                  '\n  lij: '//str(lij)//&
-                  '\n  (lon,lat): ('//str((/lsm%lon(lij),lsm%lat(lij)/)*r2d,'f12.7',', ')//')')
+        call errend(ERROR_CODE__CONDITION, 'irng > layer%nx/2'//&
+        '\n  irng: '//str(irng)//&
+        '\n  lij: '//str(lij)//&
+        '\n  (lon,lat): ('//str((/lsm%lon(lij),lsm%lat(lij)/)*r2d,'f12.7',', ')//')')
       endif
       !---------------------------------------------------------
       if( debug_lsm ) call logext()
@@ -612,7 +611,7 @@ subroutine make_rt(&
   case( MESH__NONE )
     rtom_l_a%coef(:) = rtom_l_a%area(:)
   case default
-    call errend(msg_invalid_value('rtom_l_a%mesh_coef', rtom_l_a%mesh_coef))
+    call errend(ERROR_CODE__VALUE, 'rtom_l_a%mesh_coef == '//str(rtom_l_a%mesh_coef))
   endselect
 
   call logext()
@@ -760,8 +759,7 @@ subroutine print_grid_stats(nij, idx, ara, lon, lat, idx_miss)
 
   call traperr( get_minmax(idx, stat, idx_min, idx_max, mask=idx/=idx_miss) )
   if( stat /= 0 )then
-    call errend(msg_unexpected_condition()//&
-              '\n  stat /= 0')
+    call errend(ERROR_CODE__CONDITION, 'stat /= 0')
   endif
   call traperr( get_minmax(ara, stat, ara_min, ara_max, mask=idx/=idx_miss) )
   call traperr( get_minmax(lon, stat, lon_min, lon_max, mask=idx/=idx_miss) )

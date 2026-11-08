@@ -84,9 +84,9 @@ integer(4) function make_rt_latlon_polygon(&
     b => s
   else
     info = 1
-    call errret(msg_invalid_value()//&
-              '\n  s%typ: '//str(s%typ)//&
-              '\n  t%typ: '//str(t%typ))
+    call errret(ERROR_CODE__VALUE, &
+      '\n  s%typ: '//str(s%typ)//&
+      '\n  t%typ: '//str(t%typ))
     return
   endif
 
@@ -211,9 +211,9 @@ integer(4) function make_rt_latlon_polygon(&
                 bp0%n_pole, bp0%convex, bp0%lontop, bp0%lattop, &
                 area) /= 0 )then
             info = 1
-            call errret('@ iah, iav = '//str((/iah,iav/),',')//&
-                        ', aidx = '//str(aidx)//&
-                      '\n  bij = '//str(bij)//', bidx = '//str(bp0%idx))
+            call errret(msg=&
+              'iah, iav = '//str((/iah,iav/),',')//', aidx = '//str(aidx)//&
+            '\n  bij = '//str(bij)//', bidx = '//str(bp0%idx))
             return
           endif
 
@@ -431,7 +431,7 @@ integer(4) function get_range_lon(al, p, lon, ahi, ahf, nar) result(info)
       ahf(1) = al%hf
     case default
       info = 1
-      call errret(msg_invalid_value('p%pos', p%pos))
+      call errret(ERROR_CODE__VALUE, 'p%pos == '//str(p%pos))
       return
     endselect
   !-------------------------------------------------------------
@@ -525,7 +525,7 @@ integer(4) function get_range_lon(al, p, lon, ahi, ahf, nar) result(info)
         ! Case: ERROR
         else
           info = 1
-          call errret(msg_unexpected_condition())
+          call errret(ERROR_CODE__CONDITION)
           return
         endif
       endif
@@ -583,7 +583,7 @@ integer(4) function get_range_lon(al, p, lon, ahi, ahf, nar) result(info)
         ! Case: ERROR
         else
           info = 1
-          call errret(msg_unexpected_condition())
+          call errret(ERROR_CODE__CONDITION)
           return
         endif
       !---------------------------------------------------------
@@ -621,14 +621,14 @@ integer(4) function get_range_lon(al, p, lon, ahi, ahf, nar) result(info)
     ! Case: ERROR
     case default
       info = 1
-      call errret(msg_invalid_value('p%pos', p%pos))
+      call errret(ERROR_CODE__VALUE, 'p%pos == '//str(p%pos))
       return
     endselect
   !-------------------------------------------------------------
   ! Case: ERROR
   case default
     info = 1
-    call errret(msg_invalid_value('al%region_type', al%region_type))
+    call errret(ERROR_CODE__VALUE, 'al%region_type == '//str(al%region_type))
     return
   endselect
   !-------------------------------------------------------------

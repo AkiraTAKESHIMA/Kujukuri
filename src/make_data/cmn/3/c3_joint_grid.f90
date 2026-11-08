@@ -101,8 +101,8 @@ subroutine conv_fdr_jflw2rri__1d(fdr, fdr_rri)
     case( FDR__MISS )
       fdr_rri(i) = RRI_FDR__MISS
     case default
-      call errend(msg_invalid_value('fdr', fdr(i)), &
-                  '', PRCNAM, MODNAM)
+      call errend(ERROR_CODE__VALUE, 'fdr == '//str(fdr(i)), &
+                  MODNAM, PRCNAM)
     endselect
   enddo
 end subroutine conv_fdr_jflw2rri__1d
@@ -167,7 +167,7 @@ subroutine conv_fdr_rri2jflw(fdr_rri, fdr)
     case( RRI_FDR__MISS )
       fdr(igx,igy) = FDR__MISS
     case default
-      call errend(msg_invalid_value('fdr_rri', fdr_rri(igx,igy)))
+      call errend(ERROR_CODE__VALUE, 'fdr_rri == '//str(fdr_rri(igx,igy)))
     endselect
   enddo
   enddo

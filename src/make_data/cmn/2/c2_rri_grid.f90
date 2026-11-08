@@ -36,7 +36,7 @@ integer function ratio_resolution(resolution) result(res)
   case( RESOLUTION_3SEC )
     res = 3
   case default
-    call errend(msg_invalid_value('resolution', resolution))
+    call errend(ERROR_CODE__VALUE, 'resolution == '//str(resolution))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -82,8 +82,7 @@ subroutine get_nextxy(x, y, fdr, xx, yy)
     xx = 0
     yy = 0
   case default
-    call errend(msg_invalid_value('fdr', fdr), &
-                PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'fdr == '//str(fdr))
   endselect
 end subroutine get_nextxy
 !===============================================================

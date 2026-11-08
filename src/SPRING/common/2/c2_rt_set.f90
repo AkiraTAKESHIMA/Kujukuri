@@ -81,57 +81,54 @@ subroutine check_values_opt_rt_coef(coef)
   !-------------------------------------------------------------
   if( coef%is_sum_modify_enabled )then
     if( coef%sum_modify <= 0.d0 )then
-      call errend(msg_unexpected_condition()//&
-                '\n  coef%sum_modify <= 0'//&
-                '\nThe value of "'//str(key_opt_coef_sum_modify)//'" must be positive.')
+      call errend(ERROR_CODE__VALUE, &
+        'coef%sum_modify <= 0'//&
+      '\nThe value of "'//str(key_opt_coef_sum_modify)//'" must be positive.')
       stop
     endif
   endif
 
   if( coef%is_sum_modify_ulim_enabled )then
     if( coef%sum_modify_ulim <= 0.d0 )then
-      call logwrn('  coef%sum_modify_ulim <= 0'//&
-                '\nIn general, the value of "'//str(key_opt_coef_sum_modify_ulim)//&
-                  '" is positive. Make sure that the value is correct.')
+      call logwrn(ERROR_CODE__VALUE, &
+        'coef%sum_modify_ulim <= 0'//&
+      '\nIn general, the value of "'//str(key_opt_coef_sum_modify_ulim)//&
+        '" is positive. Make sure that the value is correct.')
     endif
   endif
 
   if( coef%is_zero_positive_enabled )then
     if( coef%zero_positive < 0.d0 )then
-      call errend(msg_unexpected_condition()//&
-                '\n  coef%zero_positive < 0'//&
-                '\nThe value of "'//str(key_opt_coef_zero_positive)//&
-                  '" must be non-negative.')
+      call errend(ERROR_CODE__VALUE, &
+        'coef%zero_positive < 0'//&
+      '\nThe value of "'//str(key_opt_coef_zero_positive)//'" must be non-negative.')
       stop
     endif
   endif
 
   if( coef%is_zero_negative_enabled )then
     if( coef%zero_negative > 0.d0 )then
-      call errend(msg_unexpected_condition()//&
-                '\n  coef%zero_negative < 0'//&
-                '\nThe value of "'//str(key_opt_coef_zero_negative)//&
-                  '" must be non-positive.')
+      call errend(ERROR_CODE__VALUE, &
+        'coef%zero_negative < 0'//&
+      '\nThe value of "'//str(key_opt_coef_zero_negative)//'" must be non-positive.')
       stop
     endif
   endif
 
   if( coef%is_error_excess_enabled )then
     if( coef%error_excess < 0.d0 )then
-      call errend(msg_unexpected_condition()//&
-                '\n  coef%error_excess < 0'//&
-                '\nThe value of "'//str(key_opt_coef_error_excess)//&
-                  '" must be non-negative.')
+      call errend(ERROR_CODE__VALUE, &
+        'coef%error_excess < 0'//&
+      '\nThe value of "'//str(key_opt_coef_error_excess)//'" must be non-negative.')
       stop
     endif
   endif
 
   if( coef%is_sum_error_excess_enabled )then
     if( coef%sum_error_excess < 0.d0 )then
-      call errend(msg_unexpected_condition()//&
-                '\n  coef%sum_error_excess < 0'//&
-                '\nThe value of "'//str(key_opt_coef_error_excess)//&
-                 '" must be non-negative.')
+      call errend(ERROR_CODE__VALUE, &
+        'coef%sum_error_excess < 0'//&
+      '\nThe value of "'//str(key_opt_coef_error_excess)//'" must be non-negative.')
       stop
     endif
   endif

@@ -124,8 +124,8 @@ subroutine open_setting_file()
   !
   !-------------------------------------------------------------
   if( argnum() /= 1 )then
-    call errend(msg_syntax_error()//&
-              '\nUsage: <program> <setting_file>')
+    call errend(ERROR_CODE__SYNTAX, &
+      'Usage: <program> <config_file>')
     stop
   endif
 
@@ -134,14 +134,14 @@ subroutine open_setting_file()
 
   cl = len_trim(path)
   if( cl == 0 )then
-    call errend(msg_syntax_error()//&
-              '\nUsage: <program> <setting_file>')
+    call errend(ERROR_CODE__SYNTAX, &
+      'Usage: <program> <config_file>')
     stop
   endif
 
   if( path(cl:cl) == '/' )then
-    call errend(msg_unexpected_condition()//&
-              '\nDirectory "'//str(path)//'" was specified for setting file.')
+    call errend(ERROR_CODE__CONDITION, &
+      '"'//str(path)//'" is a directory. Please specify a configuration file.')
     stop
   endif
 
@@ -168,7 +168,7 @@ subroutine close_setting_file()
   !-------------------------------------------------------------
   close(un, iostat=ios)
   if( ios /= 0 )then
-    call errend('Failed to close a file. Unit number: '//str(un))
+    call errend(ERROR_CODE__IO, 'Failed to close a file. Unit number: '//str(un))
     stop
   endif
   !-------------------------------------------------------------
@@ -212,9 +212,8 @@ subroutine read_path_report()
   call read_input()
 
   if( input%key /= KEY_PATH_REPORT )then
-    call errend(msg_io_error(i=iLine)//&
-              '\nInvalid input. '//&
-                'Path of the report file was not given.')
+    call errend(ERROR_CODE__IO, '@ line '//str(iLine)//&
+    ': Invalid input. Path of the report file was not given.')
     stop
   endif
 
@@ -274,8 +273,8 @@ subroutine find_block(res)
       block_name = ''
       exit
     case default
-      call errend(msg_io_error(i=iLine)//&
-                '\nAn unknown reading error.')
+      call errend(ERROR_CODE__IO, '@ line '//str(iLine)//&
+        ': An unknown reading error.')
       stop
     endselect
   enddo
@@ -299,9 +298,8 @@ subroutine back_to_block_head()
   do il = 1, iLine-iLine_block_head
     backspace(un,iostat=ios)
     if( ios /= 0 )then
-      call errend(msg_io_error()//&
-                '\n  iLine: '//str(iLine)//&
-                '\n  iLine_block_head: '//str(iLine_block_head))
+      call errend(ERROR_CODE__IO, '@ line '//str(iLine)//&
+      '\n  The head of block: @ line '//str(iLine_block_head))
       stop
     endif
     call add(iLine, -1)
@@ -347,17 +345,18 @@ subroutine read_input()
     case( 0 )
       continue
     case( -1 )
-      call errend(msg_io_error(i=iLine)//&
-                '\nUnexpectedly reached the end of file.')
+      call errend(ERROR_CODE__IO, '@ line '//str(iLine)//&
+        ': Unexpectedly reached the end of file.')
       stop
     case default
-      call errend(msg_io_error(i=iLine)//&
-                '\nAn unknown reading error.')
+      call errend(ERROR_CODE__IO, '@ line '//str(iLine)//&
+        ': An unknown reading error.')
       stop
     endselect
     !-----------------------------------------------------------
     if( remove_comment(line, sgn='#') /= 0 )then
-      call errend(msg_io_error(i=iLine))
+      call errend(ERROR_CODE__IO, '@ line '//str(iLine)//&
+        ': An unknown error during removing the comment')
       stop
     endif
 
@@ -383,19 +382,19 @@ subroutine read_input()
       case( 0 )
         continue
       case( -1 )
-        call errend(msg_io_error(i=iLine)//&
-                  '\nUnexpectedly reached the end of file.')
+        call errend(ERROR_CODE__IO, '@ line '//str(iLine)//&
+          ': Unexpectedly reached the end of file.')
         stop
       case default
-        call errend(msg_io_error(i=iLine)//&
-                  '\nAn unknown reading error.')
+        call errend(ERROR_CODE__IO, '@ line '//str(iLine)//&
+          ': An unknown reading error.')
         stop
       endselect
       !---------------------------------------------------------
       ! ERROR: Unexpectedly reached the end of the block
       if( is_block_tail(line) )then
-        call errend(msg_io_error(i=iLine)//&
-                  '\nNo line follows the comma.')
+        call errend(ERROR_CODE__IO, '@ line '//str(iLine)//&
+          ': No line follows the comma.')
         stop
       endif
       !---------------------------------------------------------
@@ -412,25 +411,28 @@ subroutine read_input()
   !-------------------------------------------------------------
   line_ = line
   if( split(line_, trim(DELIM_INPUT), 1, QUOTE_BOTH) /= 0 )then
-    call errend(msg_io_error(i=iLine))
+    call errend(ERROR_CODE__IO, '@ line '//str(iLine)//&
+      ': Failed to separate the line into a key and contents.')
     stop
   endif
   input%key = lower(line_)
 
   line_ = line
   if( split(line_, trim(DELIM_INPUT), 2, QUOTE_BOTH) /= 0 )then
-    call errend(msg_io_error(i=iLine))
+    call errend(ERROR_CODE__IO, '@ line '//str(iLine)//&
+      ': Failed to separate the line into a key and contents.')
     stop
   endif
   contents = line_
   if( contents == '' )then
-    call errret(msg_io_error(i=iLine)//&
-              '\nNo value is given for the keyword "'//str(input%key)//'".')
+    call errret(ERROR_CODE__IO, '@ Line '//str(iLine)//&
+      ': no value is given for the keyword "'//str(input%key)//'".')
     stop
   endif
 
   if( count_word(contents, DELIM_CONTENTS, input%nval, quoteIgnored=QUOTE_BOTH) /= 0 )then
-    call errend(msg_io_error(i=iLine))
+    call errend(ERROR_CODE__IO, '@ line '//str(iLine)//&
+      ': Failed to separate the line into a key and contents.')
     stop
   endif
   input%nval = input%nval + 1
@@ -444,7 +446,8 @@ subroutine read_input()
     if( ival < input%nval )then
       ! Find the next comma @ ic1_val+1
       if( search_word(contents(ic0_val:), DELIM_CONTENTS, ic, quoteIgnored=QUOTE_BOTH) /= 0 )then
-        call errend(msg_io_error(i=iLine))
+        call errend(ERROR_CODE__IO, '@ line '//str(iLine)//&
+          ': Failed to separate the line into a key and contents.')
         stop
       endif
       ic1_val = ic0_val + ic - 2
@@ -453,7 +456,8 @@ subroutine read_input()
     endif
 
     if( search_word(contents(ic0_val:ic1_val), DELIM_POSVAL, ic, quoteIgnored=QUOTE_BOTH) /= 0 )then
-      call errend(msg_io_error(i=iLine))
+      call errend(ERROR_CODE__IO, '@ line '//str(iLine)//&
+        ': Failed to separate the line into a key and contents.')
       stop
     endif
     !-----------------------------------------------------------
@@ -462,9 +466,8 @@ subroutine read_input()
       !---------------------------------------------------------
       ! ERROR: Value without keywords after values with keywords
       if( input%nval_key > 0 )then
-        call errend(msg_io_error(i=iLine)//&
-                  '\nValues without keywords cannot be put '//&
-                    'after those with keywords.')
+        call errend(ERROR_CODE__IO, '@ line '//str(iLine)//&
+          ': Values without keywords cannot be put after those with keywords.')
         stop
       endif
 
@@ -514,7 +517,8 @@ logical function is_block_tail(line) result(res)
   line_ = adjustl(line)
 
   if( remove_comment(line_) /= 0 )then
-    call errend(msg_io_error(i=iLine))
+    call errend(ERROR_CODE__IO, '@ line '//str(iLine)//&
+      ': An unknown error during removing the comment')
     stop
   endif
 
@@ -525,9 +529,9 @@ logical function is_block_tail(line) result(res)
     if( block_name == BLOCK_END )then
       res = .true.
     else
-      call errend(msg_io_error(i=iLine)//&
-                '\nBlock "'//str(block_name)//'" appeared before '//&
-                  'the current block "'//str(block_name_prev)//'" was closed.')
+      call errend(ERROR_CODE__IO, '@ line '//str(iLine)//&
+        ': The block "'//str(block_name)//'" appeared before '//&
+        'the current block "'//str(block_name_prev)//'" was closed.')
       stop
     endif
   else
@@ -585,8 +589,7 @@ subroutine read_value__char(&
   if( present(dir) ) dir_ = dir
 
   if( is_keyword_ .and. is_path_ )then
-    call errend(msg_unexpected_condition()//&
-              '\n  is_keyword_ .and. is_path_')
+    call errend(ERROR_CODE__CONDITION, 'is_keyword_ and is_path_')
     stop
   endif
   !-------------------------------------------------------------
@@ -597,11 +600,11 @@ subroutine read_value__char(&
     val = input%val_nokey(pos_)%val
   else
     if( key_ == '' )then
-      call errend(msg_unexpected_condition()//&
-                '\n  pos_ > input%nval_key .and. key_ == ""'//&
-                '\n  iLine         : '//str(iLine)//&
-                '\n  pos_          : '//str(pos_)//&
-                '\n  input%nval_key: '//str(input%nval_key))
+      call errend(ERROR_CODE__CONDITION, '@ line '//str(iLine)//&
+        ': pos_ > input%nval_key and key_ == ""'//&
+      '\n  iLine         : '//str(iLine)//&
+      '\n  pos_          : '//str(pos_)//&
+      '\n  input%nval_key: '//str(input%nval_key))
       stop
     endif
 
@@ -620,10 +623,10 @@ subroutine read_value__char(&
         call logret(PRCNAM, MODNAM)
         return
       else
-        call errend(msg_io_error(i=iLine)//&
-                  '\nFailed to get value due to invalid input.'//&
-                  '\n  Default position: '//str(pos_)//&
-                  '\n  Keyword         : '//str(key_))
+        call errend(ERROR_CODE__SYNTAX, '@ line '//str(iLine)//&
+          ': Failed to get the value.'//&
+        '\n  Default position: '//str(pos_)//&
+        '\n  Keyword         : '//str(key_))
         stop
       endif
     endif
@@ -638,14 +641,14 @@ subroutine read_value__char(&
   ! Case: Path
   if( is_path_ )then
     if( val == '' )then
-      call errend(msg_io_error(i=iLine)//&
-                '\nPath is empty.')
+      call errend(ERROR_CODE__SYNTAX, '@ line '//str(iLine)//&
+        ': The path is empty.')
       stop
     elseif( .not. ( &
               (val(1:1) == "'" .and. val(cl:cl) == "'") .or. &
               (val(1:1) == '"' .and. val(cl:cl) == '"') ) )then
-      call errend(msg_io_error(i=iLine)//&
-                '\nPaths must be quoted.')
+      call errend(ERROR_CODE__SYNTAX, '@ line '//str(iLine)//&
+        ': The path must be quated.')
       stop
     endif
     val = val(2:cl-1)
@@ -655,14 +658,16 @@ subroutine read_value__char(&
   elseif( is_keyword_ )then
     val = lower(val)
     if( remove_quotes(val) /= 0 )then
-      call errend(msg_io_error(i=iLine))
+      call errend(ERROR_CODE__SYNTAX, '@ line '//str(iLine)//&
+        ': An unknown error during reading the quoted value.')
       stop
     endif
   !-------------------------------------------------------------
   ! Case: Neither keyword or path
   else
     if( remove_quotes(val) /= 0 )then
-      call errend(msg_io_error(i=iLine))
+      call errend(ERROR_CODE__SYNTAX, '@ line '//str(iLine)//&
+        ': An unknown error during reading the quoted value.')
       stop
     endif
   endif
@@ -702,11 +707,10 @@ subroutine read_value__log(val, pos, key, found)
     call read_cval(input%val_nokey(pos_)%val, pos_, key_, l=val)
   else
     if( key_ == '' )then
-      call errend(msg_unexpected_condition()//&
-                '\n  pos_ > input%nval_key .and. key_ == ""'//&
-                '\n  iLine         : '//str(iLine)//&
-                '\n  pos_          : '//str(pos_)//&
-                '\n  input%nval_key: '//str(input%nval_key))
+      call errend(ERROR_CODE__CONDITION, '@ line '//str(iLine)//&
+        ': pos_ > input%nval_key and key_ == ""'//&
+      '\n  pos_          : '//str(pos_)//&
+      '\n  input%nval_key: '//str(input%nval_key))
       stop
     endif
 
@@ -725,10 +729,10 @@ subroutine read_value__log(val, pos, key, found)
         call logret(PRCNAM, MODNAM)
         return
       else
-        call errend(msg_invalid_input(iLine)//&
-                  '\nFailed to get value.'//&
-                  '\n  Default position: '//str(pos_)//&
-                  '\n  Keyword         : '//str(key_))
+        call errend(ERROR_CODE__SYNTAX, '@ line '//str(iLine)//&
+          ': Failed to get the value.'//&
+        '\n  Default position: '//str(pos_)//&
+        '\n  Keyword         : '//str(key_))
         stop
       endif
     endif
@@ -771,11 +775,10 @@ subroutine read_value__int4(val, pos, key, found)
     call read_cval(input%val_nokey(pos_)%val, pos_, key_, i4=val)
   else
     if( key_ == '' )then
-      call errend(msg_unexpected_condition()//&
-                '\n  pos_ > input%nval_key .and. key_ == ""'//&
-                '\n  iLine         : '//str(iLine)//&
-                '\n  pos_          : '//str(pos_)//&
-                '\n  input%nval_key: '//str(input%nval_key))
+      call errend(ERROR_CODE__CONDITION, '@ line '//str(iLine)//&
+        ': pos_ > input%nval_key and key_ == ""'//&
+      '\n  pos_          : '//str(pos_)//&
+      '\n  input%nval_key: '//str(input%nval_key))
       stop
     endif
 
@@ -794,10 +797,10 @@ subroutine read_value__int4(val, pos, key, found)
         call logret(PRCNAM, MODNAM)
         return
       else
-        call errend(msg_invalid_input(iLine)//&
-                  '\nFailed to get value.'//&
-                  '\n  Default position: '//str(pos_)//&
-                  '\n  Keyword         : '//str(key_))
+        call errend(ERROR_CODE__SYNTAX, '@ line '//str(iLine)//&
+          ': Failed to get value.'//&
+        '\n  Default position: '//str(pos_)//&
+        '\n  Keyword         : '//str(key_))
         stop
       endif
     endif
@@ -840,11 +843,10 @@ subroutine read_value__int8(val, pos, key, found)
     call read_cval(input%val_nokey(pos_)%val, pos_, key_, i8=val)
   else
     if( key_ == '' )then
-      call errend(msg_unexpected_condition()//&
-                '\n  pos_ > input%nval_key .and. key_ == ""'//&
-                '\n  iLine         : '//str(iLine)//&
-                '\n  pos_          : '//str(pos_)//&
-                '\n  input%nval_key: '//str(input%nval_key))
+      call errend(ERROR_CODE__CONDITION, '@ line '//str(iLine)//&
+        ': pos_ > input%nval_key and key_ == ""'//&
+      '\n  pos_          : '//str(pos_)//&
+      '\n  input%nval_key: '//str(input%nval_key))
       stop
     endif
 
@@ -863,10 +865,10 @@ subroutine read_value__int8(val, pos, key, found)
         call logret(PRCNAM, MODNAM)
         return
       else
-        call errend(msg_invalid_input(iLine)//&
-                  '\nFailed to get value.'//&
-                  '\n  Default position: '//str(pos_)//&
-                  '\n  Keyword         : '//str(key_))
+        call errend(ERROR_CODE__SYNTAX, '@ line '//str(iLine)//&
+        '\nFailed to get the value.'//&
+        '\n  Default position: '//str(pos_)//&
+        '\n  Keyword         : '//str(key_))
         stop
       endif
     endif
@@ -909,11 +911,10 @@ subroutine read_value__real(val, pos, key, found)
     call read_cval(input%val_nokey(pos_)%val, pos_, key_, r4=val)
   else
     if( key_ == '' )then
-      call errend(msg_unexpected_condition()//&
-                '\n  pos_ > input%nval_key .and. key_ == ""'//&
-                '\n  iLine         : '//str(iLine)//&
-                '\n  pos_          : '//str(pos_)//&
-                '\n  input%nval_key: '//str(input%nval_key))
+      call errend(ERROR_CODE__CONDITION, '@ line '//str(iLine)//&
+        ': pos_ > input%nval_key and key_ == ""'//&
+      '\n  pos_          : '//str(pos_)//&
+      '\n  input%nval_key: '//str(input%nval_key))
       stop
     endif
 
@@ -932,10 +933,10 @@ subroutine read_value__real(val, pos, key, found)
         call logret(PRCNAM, MODNAM)
         return
       else
-        call errend(msg_invalid_input(iLine)//&
-                  '\nFailed to get value.'//&
-                  '\n  Default position: '//str(pos_)//&
-                  '\n  Keyword         : '//str(key_))
+        call errend(ERROR_CODE__SYNTAX, '@ line '//str(iLine)//&
+          ': Failed to get the value.'//&
+        '\n  Default position: '//str(pos_)//&
+        '\n  Keyword         : '//str(key_))
         stop
       endif
     endif
@@ -978,11 +979,10 @@ subroutine read_value__dble(val, pos, key, found)
     call read_cval(input%val_nokey(pos_)%val, pos_, key_, r8=val)
   else
     if( key_ == '' )then
-      call errend(msg_unexpected_condition()//&
-                '\n  pos_ > input%nval_key .and. key_ == ""'//&
-                '\n  iLine         : '//str(iLine)//&
-                '\n  pos_          : '//str(pos_)//&
-                '\n  input%nval_key: '//str(input%nval_key))
+      call errend(ERROR_CODE__CONDITION, '@ line '//str(iLine)//&
+        ': pos_ > input%nval_key and key_ == ""'//&
+      '\n  pos_          : '//str(pos_)//&
+      '\n  input%nval_key: '//str(input%nval_key))
       stop
     endif
 
@@ -1001,10 +1001,10 @@ subroutine read_value__dble(val, pos, key, found)
         call logret(PRCNAM, MODNAM)
         return
       else
-        call errend(msg_invalid_input(iLine)//&
-                  '\nFailed to get value.'//&
-                  '\n  Default position: '//str(pos_)//&
-                  '\n  Keyword         : '//str(key_))
+        call errend(ERROR_CODE__SYNTAX, '@ line '//str(iLine)//&
+          ': Failed to get the value.'//&
+        '\n  Default position: '//str(pos_)//&
+        '\n  Keyword         : '//str(key_))
         stop
       endif
     endif
@@ -1042,8 +1042,8 @@ subroutine read_value__fbin(val, dir, getlen)
   !-------------------------------------------------------------
   call read_value__char(val%path, is_path=.true., pos=1, key='path', found=found)
   if( .not. found )then
-    call errend(msg_io_error(i=iLine)//&
-              '\nPath was not given.')
+    call errend(ERROR_CODE__IO, '@ line '//str(iLine)//&
+      ': Path was not given.')
     stop
   endif
   val%path = joined(dir_, val%path)
@@ -1053,8 +1053,8 @@ subroutine read_value__fbin(val, dir, getlen)
   call read_value__char(val%endian, pos=4, key='endian', found=found)
   call read_value__int8(val%length, pos=5, key='length', found=found)
   if( .not. getlen_ .and. found )then
-    call errend(msg_invalid_input(iLine)//&
-              '\nLength of data cannot be given for this argument.')
+    call errend(ERROR_CODE__SYNTAX, '@ line '//str(iLine)//&
+      ': Length of data cannot be given for this argument.')
     stop
   endif
   !-------------------------------------------------------------
@@ -1089,13 +1089,11 @@ subroutine read_cval(cval, pos, key, l, i4, i8, r4, r8)
     case( '.false.', 'false', 'f' )
       l = .false.
     case default
-      call errend(msg_invalid_input(iLine)//&
-                  msg_main()//&
-                '\nBoolean value must be given by'//&
-                  '".true.", "true" or "t" for true and '//&
-                  '".false.", "false" or "f" for false '//&
-                  '(not case-sensitive).'//&
-                  msg_info())
+      call errend(ERROR_CODE__SYNTAX, &
+        msg_main()//&
+      '\nBoolean value must be given by ".true.", "true" or "t" for true and '//&
+        '".false.", "false" or "f" for false (not case-sensitive).'//&
+        msg_info())
       stop
     endselect
   !-------------------------------------------------------------
@@ -1103,9 +1101,9 @@ subroutine read_cval(cval, pos, key, l, i4, i8, r4, r8)
   elseif( present(i4) )then
     read(cval,*,iostat=ios) i4
     if( ios /= 0 )then
-      call errend(msg_invalid_input(iLine)//&
-                  msg_main()//&
-                  msg_info())
+      call errend(ERROR_CODE__SYNTAX, '@ line '//str(iLine)//':'//&
+         msg_main()//&
+         msg_info())
       stop
     endif
   !-------------------------------------------------------------
@@ -1113,9 +1111,9 @@ subroutine read_cval(cval, pos, key, l, i4, i8, r4, r8)
   elseif( present(i8) )then
     read(cval,*,iostat=ios) i8
     if( ios /= 0 )then
-      call errend(msg_invalid_input(iLine)//&
-                  msg_main()//&
-                  msg_info())
+      call errend(ERROR_CODE__SYNTAX, '@ line '//str(iLine)//':'//&
+         msg_main()//&
+         msg_info())
       stop
     endif
   !-------------------------------------------------------------
@@ -1123,9 +1121,9 @@ subroutine read_cval(cval, pos, key, l, i4, i8, r4, r8)
   elseif( present(r4) )then
     read(cval,*,iostat=ios) r4
     if( ios /= 0 )then
-      call errend(msg_invalid_input(iLine)//&
-                  msg_main()//&
-                  msg_info())
+      call errend(ERROR_CODE__SYNTAX, '@ line '//str(iLine)//':'//&
+         msg_main()//&
+         msg_info())
       stop
     endif
   !-------------------------------------------------------------
@@ -1133,16 +1131,15 @@ subroutine read_cval(cval, pos, key, l, i4, i8, r4, r8)
   elseif( present(r8) )then
     read(cval,*,iostat=ios) r8
     if( ios /= 0 )then
-      call errend(msg_invalid_input(iLine)//&
-                  msg_main()//&
-                  msg_info())
+      call errend(ERROR_CODE__SYNTAX, '@ line '//str(iLine)//':'//&
+         msg_main()//&
+         msg_info())
       stop
     endif
   !-------------------------------------------------------------
   ! Case: ERROR
   else
-    call errend(msg_unexpected_condition()//&
-              '\nNot matched any case.')
+    call errend(ERROR_CODE__CONDITION, 'Not matched any case.')
     stop
   endif
   !-------------------------------------------------------------
@@ -1168,9 +1165,7 @@ function msg_main() result(res)
   elseif( present(r8) )then
     dtype = 'an 8-byte float'
   else
-    call errend(msg_unexpected_condition()//&
-              '\nNot matched any case.', &
-                PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, 'Not matched any case.', MODNAM, PRCNAM)
     stop
   endif
 
@@ -1247,10 +1242,10 @@ subroutine set_keynum(key, llim, ulim)
   do ikey = 1, nkey
     kd => keydict(ikey)
     if( kd%key == trim(key) )then
-      call errend(msg_unexpected_condition()//&
-                '\n  keydict(ikey)%key == trim(key)'//&
-                '\n  block_name: '//str(block_name)//&
-                '\n  key: '//str(key))
+      call errend(ERROR_CODE__CONDITION, &
+        'keydict(ikey)%key == trim(key)'//&
+      '\n  block_name: '//str(block_name)//&
+      '\n  key: '//str(key))
       stop
     endif
 
@@ -1325,8 +1320,8 @@ subroutine update_keynum()
   enddo
 
   if( .not. associated(kd) )then
-    call errend(msg_io_error(i=iLine)//&
-              '\nKey "'//str(input%key)//'" is invalid.')
+    call errend(ERROR_CODE__SYNTAX, '@ line '//str(iLine)//&
+    '\nKey "'//str(input%key)//'" is invalid.')
     stop
   endif
 
@@ -1355,19 +1350,21 @@ subroutine check_keynum()
 
     if( kd%n_llim >= 0 )then
       if( kd%n < kd%n_llim )then
-        call errend('Invalid input in block "'//str(block_name)//&
-                    '" which starts from line '//str(iLine_block_head)//'.'//&
-                  '\nThe number of arguments given by the keyword "'//str(kd%key)//&
-                    '" is below the lower limit of '//str(kd%n_llim)//'.')
+        call errend(ERROR_CODE__SYNTAX, &
+          'Invalid input in the block "'//str(block_name)//&
+          '" which starts from line '//str(iLine_block_head)//'.'//&
+        '\nThe number of arguments given by the keyword "'//str(kd%key)//&
+          '" is below the lower limit of '//str(kd%n_llim)//'.')
         stop
       endif
     endif
     if( kd%n_ulim >= 0 )then
       if( kd%n > kd%n_ulim )then
-        call errend('Invalid input in block "'//str(block_name)//&
-                    '" which starts from line '//str(iLine_block_head)//'.'//&
-                  '\nThe number of arguments given by the keyword "'//str(kd%key)//&
-                    '" is above the upper limit of '//str(kd%n_ulim)//'.')
+        call errend(ERROR_CODE__SYNTAX, &
+          'Invalid input in block "'//str(block_name)//&
+          '" which starts from line '//str(iLine_block_head)//'.'//&
+        '\nThe number of arguments given by the keyword "'//str(kd%key)//&
+          '" is above the upper limit of '//str(kd%n_ulim)//'.')
         stop
       endif
     endif
@@ -1398,8 +1395,8 @@ integer function keynum(key) result(n)
     endif
   enddo
 
-  call errend(msg_unexpected_condition()//&
-            '\nKeyword "'//str(key)//'" is not found.')
+  call errend(ERROR_CODE__CONDITION, &
+    'The keyword "'//str(key)//'" is not found.')
   stop
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -1440,12 +1437,12 @@ subroutine check_num_of_key(n, key, nmin, nmax)
       c_nmax = '(unlimited)'
     endif
 
-    call errend(msg_invalid_input()//&
-              '\nThe number of times the key was specified is out of range.'//&
-              '\n  key          : "'//str(key)//'"'//&
-              '\n  num. of times: '//str(n)//&
-              '\n  min          : '//str(c_nmin)//&
-              '\n  max          : '//str(c_nmax))
+    call errend(ERROR_CODE__SYNTAX, &
+      'The number of times the key was specified is out of range.'//&
+    '\n  key          : "'//str(key)//'"'//&
+    '\n  num. of times: '//str(n)//&
+    '\n  min          : '//str(c_nmin)//&
+    '\n  max          : '//str(c_nmax))
     stop
   endif
   !-------------------------------------------------------------
@@ -1526,9 +1523,8 @@ subroutine raise_error_invalid_key()
 
   call logbgn(PRCNAM, MODNAM, '-p')
   !-------------------------------------------------------------
-  call errend(msg_invalid_input(iLine)//&
-            '\nKeyword "'//str(input%key)//&
-              '" is invalid for block "'//str(block_name)//'".')
+  call errend(ERROR_CODE__SYNTAX, '@ line '//str(iLine)//&
+    ': Keyword "'//str(input%key)//'" is invalid for the block "'//str(block_name)//'".')
   stop
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -1540,9 +1536,8 @@ subroutine raise_warning_invalid_key()
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'raise_warning_invalid_key'
 
-  call logwrn(msg_invalid_input(iLine)//&
-            '\nKeyword "'//str(input%key)//&
-              '" is invalid for block "'//str(block_name)//'".')
+  call logwrn(ERROR_CODE__SYNTAX, '@ line '//str(iLine)//&
+    ': Keyword "'//str(input%key)//'" is invalid for the block "'//str(block_name)//'".')
 end subroutine raise_warning_invalid_key
 !===============================================================
 !

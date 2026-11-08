@@ -730,7 +730,8 @@ if( .false. )then
             plat = part%y(jPt)
 
             if( search_2(plon, plat, dcp2%lon, dcp2%lat, jjPts2, jjPte2) /= 0 )then
-              call errend('Connection between different networks was detected.')
+              call errend(ERROR_CODE__CONDITION, &
+                'Connection between different networks was detected.')
             endif
           enddo  ! jPt/
         enddo  ! jEnt2/
@@ -845,8 +846,8 @@ endif
         case( NODETYPE__INTERMEDIATE )
           dct_node_identical%typ(dct_node_identical%n) = NODETYPE_NEW__INTER
         case default
-          call errend(msg_invalid_value('dct_node%typ('//str(iNode)//&
-                      ')', dct_node%typ(iNode)))
+          call errend(ERROR_CODE__VALUE, &
+            'dct_node%typ('//str(iNode)//') == '//str(dct_node%typ(iNode)))
         endselect
       else
         mNode = iie - iis + 1
@@ -862,8 +863,8 @@ endif
           case( NODETYPE__INTERMEDIATE )
             call add(mNode_inter)
           case default
-            call errend(msg_invalid_value('dct_node%typ('//str(iNode)//&
-                        ')', dct_node%typ(iNode)))
+            call errend(ERROR_CODE__VALUE, &
+              'dct_node%typ('//str(iNode)//') == '//str(dct_node%typ(iNode)))
           endselect
         enddo
 
@@ -882,7 +883,7 @@ endif
         elseif( mNode_src > 0 .and. mNode_out > 0 .and. mNode_inter > 0 )then
           dct_node_identical%typ(dct_node_identical%n) = NODETYPE_NEW__ALLMIXED
         else
-          call errend('Not matched any case.')
+          call errend(ERROR_CODE__CONDITION, 'Not matched any case.')
         endif
       endif
     enddo  ! iis, iie/
@@ -931,8 +932,8 @@ endif
         case( NODETYPE__NOTFOUND )
           node%typ_new = NODETYPE_NEW__UNKNOWN
         case default
-          call errend(msg_invalid_value('node%typ', node%typ)//&
-                    '\n  iNwk: '//str(iNwk)//' (nEnt==1), jNode: '//str(jNode))
+          call errend(ERROR_CODE__VALUE, 'node%typ == '//str(node%typ)//&
+          '\n  iNwk: '//str(iNwk)//' (nEnt==1), jNode: '//str(jNode))
         endselect
       enddo  ! jNode/
       cycle
@@ -957,7 +958,8 @@ endif
         plon = part%x(jPt)
         plat = part%y(jPt)
         if( search_2(plon, plat, nwkdcp%lon, nwkdcp%lat, kPts, kPte) /= 0 )then
-          call errend('search_2: (plon,plat) not found in nwkdcp%lon, nwkdcp%lat')
+          call errend(ERROR_CODE__CONDITION, &
+            'search_2: (plon,plat) not found in nwkdcp%lon, nwkdcp%lat')
         endif
 
         mNode_src      = 0
@@ -968,10 +970,10 @@ endif
         do kPt2 = kPts, kPte
           if( nwkdcp%jEnt(kPt2) == jEnt .and. nwkdcp%jPt(kPt2) == jPt )then
             if( kPt /= 0 )then
-              print*, 'kPt', kPts, kPte
-              print*, 'jEnt', nwkdcp%jEnt(kPts:kPte)
-              print*, 'jPt ', nwkdcp%jPt(kPts:kPte)
-              call errend('Point is duplicated.')
+              !print*, 'kPt', kPts, kPte
+              !print*, 'jEnt', nwkdcp%jEnt(kPts:kPte)
+              !print*, 'jPt ', nwkdcp%jPt(kPts:kPte)
+              call errend(ERROR_CODE__CONDITION, 'Point is duplicated.')
             endif
             kPt = kPt2
           else
@@ -990,12 +992,12 @@ endif
           case( NODETYPE__NOTFOUND )
             call add(mNode_notfound)
           case default
-            call errend(msg_invalid_value('nwkdcp%nodetyp', nwkdcp%nodetyp(kPt2)))
+            call errend(ERROR_CODE__VALUE, 'nwkdcp%nodetyp == '//str(nwkdcp%nodetyp(kPt2)))
           endselect
         enddo  ! kPt2/
 
         if( kPt == 0 )then
-          call errend('Point was not found.')
+          call errend(ERROR_CODE__CONDITION, 'Point was not found.')
         endif
 
         if( mNode_notfound > 0 )then
@@ -1036,7 +1038,7 @@ endif
               nwkdcp%nodetyp_new(kPt) = NODETYPE_NEW__ALLMIXED
             endif
           else
-            call errend('Not matched any case.')
+            call errend(ERROR_CODE__CONDITION, 'Not matched any case.')
           endif
         endif            
 
@@ -1052,7 +1054,8 @@ endif
         if( search_2(plon, plat, nwkdcp%lon, nwkdcp%lat, kPts, kPte) /= 0 )then
           print*,search_2(plon, plat, nwkdcp%lon, nwkdcp%lat, kPts, kPte)
           
-          call errend('search_2: (plon,plat) not found in nwkdcp%lon, nwkdcp%lat.')
+          call errend(ERROR_CODE__CONDITION, &
+            'search_2: (plon,plat) not found in nwkdcp%lon, nwkdcp%lat.')
         endif
 
         do kPt = kPts, kPte
@@ -1092,7 +1095,8 @@ endif
       !
       !---------------------------------------------------------
       if( .not. is_connected )then
-        call errend('Network('//str(iNwk)//') Ent('//str(jEnt)//'): Isolated channel.')
+        call errend(ERROR_CODE__CONDITION, &
+          'Network('//str(iNwk)//') Ent('//str(jEnt)//'): Isolated channel.')
       endif
       !---------------------------------------------------------
     enddo  ! jEnt/
@@ -1326,8 +1330,7 @@ endif
     enddo  ! jEnt/
 
     if( jCh /= nCh )then
-      call errend(msg_unexpected_condition()//&
-                '\n  jCh /= nCh')
+      call errend(ERROR_CODE__CONDITION, 'jCh /= nCh')
     endif
 
     allocate(arg(dct_node%n))
@@ -1444,12 +1447,10 @@ endif
           case( NODETYPE_NEW__NEWNODE )
             call add(mNode_unknown)
           case( NODETYPE_NEW__UNDEF )
-            call errend(msg_unexpected_condition()//&
-                      '\n  node%typ == NODETYPE_NEW__UNDEF'//&
-                      '\n  jEnt: '//str(dct_node%jEnt(iNode))//&
-                        ', jNode: '//str(jNode2))
+            call errend(ERROR_CODE__VALUE, 'node%typ == NODETYPE_NEW__UNDEF'//&
+            '\n  jEnt: '//str(dct_node%jEnt(iNode))//', jNode: '//str(jNode2))
           case default
-            call errend(msg_invalid_value('node%typ', lst_ch(jCh2)%node(jNode2)%typ))
+            call errend(ERROR_CODE__VALUE, 'node%typ == '//str(lst_ch(jCh2)%node(jNode2)%typ))
           endselect
         enddo  ! iNode/
 
@@ -1470,9 +1471,9 @@ endif
         elseif( mNode_src >  0 .and. mNode_out >  0 .and. mNode_inter >  0 )then
           chnode%typ = NODETYPE_NEW__ALLMIXED
         else
-          call errend('Not matched any case for mNode.'//&
-                    '\n  src: '//str(mNode_src)//', out: '//str(mNode_out)//&
-                      ', inter: '//str(mNode_inter)//', unknown: '//str(mNode_unknown))
+          call errend(ERROR_CODE__CONDITION, 'Not matched any case for mNode.'//&
+          '\n  src: '//str(mNode_src)//', out: '//str(mNode_out)//&
+            ', inter: '//str(mNode_inter)//', unknown: '//str(mNode_unknown))
         endif
       enddo  ! jNode/
     enddo  ! jCh/
@@ -1815,9 +1816,10 @@ subroutine make_network_dct_point(nwk)
         !print*, part%x(jPt), part%y(jPt)
         !call errend('Ent('//str(jEnt)//') node('//str(jNode)//'): '//&
         !            'Node was not found in the global list.')
-        call logwrn('Ent('//str(jEnt)//') node('//str(jNode)//'): '//&
-                    'Node was not found in the global list.', &
-                    opt='-p')
+        call logwrn(ERROR_CODE__CONDITION, &
+          'Ent('//str(jEnt)//') node('//str(jNode)//'): '//&
+          'Node was not found in the global list.', &
+          opt='-p')
         dcp%nodetyp(dcp%n+jPt) = NODETYPE__NOTFOUND
         node%typ = NODETYPE__NOTFOUND
         cycle
@@ -1829,13 +1831,13 @@ subroutine make_network_dct_point(nwk)
 
         if( dcp%nodetyp(dcp%n+jPt) /= NODETYPE__NOTNODE )then
           if( dcp%nodetyp(dcp%n+jPt) /= dct_node%typ(iNode) )then
-            call errend('dcp%nodetyp /= dct_node%typ')
+            call errend(ERROR_CODE__CONDITION, 'dcp%nodetyp /= dct_node%typ')
           endif
         endif
 
         if( node%typ /= NODETYPE__UNDEF )then
           if( node%typ /= dct_node%typ(iNode) )then
-            call errend('node%typ /= dct_node%typ')
+            call errend(ERROR_CODE__CONDITION, 'node%typ /= dct_node%typ')
           endif
         endif
 
@@ -1844,9 +1846,9 @@ subroutine make_network_dct_point(nwk)
       enddo  ! iNode/
 
       if( dcp%nodetyp(dcp%n+jPt) == NODETYPE__NOTNODE )then
-        call errend(&
-              'Node was not found in the global list. '//&
-              'Nwk('//str(iNwk,dgt(nNwk))//') Ent('//str(jEnt)//') node('//str(jNode)//')')
+        call errend(ERROR_CODE__CONDITION, &
+          'Node was not found in the global list. '//&
+          'Nwk('//str(iNwk,dgt(nNwk))//') Ent('//str(jEnt)//') node('//str(jNode)//')')
       endif
     enddo  ! jNode/
 
@@ -2066,8 +2068,7 @@ subroutine connectChannels_core(&
       north = max(north, tbe%ent%ymax)
 
       if( tbe%ent%nPart > 1 )then
-        call errend(msg_unexpected_condition()//&
-                  '\n  nPart of entity > 1')
+        call errend(ERROR_CODE__CONDITION, 'nPart of entity > 1')
       endif
     enddo  ! iiEnt/
 
@@ -2154,13 +2155,13 @@ subroutine connectChannels_core(&
       plon = part%x(iPt)
       plat = part%y(iPt)
       if( search_2(plon, plat, dcp%lon, dcp%lat, jPts, jPte) /= 0 )then
-        call errend('Coordinate was not found in the list.')
+        call errend(ERROR_CODE__CONDITION, 'Coordinate was not found in the list.')
       endif
 
       ! CYCLE: No connection
       if( jPts == jPte )then
         if( dcp%itEnt(jPts) /= itEnt )then
-          call errend('Node was not found in the list.')
+          call errend(ERROR_CODE__CONDITION, 'Node was not found in the list.')
         endif
 
         cycle
@@ -2336,7 +2337,7 @@ subroutine connectChannels_core(&
       rgn_tile_other => tbl_rgn_tile(itx,ity)%region(tbe%iRegion)
       call search(tbe%irEnt, rgn_tile_other%irEnt, iiEnt)
       if( iiEnt == 0 )then
-        call errend('tbe%irEnt not found.')
+        call errend(ERROR_CODE__CONDITION, 'tbe%irEnt not found.')
       endif
       rgn_tile_other%id(iiEnt) = tbe%id
     enddo  ! itx/

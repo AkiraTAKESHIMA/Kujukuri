@@ -44,16 +44,18 @@ integer(4) function get_terminal_width(n) result(info)
     if( ios /= 0 )then
       n = 0
       info = 1
-      call errret('Failed to get the terminal width.'//&
-                 '\n  s : '//str(s)//&
-                 '\n  cl: '//str(cl))
+      call errret(ERROR_CODE__IO, &
+        'Failed to get the terminal width.'//&
+      '\n  s : '//str(s)//&
+      '\n  cl: '//str(cl))
       return
     endif
   else
     n = 0
     info = 1
-    call errret('Failed to get the terminal width.'//&
-               '\n  cstat == 0')
+    call errret(ERROR_CODE__IO, &
+      'Failed to get the terminal width.'//&
+    '\n  cstat == 0')
     return
   endif
 

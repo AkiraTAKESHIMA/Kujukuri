@@ -466,11 +466,11 @@ subroutine get_nextxy(ix, iy, dir, xx, yy)
     xx = XY__INLAND
     yy = XY__INLAND
   case( FDR__UNDEF )
-    call errend('Unexpected condition. Reached to ocean.', &
-                '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, 'Unexpected condition. Reached to ocean.', &
+                MODNAM, PRCNAM)
   case default
-    call errend(msg_invalid_value('dir', dir), &
-                '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, 'dir == '//str(dir), &
+                MODNAM, PRCNAM)
   endselect
 end subroutine get_nextxy
 !===============================================================
@@ -491,10 +491,10 @@ integer(1) function get_fdr(gx, gy, gxx, gyy) result(fdr)
     case( -1 )
       fdr = FDR__NORTH
     case default
-      call errend(msg_unexpected_condition()//&
-                '\n  abs(gyy-gy) > 1'//&
-                '\n  gy: '//str(gy)//', gyy: '//str(gyy), &
-                  '', PRCNAM, MODNAM)
+      call errend(ERROR_CODE__CONDITION, &
+        'abs(gyy-gy) > 1'//&
+      '\n  gy: '//str(gy)//', gyy: '//str(gyy), &
+        MODNAM, PRCNAM)
     endselect
   case( 1 )
     selectcase( gyy - gy )
@@ -505,10 +505,10 @@ integer(1) function get_fdr(gx, gy, gxx, gyy) result(fdr)
     case( -1 )
       fdr = FDR__NORTHEAST
     case default
-      call errend(msg_unexpected_condition()//&
-                '\n  abs(gyy-gy) > 1'//&
-                '\n  gy: '//str(gy)//', gyy: '//str(gyy), &
-                  '', PRCNAM, MODNAM)
+      call errend(ERROR_CODE__CONDITION, &
+        'abs(gyy-gy) > 1'//&
+      '\n  gy: '//str(gy)//', gyy: '//str(gyy), &
+        MODNAM, PRCNAM)
     endselect
   case( -1 )
     selectcase( gyy - gy )
@@ -519,16 +519,16 @@ integer(1) function get_fdr(gx, gy, gxx, gyy) result(fdr)
     case( -1 )
       fdr = FDR__NORTHWEST
     case default
-      call errend(msg_unexpected_condition()//&
-                '\n  abs(gyy-gy) > 1'//&
-                '\n  gy: '//str(gy)//', gyy: '//str(gyy), &
-                  '', PRCNAM, MODNAM)
+      call errend(ERROR_CODE__CONDITION, &
+        'abs(gyy-gy) > 1'//&
+      '\n  gy: '//str(gy)//', gyy: '//str(gyy), &
+        MODNAM, PRCNAM)
     endselect
   case default
-    call errend(msg_unexpected_condition()//&
-              '\n  abs(gxx-gx) > 1'//&
-              '\n  gx: '//str(gx)//', gxx: '//str(gxx), &
-                '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'abs(gxx-gx) > 1'//&
+    '\n  gx: '//str(gx)//', gxx: '//str(gxx), &
+      MODNAM, PRCNAM)
   endselect
 end function get_fdr
 !===============================================================
@@ -557,8 +557,9 @@ real(8) function get_angle_fdr(fdr) result(res)
   case( FDR__SOUTHEAST )
     res = 315.d0
   case default
-    call errend('Angle is not defined for fdr = '//str(fdr), &
-      '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__VALUE, &
+      'Angle is not defined for fdr = '//str(fdr), &
+      MODNAM, PRCNAM)
   endselect
 end function get_angle_fdr
 !===============================================================

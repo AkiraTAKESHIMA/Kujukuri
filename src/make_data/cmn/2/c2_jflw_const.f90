@@ -97,10 +97,10 @@ subroutine set_resolution(resl)
   !-------------------------------------------------------------
   scale = get_cellsize_ratio( RESOLUTION_1SEC, resl )
   if( mod(MX_1SEC, scale) /= 0 )then
-    call errend(msg_unexpected_condition()//&
-        '\n  scale is not a divisor of MX_1SEC.'//&
-        '\n  MX_1SEC: '//str(MX_1SEC)//&
-        '\n  scale: '//str(scale))
+    call errend(ERROR_CODE__CONDITION, &
+      'scale is not a divisor of MX_1SEC.'//&
+    '\n  MX_1SEC: '//str(MX_1SEC)//&
+    '\n  scale: '//str(scale))
   endif
 
   MX = MX_1SEC / scale

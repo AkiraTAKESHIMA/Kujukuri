@@ -12,7 +12,7 @@ program main
   implicit none
   type(gs_) :: a
 
-  call logbgn('program main', '', '+tr')
+  call logbgn('', 'program main', '+tr')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
@@ -22,5 +22,5 @@ program main
 
   call finalize(a)
   !-------------------------------------------------------------
-  call logret('program main', '')
+  call logret('', 'program main')
 end program main

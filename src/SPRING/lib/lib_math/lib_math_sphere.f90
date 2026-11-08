@@ -426,9 +426,9 @@ integer(4) function spherical_to_cartesian_deg__0d_miss_unspecified(&
   !-------------------------------------------------------------
   if( abs(lat) > 9.d1 )then
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\n  abs(lat) > 90.0', &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__CONDITION, &
+      'abs(lat) > 90.0', &
+      MODNAM, PRCNAM)
     return
   endif
 
@@ -463,8 +463,7 @@ integer(4) function spherical_to_cartesian_deg__0d_miss_specified(&
     if( spherical_to_cartesian_deg__0d_miss_unspecified(&
           lon, lat, x, y, z) /= 0 )then
       info = 1
-      call errret('', &
-                  PRCNAM, MODNAM)
+      call errret(mod=MODNAM, prc=PRCNAM)
       return
     endif
   endif
@@ -487,8 +486,7 @@ integer(4) function spherical_to_cartesian_deg__1d_miss_unspecified(&
     if( spherical_to_cartesian_deg__0d_miss_unspecified(&
           lon(i), lat(i), x(i), y(i), z(i)) /= 0 )then
       info = 1
-      call errret('@ i = '//str(i), &
-                  PRCNAM, MODNAM)
+      call errret(mod=MODNAM, prc=PRCNAM, msg='i = '//str(i))
       return
     endif
   enddo
@@ -517,8 +515,7 @@ integer(4) function spherical_to_cartesian_deg__1d_miss_specified(&
       if( spherical_to_cartesian_deg__0d_miss_unspecified(&
             lon(i), lat(i), x(i), y(i), z(i)) /= 0 )then
         info = 1
-        call errret('@ i = '//str(i), &
-                    PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM, msg='i = '//str(i))
         return
       endif
     endif
@@ -543,8 +540,7 @@ integer(4) function spherical_to_cartesian_deg__2d_miss_unspecified(&
       if( spherical_to_cartesian_deg__0d_miss_unspecified(&
             lon(i,j), lat(i,j), x(i,j), y(i,j), z(i,j)) /= 0 )then
         info = 1
-        call errret('@ (i,j) = ('//str((/i,j/),',')//')', &
-                    PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM, msg='(i,j) = ('//str((/i,j/),',')//')')
         return
       endif
     enddo
@@ -575,8 +571,7 @@ integer(4) function spherical_to_cartesian_deg__2d_miss_specified(&
         if( spherical_to_cartesian_deg__0d_miss_unspecified(&
               lon(i,j), lat(i,j), x(i,j), y(i,j), z(i,j)) /= 0 )then
           info = 1
-          call errret('@ (i,j) = ('//str((/i,j/),',')//')', &
-                      PRCNAM, MODNAM)
+          call errret(mod=MODNAM, prc=PRCNAM, msg='(i,j) = ('//str((/i,j/),',')//')')
           return
         endif
       endif
@@ -597,9 +592,9 @@ integer(4) function spherical_to_cartesian_rad__0d_miss_unspecified(&
   !-------------------------------------------------------------
   if( abs(lat) > rad_90deg )then
     info = 1
-    call errret(msg_unexpected_condition()//&
-              '\n  abs(lat) > rad_90deg', &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__CONDITION, &
+      'abs(lat) > rad_90deg', &
+      MODNAM, PRCNAM)
     return
   endif
 
@@ -634,8 +629,7 @@ integer(4) function spherical_to_cartesian_rad__0d_miss_specified(&
     if( spherical_to_cartesian_rad__0d_miss_unspecified(&
           lon, lat, x, y, z) /= 0 )then
       info = 1
-      call errret('', &
-                  PRCNAM, MODNAM)
+      call errret(mod=MODNAM, prc=PRCNAM)
       return
     endif
   endif
@@ -658,8 +652,7 @@ integer(4) function spherical_to_cartesian_rad__1d_miss_unspecified(&
     if( spherical_to_cartesian_rad__0d_miss_unspecified(&
           lon(i), lat(i), x(i), y(i), z(i)) /= 0 )then
       info = 1
-      call errret('@ i = '//str(i), &
-                  PRCNAM, MODNAM)
+      call errret(mod=MODNAM, prc=PRCNAM, msg='i = '//str(i))
       return
     endif
   enddo
@@ -688,8 +681,7 @@ integer(4) function spherical_to_cartesian_rad__1d_miss_specified(&
       if( spherical_to_cartesian_rad__0d_miss_unspecified(&
             lon(i), lat(i), x(i), y(i), z(i)) /= 0 )then
         info = 1
-        call errret('@ i = '//str(i), &
-                    PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM, msg='i = '//str(i))
         return
       endif
     endif
@@ -714,8 +706,7 @@ integer(4) function spherical_to_cartesian_rad__2d_miss_unspecified(&
       if( spherical_to_cartesian_rad__0d_miss_unspecified(&
             lon(i,j), lat(i,j), x(i,j), y(i,j), z(i,j)) /= 0 )then
         info = 1
-        call errret('@ (i,j) = ('//str((/i,j/),',')//')', &
-                    PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM, msg='@ (i,j) = ('//str((/i,j/),',')//')')
         return
       endif
     enddo
@@ -746,8 +737,7 @@ integer(4) function spherical_to_cartesian_rad__2d_miss_specified(&
         if( spherical_to_cartesian_rad__0d_miss_unspecified(&
               lon(i,j), lat(i,j), x(i,j), y(i,j), z(i,j)) /= 0 )then
           info = 1
-          call errret('@ (i,j) = ('//str((/i,j/),',')//')', &
-                      PRCNAM, MODNAM)
+          call errret(mod=MODNAM, prc=PRCNAM, msg='@ (i,j) = ('//str((/i,j/),',')//')')
           return
         endif
       endif
@@ -777,9 +767,9 @@ integer(4) function cartesian_to_spherical_deg__0d_miss_unspecified(&
   if( x == 0.d0 .and. y == 0.d0 )then
     if( z == 0.d0 )then
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\n  (x,y,z) == (0,0,0)', &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__CONDITION, &
+        '(x,y,z) == (0,0,0)', &
+        MODNAM, PRCNAM)
       return
     endif
 
@@ -812,8 +802,7 @@ integer(4) function cartesian_to_spherical_deg__0d_miss_specified(&
     if( cartesian_to_spherical_deg__0d_miss_unspecified(&
           x, y, z, lon, lat) /= 0 )then
       info = 1
-      call errret('', &
-                  PRCNAM, MODNAM)
+      call errret(mod=MODNAM, prc=PRCNAM)
       return
     endif
   endif
@@ -836,8 +825,7 @@ integer(4) function cartesian_to_spherical_deg__1d_miss_unspecified(&
     if( cartesian_to_spherical_deg__0d_miss_unspecified(&
           x(i), y(i), z(i), lon(i), lat(i)) /= 0 )then
       info = 1
-      call errret('@ i = '//str(i), &
-                  PRCNAM, MODNAM)
+      call errret(mod=MODNAM, prc=PRCNAM, msg='i = '//str(i))
       return
     endif
   enddo
@@ -866,8 +854,7 @@ integer(4) function cartesian_to_spherical_deg__1d_miss_specified(&
       if( cartesian_to_spherical_deg__0d_miss_unspecified(&
             x(i), y(i), z(i), lon(i), lat(i)) /= 0 )then
         info = 1
-        call errret('@ i = '//str(i), &
-                    PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM, msg='i = '//str(i))
         return
       endif
     endif
@@ -892,8 +879,7 @@ integer(4) function cartesian_to_spherical_deg__2d_miss_unspecified(&
       if( cartesian_to_spherical_deg__0d_miss_unspecified(&
             x(i,j), y(i,j), z(i,j), lon(i,j), lat(i,j)) /= 0 )then
         info = 1
-        call errret('@ (i,j) = ('//str((/i,j/),',')//')', &
-                    PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM, msg='(i,j) = ('//str((/i,j/),',')//')')
         return
       endif
     enddo
@@ -924,8 +910,7 @@ integer(4) function cartesian_to_spherical_deg__2d_miss_specified(&
         if( cartesian_to_spherical_deg__0d_miss_unspecified(&
               x(i,j), y(i,j), z(i,j), lon(i,j), lat(i,j)) /= 0 )then
           info = 1
-          call errret('@ (i,j) = ('//str((/i,j/),',')//')', &
-                      PRCNAM, MODNAM)
+          call errret(mod=MODNAM, prc=PRCNAM, msg='(i,j) = ('//str((/i,j/),',')//')')
           return
         endif
       endif
@@ -950,11 +935,13 @@ integer(4) function cartesian_to_spherical_rad__0d_miss_unspecified(&
 
   if( abs(z) > r .or. r == 0.d0 )then
     info = 1
-    call errret('x: '//str(x,'es20.13')//&
-              '\ny: '//str(y,'es20.13')//&
-              '\nz: '//str(z,'es20.13')//&
-              '\nr: '//str(r,'es20.13'), &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__CONDITION, &
+      'abs(z) > r or r == 0'//&
+    '\nx: '//str(x,'es20.13')//&
+    '\ny: '//str(y,'es20.13')//&
+    '\nz: '//str(z,'es20.13')//&
+    '\nr: '//str(r,'es20.13'), &
+      MODNAM, PRCNAM)
     return
   endif
 
@@ -991,8 +978,7 @@ integer(4) function cartesian_to_spherical_rad__0d_miss_specified(&
     if( cartesian_to_spherical_rad__0d_miss_unspecified(&
           x, y, z, lon, lat) /= 0 )then
       info = 1
-      call errret('', &
-                  PRCNAM, MODNAM)
+      call errret(mod=MODNAM, prc=PRCNAM)
       return
     endif
   endif
@@ -1015,8 +1001,7 @@ integer(4) function cartesian_to_spherical_rad__1d_miss_unspecified(&
     if( cartesian_to_spherical_rad__0d_miss_unspecified(&
           x(i), y(i), z(i), lon(i), lat(i)) /= 0 )then
       info = 1
-      call errret('@ i = '//str(i), &
-                  PRCNAM, MODNAM)
+      call errret(mod=MODNAM, prc=PRCNAM, msg='i = '//str(i))
       return
     endif
   enddo
@@ -1045,8 +1030,7 @@ integer(4) function cartesian_to_spherical_rad__1d_miss_specified(&
       if( cartesian_to_spherical_rad__0d_miss_unspecified(&
             x(i), y(i), z(i), lon(i), lat(i)) /= 0 )then
         info = 1
-        call errret('@ i = '//str(i), &
-                    PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM, msg='i = '//str(i))
         return
       endif
     endif
@@ -1071,8 +1055,7 @@ integer(4) function cartesian_to_spherical_rad__2d_miss_unspecified(&
       if( cartesian_to_spherical_rad__0d_miss_unspecified(&
             x(i,j), y(i,j), z(i,j), lon(i,j), lat(i,j)) /= 0 )then
         info = 1
-        call errret('@ (i,j) = ('//str((/i,j/),',')//')', &
-                    PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM, msg='(i,j) = ('//str((/i,j/),',')//')')
         return
       endif
     enddo
@@ -1103,8 +1086,7 @@ integer(4) function cartesian_to_spherical_rad__2d_miss_specified(&
         if( cartesian_to_spherical_rad__0d_miss_unspecified(&
                x(i,j), y(i,j), z(i,j), lon(i,j), lat(i,j)) /= 0 )then
           info = 1
-          call errret('@ (i,j) = ('//str((/i,j/),',')//')', &
-                      PRCNAM, MODNAM)
+          call errret(mod=MODNAM, prc=PRCNAM, msg='(i,j) = ('//str((/i,j/),',')//')')
           return
         endif
       endif
@@ -1230,7 +1212,7 @@ integer(4) function intersection_sphere_normal_normal_confirmed(&
       dp_T1_IS < 0.d0 .and. dp_T2_IS > 0.d0 )then
     !call logmsg('P = IA x IB')
     if( cartesian_to_spherical_rad(px, py, pz, plon, plat) /= 0 )then
-      info = 1; call errret('', PRCNAM, MODNAM); return
+      info = 1; call errret(mod=MODNAM, prc=PRCNAM); return
     endif
   !-------------------------------------------------------------
   ! Case: P = IB x IA
@@ -1238,13 +1220,13 @@ integer(4) function intersection_sphere_normal_normal_confirmed(&
           dp_T1_IS > 0.d0 .and. dp_T2_IS < 0.d0 )then
     !call logmsg('P = IB x IA')
     if( cartesian_to_spherical_rad(-px, -py, -pz, plon, plat) /= 0 )then
-      info = 1; call errret('', PRCNAM, MODNAM); return
+      info = 1; call errret(mod=MODNAM, prc=PRCNAM); return
     endif
   !-------------------------------------------------------------
   ! Case: Others
   else
     if( cartesian_to_spherical_rad(px, py, pz, plon1, plat1) /= 0 )then
-      info = 1; call errret('', PRCNAM, MODNAM); return
+      info = 1; call errret(mod=MODNAM, prc=PRCNAM); return
     endif
 
     if( plon1 > rad_180deg )then
@@ -1420,8 +1402,7 @@ integer(4) function intersection_sphere_normal_parallel2(&
     intersect = tan_wlat*cos_lat > tz .and. tz > tan_elat*cos_lat
   case default
     info = 1
-    call errret(msg_invalid_value('ssgn', ssgn), &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__VALUE, 'ssgn == '//str(ssgn), MODNAM, PRCNAM)
     return
   endselect
 
@@ -1574,7 +1555,7 @@ integer(4) function calc_lat_range_large_arc(&
       if( wlon < plon .and. plon < elon )then
         if( intersection_sphere_normal_meridian(&
               wlon, wlat, elon, elat, plon, plat) /= 0 )then
-          info = 1; call errret('', PRCNAM, MODNAM); return
+          info = 1; call errret(mod=MODNAM, prc=PRCNAM); return
         endif
 
         if( lat1 < rad_0deg )then
@@ -1609,7 +1590,7 @@ integer(4) function calc_lat_range_large_arc(&
       if( wlon < plon .or. plon < elon )then
         if( intersection_sphere_normal_meridian(&
               wlon, wlat, elon, elat, plon, plat) /= 0 )then
-          info = 1; call errret('', PRCNAM, MODNAM); return
+          info = 1; call errret(mod=MODNAM, prc=PRCNAM); return
         endif
 
         if( lat1 < rad_0deg )then
@@ -1680,8 +1661,9 @@ integer(4) function calc_lon_range_shared(&
     sdir = -1
   case default
     info = 1
-    call errret(msg_invalid_value('s_id_west', s_id_west), &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__VALUE, &
+      's_id_west == '//str(s_id_west), &
+      MODNAM, PRCNAM)
     return
   endselect
 
@@ -1696,8 +1678,9 @@ integer(4) function calc_lon_range_shared(&
     tdir = -1
   case default
     info = 1
-    call errret(msg_invalid_value('t_id_west', t_id_west), &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__VALUE, &
+      't_id_west == '//str(t_id_west), &
+      MODNAM, PRCNAM)
     return
   endselect
   !-------------------------------------------------------------
@@ -1731,8 +1714,8 @@ integer(4) function calc_lon_range_shared(&
         id_west = 2  ! west == swest == slon2
       case default
         info = 1
-        call errret(msg_invalid_value('sdir', sdir), &
-                    PRCNAM, MODNAM)
+        call errret(ERROR_CODE__VALUE, 'sdir == '//str(sdir), &
+                    MODNAM, PRCNAM)
         return
       endselect
     endif
@@ -1746,8 +1729,8 @@ integer(4) function calc_lon_range_shared(&
         id_east = 1  ! east == seast == slon1
       case default
         info = 1
-        call errret(msg_invalid_value('sdir', sdir), &
-                    PRCNAM, MODNAM)
+        call errret(ERROR_CODE__VALUE, 'sdir == '//str(sdir), &
+                    MODNAM, PRCNAM)
         return
       endselect
     endif
@@ -1764,8 +1747,8 @@ integer(4) function calc_lon_range_shared(&
           id_west = 4  ! west == twest == tlon2
         case default
           info = 1
-          call errret(msg_invalid_value('tdir', tdir), &
-                      PRCNAM, MODNAM)
+          call errret(ERROR_CODE__VALUE, 'tdir == '//str(tdir), &
+                      MODNAM, PRCNAM)
           return
         endselect
       endif
@@ -1781,8 +1764,8 @@ integer(4) function calc_lon_range_shared(&
           id_east = 3  ! east == teast == tlon1
         case default
           info = 1
-          call errret(msg_invalid_value('tdir', tdir), &
-                      PRCNAM, MODNAM)
+          call errret(ERROR_CODE__VALUE, 'tdir == '//str(tdir), &
+                      MODNAM, PRCNAM)
           return
         endselect
       endif
@@ -1798,8 +1781,8 @@ integer(4) function calc_lon_range_shared(&
           id_west = 4  ! west == twest == tlon2
         case default
           info = 1
-          call errret(msg_invalid_value('tdir', tdir), &
-                      PRCNAM, MODNAM)
+          call errret(ERROR_CODE__VALUE, 'tdir == '//str(tdir), &
+                      MODNAM, PRCNAM)
           return
         endselect
       endif
@@ -1815,8 +1798,8 @@ integer(4) function calc_lon_range_shared(&
           id_east = 3  ! east == teast == tlon1
         case default
           info = 1
-          call errret(msg_invalid_value('tdir', tdir), &
-                      PRCNAM, MODNAM)
+          call errret(ERROR_CODE__VALUE, 'tdir == '//str(tdir), &
+                      MODNAM, PRCNAM)
           return
         endselect
       endif
@@ -2076,9 +2059,9 @@ real(8) function area_sphere_polartri_spherical(&
 
       if( intersection_sphere_normal_meridian(&
             0.d0, lat1, lon, lat2, c2lon, c2lat) /= 0 )then
-        call logwrn('Abnormal end of the function '//&
-                    '`intersection_sphere_normal_meridian` '//&
-                    'was detected.')
+        call logwrn(ERROR_CODE__BASE, &
+         'Received error code from `intersection_sphere_normal_meridian`.', &
+         MODNAM, PRCNAM)
       else
         area_add = area_sphere_polartri_lt90deg(lon/imax, c1lat, c2lat, sgn_pole)
         area = area + area_add
@@ -2127,12 +2110,12 @@ real(8) function area_sphere_polartri_lt90deg(&
 
     if( abs(chi) -1.d0 > chi_diff_thresh )then
       area = 0.d0
-      call logerr(msg_unexpected_condition()//&
-                '\n  abs(chi) - 1.0 > '//str(chi_diff_thresh)//&
-                '\n  chi  : '//str(chi,'es20.13')//&
-                '\n  eta2 : '//str(eta2,'es20.13')//&
-                '\n  kappa: '//str(kappa,'es20.13'), &
-                  '', PRCNAM, MODNAM)
+      call logerr(ERROR_CODE__CONDITION, &
+        '  abs(chi) - 1.0 > '//str(chi_diff_thresh)//&
+      '\n  chi  : '//str(chi,'es20.13')//&
+      '\n  eta2 : '//str(eta2,'es20.13')//&
+      '\n  kappa: '//str(kappa,'es20.13'), &
+        MODNAM, PRCNAM)
       return
     endif
   endif
@@ -2192,8 +2175,8 @@ integer(4) function area_sphere_polygon__spherical(&
       continue
     case default
       info = 1
-      call errret(msg_invalid_value('arctyp('//str(n1)//')', arctyp(n1)), &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__VALUE, 'arctyp('//str(n1)//') == '//str(arctyp(n1)), &
+                  MODNAM, PRCNAM)
       return
     endselect
 
@@ -2254,8 +2237,8 @@ integer(4) function area_sphere_polygon__cartesian(&
       continue
     case default
       info = 1
-      call errret(msg_invalid_value('arctyp('//str(n1)//')', arctyp(n1)), &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__VALUE, 'arctyp('//str(n1)//') == '//str(arctyp(n1)), &
+                  MODNAM, PRCNAM)
       return
     endselect
 
@@ -2335,7 +2318,7 @@ integer(4) function calc_area_sphere_parallel_to_parallel(&
     endif
   case default
     info = 1
-    call errret(msg_invalid_value('sgn_pole', sgn_pole))
+    call errret(ERROR_CODE__VALUE, 'sgn_pole == '//str(sgn_pole))
     if( debug ) call logret(PRCNAM, MODNAM)
     return
   endselect
@@ -2346,7 +2329,7 @@ integer(4) function calc_area_sphere_parallel_to_parallel(&
         slon1, slon2, tlon1, tlon2, &
         sdir_lon, tdir_lon, id_west, id_east, west, east) /= 0 )then
     info = 1
-    call errret('', PRCNAM, MODNAM)
+    call errret(mod=MODNAM, prc=PRCNAM)
     if( debug ) call logret(PRCNAM, MODNAM)
     return
   endif
@@ -2370,8 +2353,8 @@ integer(4) function calc_area_sphere_parallel_to_parallel(&
     arc_rel = ARC_REL_LAT_PARA_PARA_ABOVE
   case default
     info = 1
-    call errret(msg_invalid_value('sgn_pole', sgn_pole), &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__VALUE, 'sgn_pole == '//str(sgn_pole), &
+                MODNAM, PRCNAM)
     if( debug ) call logret(PRCNAM, MODNAM)
     return
   endselect
@@ -2440,8 +2423,8 @@ integer(4) function calc_area_sphere_normal_to_parallel(&
       ssouth = slattop
     case default
       info = 1
-      call errret(msg_invalid_value('sconvex', sconvex), &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__VALUE, 'sconvex == '//str(sconvex), &
+                  MODNAM, PRCNAM)
       if( debug ) call logret(PRCNAM, MODNAM)
       return
     endselect
@@ -2467,8 +2450,8 @@ integer(4) function calc_area_sphere_normal_to_parallel(&
       snorth = slattop
     case default
       info = 1
-      call errret(msg_invalid_value('sconvex', sconvex), &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__VALUE, 'sconvex == '//str(sconvex), &
+                  MODNAM, PRCNAM)
       if( debug ) call logret(PRCNAM, MODNAM)
       return
     endselect
@@ -2486,8 +2469,8 @@ integer(4) function calc_area_sphere_normal_to_parallel(&
   ! Case: ERROR
   case default
     info = 1
-    call errret(msg_invalid_value('sgn_pole', sgn_pole), &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__VALUE, 'sgn_pole == '//str(sgn_pole), &
+                MODNAM, PRCNAM)
     if( debug ) call logret(PRCNAM, MODNAM)
     return
   endselect
@@ -2498,7 +2481,7 @@ integer(4) function calc_area_sphere_normal_to_parallel(&
         slon1, slon2, tlon1, tlon2, &
         sdir_lon, tdir_lon, id_west, id_east, west, east) /= 0 )then
     info = 1
-    call errret('', PRCNAM, MODNAM)
+    call errret(mod=MODNAM, prc=PRCNAM)
     if( debug ) call logret(PRCNAM, MODNAM)
     return
   endif
@@ -2524,7 +2507,7 @@ integer(4) function calc_area_sphere_normal_to_parallel(&
       if( intersection_sphere_normal_meridian(&
             slon1, slat1, slon2, slat2, west, slat_west) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -2532,21 +2515,21 @@ integer(4) function calc_area_sphere_normal_to_parallel(&
       if( intersection_sphere_normal_meridian(&
             slon2, slat2, slon1, slat1, west, slat_west) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
     case default
       info = 1
-      call errret(msg_invalid_value('sdir_lon', sdir_lon), &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__VALUE, 'sdir_lon == '//str(sdir_lon), &
+                  MODNAM, PRCNAM)
       if( debug ) call logret(PRCNAM, MODNAM)
       return
     endselect
   case default
     info = 1
-    call errret(msg_invalid_value('id_west', id_west), &
-                PRCNAM, MODNAM)
+      call errret(ERROR_CODE__VALUE, 'id_west == '//str(id_west), &
+                  MODNAM, PRCNAM)
     if( debug ) call logret(PRCNAM, MODNAM)
     return
   endselect
@@ -2562,7 +2545,7 @@ integer(4) function calc_area_sphere_normal_to_parallel(&
       if( intersection_sphere_normal_meridian(&
             slon1, slat1, slon2, slat2, east, slat_east) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -2570,21 +2553,21 @@ integer(4) function calc_area_sphere_normal_to_parallel(&
        if( intersection_sphere_normal_meridian(&
              slon2, slat2, slon1, slat1, east, slat_east) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
     case default
       info = 1
-      call errret(msg_invalid_value('sdir_lon', sdir_lon), &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__VALUE, 'sdir_lon == '//str(sdir_lon), &
+                  MODNAM, PRCNAM)
       if( debug ) call logret(PRCNAM, MODNAM)
       return
     endselect
   case default
     info = 1
-    call errret(msg_invalid_value('id_east', id_east), &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__VALUE, 'id_east == '//str(id_east), &
+                MODNAM, PRCNAM)
     if( debug ) call logret(PRCNAM, MODNAM)
     return
   endselect
@@ -2612,15 +2595,15 @@ integer(4) function calc_area_sphere_normal_to_parallel(&
       sconvex_this = CONVEX_MONOTONE
     case default
       info = 1
-      call errret(msg_invalid_value('stat_lon_between', stat_lon_between), &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__VALUE, 'stat_lon_between == '//str(stat_lon_between), &
+                  MODNAM, PRCNAM)
       if( debug ) call logret(PRCNAM, MODNAM)
       return
     endselect
   case default
     info = 1
-    call errret(msg_invalid_value('sconvex', sconvex), &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__VALUE, 'sconvex == '//str(sconvex), &
+                MODNAM, PRCNAM)
     if( debug ) call logret(PRCNAM, MODNAM)
     return
   endselect
@@ -2639,9 +2622,7 @@ integer(4) function calc_area_sphere_normal_to_parallel(&
       arc_rel = ARC_REL_LAT_NORM_PARA_ONE_INTERSECTION_DOWNWARD
     else
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\nNone of the cases applied.', &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__CONDITION, 'None of the cases applied.', MODNAM, PRCNAM)
       if( debug ) call logret(PRCNAM, MODNAM)
       return
     endif
@@ -2658,9 +2639,7 @@ integer(4) function calc_area_sphere_normal_to_parallel(&
       arc_rel = ARC_REL_LAT_NORM_PARA_TWO_INTERSECTIONS_CONVEX_UPWARD
     else
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\nNone of the cases applied.', &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__CONDITION, 'None of the cases applied.', MODNAM, PRCNAM)
       if( debug ) call logret(PRCNAM, MODNAM)
       return
     endif
@@ -2677,16 +2656,14 @@ integer(4) function calc_area_sphere_normal_to_parallel(&
       arc_rel = ARC_REL_LAT_NORM_PARA_TWO_INTERSECTIONS_CONVEX_DOWNWARD
     else
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\nNone of the cases applied.', &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__CONDITION, 'None of the cases applied.', MODNAM, PRCNAM)
       if( debug ) call logret(PRCNAM, MODNAM)
       return
     endif
   case default
     info = 1
-    call errret(msg_invalid_value('sconvex_this', sconvex_this), &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__VALUE, 'sconvex_this == '//str(sconvex_this), &
+                MODNAM, PRCNAM)
     if( debug ) call logret(PRCNAM, MODNAM)
     return
   endselect
@@ -2728,7 +2705,7 @@ integer(4) function calc_area_sphere_normal_to_parallel(&
       if( intersection_sphere_normal_parallel3(&
             sa, sb, sc, +sdir_lon, sin(tlat), west, east, clon) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -2746,7 +2723,7 @@ integer(4) function calc_area_sphere_normal_to_parallel(&
       if( intersection_sphere_normal_parallel3(&
             sa, sb, sc, -sdir_lon, sin(tlat), west, east, clon) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -2764,14 +2741,14 @@ integer(4) function calc_area_sphere_normal_to_parallel(&
       if( intersection_sphere_normal_parallel3(&
             sa, sb, sc, -sdir_lon, sin(tlat), west, east, clon1) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
       if( intersection_sphere_normal_parallel3(&
             sa, sb, sc, +sdir_lon, sin(tlat), west, east, clon2) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -2789,7 +2766,7 @@ integer(4) function calc_area_sphere_normal_to_parallel(&
       if( intersection_sphere_normal_parallel3(&
             sa, sb, sc, +sdir_lon, sin(tlat), west, east, clon1) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -2801,7 +2778,7 @@ integer(4) function calc_area_sphere_normal_to_parallel(&
       if( intersection_sphere_normal_parallel3(&
             sa, sb, sc, -sdir_lon, sin(tlat), west, east, clon2) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -2819,8 +2796,8 @@ integer(4) function calc_area_sphere_normal_to_parallel(&
     ! Case: ERROR
     case default
       info = 1
-      call errret(msg_invalid_value('arc_rel', arc_rel), &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__VALUE, 'arc_rel == '//str(arc_rel), &
+                  MODNAM, PRCNAM)
       if( debug ) call logret(PRCNAM, MODNAM)
       return
     endselect
@@ -2854,7 +2831,7 @@ integer(4) function calc_area_sphere_normal_to_parallel(&
       if( intersection_sphere_normal_parallel3(&
             sa, sb, sc, -sdir_lon, sin(tlat), west, east, clon) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -2872,7 +2849,7 @@ integer(4) function calc_area_sphere_normal_to_parallel(&
       if( intersection_sphere_normal_parallel3(&
             sa, sb, sc, +sdir_lon, sin(tlat), west, east, clon) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -2890,14 +2867,14 @@ integer(4) function calc_area_sphere_normal_to_parallel(&
       if( intersection_sphere_normal_parallel3(&
             sa, sb, sc, +sdir_lon, sin(tlat), west, east, clon1) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
       if( intersection_sphere_normal_parallel3(&
             sa, sb, sc, -sdir_lon, sin(tlat), west, east, clon2) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -2915,7 +2892,7 @@ integer(4) function calc_area_sphere_normal_to_parallel(&
       if( intersection_sphere_normal_parallel3(&
             sa, sb, sc, -sdir_lon, sin(tlat), west, east, clon1) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -2927,7 +2904,7 @@ integer(4) function calc_area_sphere_normal_to_parallel(&
       if( intersection_sphere_normal_parallel3(&
             sa, sb, sc, +sdir_lon, sin(tlat), west, east, clon2) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -2945,8 +2922,8 @@ integer(4) function calc_area_sphere_normal_to_parallel(&
     ! Case: ERROR
     case default
       info = 1
-      call errret(msg_invalid_value('arc_rel', arc_rel), &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__VALUE, 'arc_rel == '//str(arc_rel), &
+                  MODNAM, PRCNAM)
       if( debug ) call logret(PRCNAM, MODNAM)
       return
     endselect
@@ -2954,8 +2931,8 @@ integer(4) function calc_area_sphere_normal_to_parallel(&
   ! Case: ERROR
   case default
     info = 1
-    call errret(msg_invalid_value('sgn_pole', sgn_pole), &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__VALUE, 'sgn_pole == '//str(sgn_pole), &
+                MODNAM, PRCNAM)
     if( debug ) call logret(PRCNAM, MODNAM)
     return
   endselect
@@ -3023,8 +3000,8 @@ integer(4) function calc_area_sphere_parallel_to_normal(&
       tnorth = tlattop
     case default
       info = 1
-      call errret(msg_invalid_value('tconvex', tconvex), &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__VALUE, 'tconvex == '//str(tconvex), &
+                  MODNAM, PRCNAM)
       if( debug ) call logret(PRCNAM, MODNAM)
       return
     endselect
@@ -3050,8 +3027,8 @@ integer(4) function calc_area_sphere_parallel_to_normal(&
       tsouth = tlattop
     case default
       info = 1
-      call errret(msg_invalid_value('tconvex', tconvex), &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__VALUE, 'tconvex == '//str(tconvex), &
+                  MODNAM, PRCNAM)
       if( debug ) call logret(PRCNAM, MODNAM)
       return
     endselect
@@ -3069,8 +3046,8 @@ integer(4) function calc_area_sphere_parallel_to_normal(&
   ! Case: ERROR
   case default
     info = 1
-    call errret(msg_invalid_value('sgn_pole', sgn_pole), &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__VALUE, 'sgn_pole == '//str(sgn_pole), &
+                MODNAM, PRCNAM)
     if( debug ) call logret(PRCNAM, MODNAM)
     return
   endselect
@@ -3081,7 +3058,7 @@ integer(4) function calc_area_sphere_parallel_to_normal(&
         slon1, slon2, tlon1, tlon2, &
         sdir_lon, tdir_lon, id_west, id_east, west, east) /= 0 )then
     info = 1
-    call errret('', PRCNAM, MODNAM)
+    call errret(mod=MODNAM, prc=PRCNAM)
     if( debug ) call logret(PRCNAM, MODNAM)
     return
   endif
@@ -3103,7 +3080,7 @@ integer(4) function calc_area_sphere_parallel_to_normal(&
       if( intersection_sphere_normal_meridian(&
             tlon1, tlat1, tlon2, tlat2, west, tlat_west) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -3111,14 +3088,14 @@ integer(4) function calc_area_sphere_parallel_to_normal(&
       if( intersection_sphere_normal_meridian(&
             tlon2, tlat2, tlon1, tlat1, west, tlat_west) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
     case default
       info = 1
-      call errret(msg_invalid_value('tdir_lon', tdir_lon), &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__VALUE, 'tdir_lon == '//str(tdir_lon), &
+                  MODNAM, PRCNAM)
       if( debug ) call logret(PRCNAM, MODNAM)
       return
     endselect
@@ -3128,8 +3105,8 @@ integer(4) function calc_area_sphere_parallel_to_normal(&
     tlat_west = tlat2
   case default
     info = 1
-    call errret(msg_invalid_value('id_west', id_west), &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__VALUE, 'id_west == '//str(id_west), &
+                MODNAM, PRCNAM)
     if( debug ) call logret(PRCNAM, MODNAM)
     return
   endselect
@@ -3141,7 +3118,7 @@ integer(4) function calc_area_sphere_parallel_to_normal(&
       if( intersection_sphere_normal_meridian(&
             tlon1, tlat1, tlon2, tlat2, east, tlat_east) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -3149,14 +3126,14 @@ integer(4) function calc_area_sphere_parallel_to_normal(&
       if( intersection_sphere_normal_meridian(&
             tlon2, tlat2, tlon1, tlat1, east, tlat_east) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
     case default
       info = 1
-      call errret(msg_invalid_value('tdir_lon', tdir_lon), &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__VALUE, 'tdir_lon == '//str(tdir_lon), &
+                  MODNAM, PRCNAM)
       if( debug ) call logret(PRCNAM, MODNAM)
       return
     endselect
@@ -3166,8 +3143,8 @@ integer(4) function calc_area_sphere_parallel_to_normal(&
     tlat_east = tlat2
   case default
     info = 1
-    call errret(msg_invalid_value('id_east', id_east), &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__VALUE, 'id_east == '//str(id_east), &
+                MODNAM, PRCNAM)
     if( debug ) call logret(PRCNAM, MODNAM)
     return
   endselect
@@ -3195,15 +3172,15 @@ integer(4) function calc_area_sphere_parallel_to_normal(&
       tconvex_this = CONVEX_MONOTONE
     case default
       info = 1
-      call errret(msg_invalid_value('stat_lon_between', stat_lon_between), &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__VALUE, 'stat_lon_between == '//str(stat_lon_between), &
+                  MODNAM, PRCNAM)
       if( debug ) call logret(PRCNAM, MODNAM)
       return
     endselect
   case default
     info = 1
-    call errret(msg_invalid_value('tconvex', tconvex), &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__VALUE, 'tconvex == '//str(tconvex), &
+                MODNAM, PRCNAM)
     if( debug ) call logret(PRCNAM, MODNAM)
     return
   endselect
@@ -3222,9 +3199,7 @@ integer(4) function calc_area_sphere_parallel_to_normal(&
       arc_rel = ARC_REL_LAT_PARA_NORM_ONE_INTERSECTION_DOWNWARD
     else
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\nNone of the cases applied.', &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__CONDITION, 'None of the cases applied.', MODNAM, PRCNAM)
       if( debug ) call logret(PRCNAM, MODNAM)
       return
     endif
@@ -3241,9 +3216,7 @@ integer(4) function calc_area_sphere_parallel_to_normal(&
       arc_rel = ARC_REL_LAT_PARA_NORM_TWO_INTERSECTIONS_CONVEX_UPWARD
     else
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\nNone of the cases applied.', &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__CONDITION, 'None of the cases applied.', MODNAM, PRCNAM)
       if( debug ) call logret(PRCNAM, MODNAM)
       return
     endif
@@ -3260,16 +3233,14 @@ integer(4) function calc_area_sphere_parallel_to_normal(&
       arc_rel = ARC_REL_LAT_PARA_NORM_TWO_INTERSECTIONS_CONVEX_DOWNWARD
     else
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\nNone of the cases applied.', &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__CONDITION, 'None of the cases applied.', MODNAM, PRCNAM)
       if( debug ) call logret(PRCNAM, MODNAM)
       return
     endif
   case default
     info = 1
-    call errret(msg_invalid_value('tconvex_this', tconvex_this), &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__VALUE, 'tconvex_this == '//str(tconvex_this), &
+                MODNAM, PRCNAM)
     if( debug ) call logret(PRCNAM, MODNAM)
     return
   endselect
@@ -3307,7 +3278,7 @@ integer(4) function calc_area_sphere_parallel_to_normal(&
       if( intersection_sphere_normal_parallel3(&
             ta, tb, tc, -tdir_lon, sin(slat), west, east, clon) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -3325,7 +3296,7 @@ integer(4) function calc_area_sphere_parallel_to_normal(&
       if( intersection_sphere_normal_parallel3(&
             ta, tb, tc, +tdir_lon, sin(slat), west, east, clon) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -3343,14 +3314,14 @@ integer(4) function calc_area_sphere_parallel_to_normal(&
       if( intersection_sphere_normal_parallel3(&
             ta, tb, tc, +tdir_lon, sin(slat), west, east, clon1) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
       if( intersection_sphere_normal_parallel3(&
             ta, tb, tc, -tdir_lon, sin(slat), west, east, clon2) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -3368,7 +3339,7 @@ integer(4) function calc_area_sphere_parallel_to_normal(&
       if( intersection_sphere_normal_parallel3(&
             ta, tb, tc, -tdir_lon, sin(slat), west, east, clon1) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -3380,7 +3351,7 @@ integer(4) function calc_area_sphere_parallel_to_normal(&
       if( intersection_sphere_normal_parallel3(&
             ta, tb, tc, +tdir_lon, sin(slat), west, east, clon2) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -3398,8 +3369,8 @@ integer(4) function calc_area_sphere_parallel_to_normal(&
     ! Case: ERROR
     case default
       info = 1
-      call errret(msg_invalid_value('arc_rel', arc_rel), &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__VALUE, 'arc_rel == '//str(arc_rel), &
+                  MODNAM, PRCNAM)
       if( debug ) call logret(PRCNAM, MODNAM)
       return
     endselect
@@ -3433,7 +3404,7 @@ integer(4) function calc_area_sphere_parallel_to_normal(&
       if( intersection_sphere_normal_parallel3(&
             ta, tb, tc, +tdir_lon, sin(slat), west, east, clon) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -3451,7 +3422,7 @@ integer(4) function calc_area_sphere_parallel_to_normal(&
       if( intersection_sphere_normal_parallel3(&
             ta, tb, tc, -tdir_lon, sin(slat), west, east, clon) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -3469,14 +3440,14 @@ integer(4) function calc_area_sphere_parallel_to_normal(&
       if( intersection_sphere_normal_parallel3(&
             ta, tb, tc, -tdir_lon, sin(slat), west, east, clon1) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
       if( intersection_sphere_normal_parallel3(&
             ta, tb, tc, +tdir_lon, sin(slat), west, east, clon2) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -3494,7 +3465,7 @@ integer(4) function calc_area_sphere_parallel_to_normal(&
       if( intersection_sphere_normal_parallel3(&
             ta, tb, tc, +tdir_lon, sin(slat), west, east, clon1) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -3506,7 +3477,7 @@ integer(4) function calc_area_sphere_parallel_to_normal(&
       if( intersection_sphere_normal_parallel3(&
             ta, tb, tc, -tdir_lon, sin(slat), west, east, clon2) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -3524,8 +3495,8 @@ integer(4) function calc_area_sphere_parallel_to_normal(&
     ! Case: ERROR
     case default
       info = 1
-      call errret(msg_invalid_value('arc_rel', arc_rel), &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__VALUE, 'arc_rel == '//str(arc_rel), &
+                  MODNAM, PRCNAM)
       if( debug ) call logret(PRCNAM, MODNAM)
       return
     endselect
@@ -3533,8 +3504,8 @@ integer(4) function calc_area_sphere_parallel_to_normal(&
   ! Case: ERROR
   case default
     info = 1
-    call errret(msg_invalid_value('sgn_pole', sgn_pole), &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__VALUE, 'sgn_pole == '//str(sgn_pole), &
+                MODNAM, PRCNAM)
     if( debug ) call logret(PRCNAM, MODNAM)
     return
   endselect
@@ -3610,8 +3581,8 @@ integer(4) function calc_area_sphere_normal_to_normal(&
       ssouth = slattop
     case default
       info = 1
-      call errret(msg_invalid_value('sconvex', sconvex), &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__VALUE, 'sconvex == '//str(sconvex), &
+                  MODNAM, PRCNAM)
       if( debug ) call logret(PRCNAM, MODNAM)
       return
     endselect
@@ -3624,8 +3595,8 @@ integer(4) function calc_area_sphere_normal_to_normal(&
       tnorth = tlattop
     case default
       info = 1
-      call errret(msg_invalid_value('tconvex', tconvex), &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__VALUE, 'tconvex == '//str(tconvex), &
+                  MODNAM, PRCNAM)
       if( debug ) call logret(PRCNAM, MODNAM)
       return
     endselect
@@ -3651,8 +3622,8 @@ integer(4) function calc_area_sphere_normal_to_normal(&
       snorth = slattop
     case default
       info = 1
-      call errret(msg_invalid_value('sconvex', sconvex), &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__VALUE, 'sconvex == '//str(sconvex), &
+                  MODNAM, PRCNAM)
       if( debug ) call logret(PRCNAM, MODNAM)
       return
     endselect
@@ -3665,8 +3636,8 @@ integer(4) function calc_area_sphere_normal_to_normal(&
       tsouth = tlattop
     case default
       info = 1
-      call errret(msg_invalid_value('tconvex', tconvex), &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__VALUE, 'tconvex == '//str(tconvex), &
+                  MODNAM, PRCNAM)
       if( debug ) call logret(PRCNAM, MODNAM)
       return
     endselect
@@ -3684,8 +3655,8 @@ integer(4) function calc_area_sphere_normal_to_normal(&
   ! Case: ERROR
   case default
     info = 1
-    call errret(msg_invalid_value('sgn_pole', sgn_pole), &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__VALUE, 'sgn_pole == '//str(sgn_pole), &
+                MODNAM, PRCNAM)
     if( debug ) call logret(PRCNAM, MODNAM)
     return
   endselect
@@ -3696,7 +3667,7 @@ integer(4) function calc_area_sphere_normal_to_normal(&
         slon1, slon2, tlon1, tlon2, &
         sdir_lon, tdir_lon, id_west, id_east, west, east) /= 0 )then
     info = 1
-    call errret('', PRCNAM, MODNAM)
+    call errret(mod=MODNAM, prc=PRCNAM)
     if( debug ) call logret(PRCNAM, MODNAM)
     return
   endif
@@ -3724,7 +3695,7 @@ integer(4) function calc_area_sphere_normal_to_normal(&
       if( intersection_sphere_normal_meridian(&
             tlon1, tlat1, tlon2, tlat2, west, tlat_west) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -3732,14 +3703,14 @@ integer(4) function calc_area_sphere_normal_to_normal(&
       if( intersection_sphere_normal_meridian(&
             tlon2, tlat2, tlon1, tlat1, west, tlat_west) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
     case default
       info = 1
-      call errret(msg_invalid_value('tdir_lon', tdir_lon), &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__VALUE, 'tdir_lon == '//str(tdir_lon), &
+                  MODNAM, PRCNAM)
       if( debug ) call logret(PRCNAM, MODNAM)
       return
     endselect
@@ -3755,7 +3726,7 @@ integer(4) function calc_area_sphere_normal_to_normal(&
       if( intersection_sphere_normal_meridian(&
             slon1, slat1, slon2, slat2, west, slat_west) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -3763,21 +3734,21 @@ integer(4) function calc_area_sphere_normal_to_normal(&
       if( intersection_sphere_normal_meridian(&
             slon2, slat2, slon1, slat1, west, slat_west) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
     case default
       info = 1
-      call errret(msg_invalid_value('sdir_lon', sdir_lon), &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__VALUE, 'sdir_lon == '//str(sdir_lon), &
+                  MODNAM, PRCNAM)
       if( debug ) call logret(PRCNAM, MODNAM)
       return
     endselect
   case default
     info = 1
-    call errret(msg_invalid_value('id_west', id_west), &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__VALUE, 'id_west == '//str(id_west), &
+                MODNAM, PRCNAM)
     if( debug ) call logret(PRCNAM, MODNAM)
     return
   endselect
@@ -3795,7 +3766,7 @@ integer(4) function calc_area_sphere_normal_to_normal(&
       if( intersection_sphere_normal_meridian(&
             tlon1, tlat1, tlon2, tlat2, east, tlat_east) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -3803,14 +3774,14 @@ integer(4) function calc_area_sphere_normal_to_normal(&
       if( intersection_sphere_normal_meridian(&
             tlon2, tlat2, tlon1, tlat1, east, tlat_east) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
     case default
       info = 1
-      call errret(msg_invalid_value('tdir_lon', tdir_lon), &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__VALUE, 'tdir_lon == '//str(tdir_lon), &
+                  MODNAM, PRCNAM)
       if( debug ) call logret(PRCNAM, MODNAM)
       return
     endselect
@@ -3826,7 +3797,7 @@ integer(4) function calc_area_sphere_normal_to_normal(&
       if( intersection_sphere_normal_meridian(&
             slon1, slat1, slon2, slat2, east, slat_east) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -3834,21 +3805,21 @@ integer(4) function calc_area_sphere_normal_to_normal(&
       if( intersection_sphere_normal_meridian(&
             slon2, slat2, slon1, slat1, east, slat_east) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
     case default
       info = 1
-      call errret(msg_invalid_value('sdir_lon', sdir_lon), &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__VALUE, 'sdir_lon == '//str(sdir_lon), &
+                  MODNAM, PRCNAM)
       if( debug ) call logret(PRCNAM, MODNAM)
       return
     endselect
   case default
     info = 1
-    call errret(msg_invalid_value('id_east', id_east), &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__VALUE, 'id_east == '//str(id_east), &
+                MODNAM, PRCNAM)
     if( debug ) call logret(PRCNAM, MODNAM)
     return
   endselect
@@ -3899,7 +3870,7 @@ integer(4) function calc_area_sphere_normal_to_normal(&
             tx1, ty1, tz1, tx2, ty2, tz2, ta, tb, tc, &
             west, east, clon, clat, stat) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -3926,7 +3897,7 @@ integer(4) function calc_area_sphere_normal_to_normal(&
             tx1, ty1, tz1, tx2, ty2, tz2, ta, tb, tc, &
             west, east, clon, clat, stat) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -3946,9 +3917,7 @@ integer(4) function calc_area_sphere_normal_to_normal(&
     ! Case: ERROR
     else
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\nNone of the cases applied.', &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__CONDITION, 'None of the cases applied.', MODNAM, PRCNAM)
       if( debug ) call logret(PRCNAM, MODNAM)
       return
     endif
@@ -3987,7 +3956,7 @@ integer(4) function calc_area_sphere_normal_to_normal(&
             tx1, ty1, tz1, tx2, ty2, tz2, ta, tb, tc, &
             west, east, clon, clat, stat) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -4014,7 +3983,7 @@ integer(4) function calc_area_sphere_normal_to_normal(&
             tx1, ty1, tz1, tx2, ty2, tz2, ta, tb, tc, &
             west, east, clon, clat, stat) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -4034,9 +4003,7 @@ integer(4) function calc_area_sphere_normal_to_normal(&
     ! Case: ERROR
     else
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\nNone of the cases applied.', &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__CONDITION, 'None of the cases applied.', MODNAM, PRCNAM)
       if( debug ) call logret(PRCNAM, MODNAM)
       return
     endif
@@ -4044,8 +4011,8 @@ integer(4) function calc_area_sphere_normal_to_normal(&
   ! Case: ERROR
   case default
     info = 1
-    call errret(msg_invalid_value('sgn_pole', sgn_pole), &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__VALUE, 'sgn_pole == '//str(sgn_pole), &
+                MODNAM, PRCNAM)
     if( debug ) call logret(PRCNAM, MODNAM)
     return
   endselect
@@ -4258,7 +4225,7 @@ integer(4) function area_sphere_intersection_polygon_polygon(&
                 sgn_pole, &
                 area_add, arc_rel_lat) /= 0 )then
             info = 1
-            call errret('', PRCNAM, MODNAM)
+            call errret(mod=MODNAM, prc=PRCNAM)
             if( debug ) call logret(PRCNAM, MODNAM)
             return
           endif
@@ -4266,7 +4233,7 @@ integer(4) function area_sphere_intersection_polygon_polygon(&
           if( update_rel_lat_polygons_norm_norm(&
                 arc_rel_lat, is_s_below_t, is_s_above_t) /= 0 )then
             info = 1
-            call errret('', PRCNAM, MODNAM)
+            call errret(mod=MODNAM, prc=PRCNAM)
             if( debug ) call logret(PRCNAM, MODNAM)
             return
           endif
@@ -4283,7 +4250,7 @@ integer(4) function area_sphere_intersection_polygon_polygon(&
                 sgn_pole, &
                 area_add, arc_rel_lat) /= 0 )then
             info = 1
-            call errret('', PRCNAM, MODNAM)
+            call errret(mod=MODNAM, prc=PRCNAM)
             if( debug ) call logret(PRCNAM, MODNAM)
             return
           endif
@@ -4291,7 +4258,7 @@ integer(4) function area_sphere_intersection_polygon_polygon(&
           if( update_rel_lat_polygons_para_norm(&
                 arc_rel_lat, is_s_below_t, is_s_above_t) /= 0 )then
             info = 1
-            call errret('', PRCNAM, MODNAM)
+            call errret(mod=MODNAM, prc=PRCNAM)
             if( debug ) call logret(PRCNAM, MODNAM)
             return
           endif
@@ -4305,8 +4272,8 @@ integer(4) function area_sphere_intersection_polygon_polygon(&
         ! Case: ERROR
         case default
           info = 1
-          call errret(msg_invalid_value('styp(sn_)', styp(sn_)), &
-                      PRCNAM, MODNAM)
+          call errret(ERROR_CODE__VALUE, 'styp == '//str(styp(sn_)), &
+                      MODNAM, PRCNAM)
           if( debug ) call logret(PRCNAM, MODNAM)
           return
         endselect
@@ -4337,7 +4304,7 @@ integer(4) function area_sphere_intersection_polygon_polygon(&
                 sgn_pole, &
                 area_add, arc_rel_lat) /= 0 )then
             info = 1
-            call errret('', PRCNAM, MODNAM)
+            call errret(mod=MODNAM, prc=PRCNAM)
             if( debug ) call logret(PRCNAM, MODNAM)
             return
           endif
@@ -4345,7 +4312,7 @@ integer(4) function area_sphere_intersection_polygon_polygon(&
           if( update_rel_lat_polygons_norm_para(&
                 arc_rel_lat, is_s_below_t, is_s_above_t) /= 0 )then
             info = 1
-            call errret('', PRCNAM, MODNAM)
+            call errret(mod=MODNAM, prc=PRCNAM)
             if( debug ) call logret(PRCNAM, MODNAM)
             return
           endif
@@ -4360,7 +4327,7 @@ integer(4) function area_sphere_intersection_polygon_polygon(&
                 sgn_pole, &
                 area_add, arc_rel_lat) /= 0 )then
             info = 1
-            call errret('', PRCNAM, MODNAM)
+            call errret(mod=MODNAM, prc=PRCNAM)
             if( debug ) call logret(PRCNAM, MODNAM)
             return
           endif
@@ -4368,7 +4335,7 @@ integer(4) function area_sphere_intersection_polygon_polygon(&
           if( update_rel_lat_polygons_para_para(&
                 arc_rel_lat, is_s_below_t, is_s_above_t) /= 0 )then
             info = 1
-            call errret('', PRCNAM, MODNAM)
+            call errret(mod=MODNAM, prc=PRCNAM)
             if( debug ) call logret(PRCNAM, MODNAM)
             return
           endif
@@ -4382,8 +4349,8 @@ integer(4) function area_sphere_intersection_polygon_polygon(&
         ! Case: ERROR
         case default
           info = 1
-          call errret(msg_invalid_value('styp('//str(sn_)//')', styp(sn_)), &
-                      PRCNAM, MODNAM)
+          call errret(ERROR_CODE__VALUE, 'styp('//str(sn_)//') == '//str(styp(sn_)), &
+                      MODNAM, PRCNAM)
           if( debug ) call logret(PRCNAM, MODNAM)
           return
         endselect
@@ -4401,8 +4368,8 @@ integer(4) function area_sphere_intersection_polygon_polygon(&
     ! Case: ERROR
     case default
       info = 1
-      call errret(msg_invalid_value('ttyp('//str(tn_)//')', ttyp(tn_)), &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__VALUE, 'ttyp('//str(tn_)//') == '//str(ttyp(tn_)), &
+                  MODNAM, PRCNAM)
       if( debug ) call logret(PRCNAM, MODNAM)
       return
     endselect
@@ -4654,7 +4621,7 @@ integer(4) function area_sphere_intersection_polygon_polygon(&
                 sgn_pole, &
                 area_add, arc_rel_lat) /= 0 )then
             info = 1
-            call errret('', PRCNAM, MODNAM)
+            call errret(mod=MODNAM, prc=PRCNAM)
             if( debug ) call logret(PRCNAM, MODNAM)
             return
           endif
@@ -4669,7 +4636,7 @@ integer(4) function area_sphere_intersection_polygon_polygon(&
                 sgn_pole, &
                 area_add, arc_rel_lat) /= 0 )then
             info = 1
-            call errret('', PRCNAM, MODNAM)
+            call errret(mod=MODNAM, prc=PRCNAM)
             if( debug ) call logret(PRCNAM, MODNAM)
             return
           endif
@@ -4683,8 +4650,8 @@ integer(4) function area_sphere_intersection_polygon_polygon(&
         ! Case: ERROR
         case default
           info = 1
-          call errret(msg_invalid_value('styp('//str(sn_)//')', styp(sn_)), &
-                      PRCNAM, MODNAM)
+          call errret(ERROR_CODE__VALUE, 'styp('//str(sn_)//') == '//str(styp(sn_)), &
+                      MODNAM, PRCNAM)
           if( debug ) call logret(PRCNAM, MODNAM)
           return
         endselect
@@ -4730,7 +4697,7 @@ integer(4) function area_sphere_intersection_polygon_polygon(&
                 sgn_pole, &
                 area_add, arc_rel_lat) /= 0 )then
             info = 1
-            call errret('', PRCNAM, MODNAM)
+            call errret(mod=MODNAM, prc=PRCNAM)
             if( debug ) call logret(PRCNAM, MODNAM)
             return
           endif
@@ -4745,7 +4712,7 @@ integer(4) function area_sphere_intersection_polygon_polygon(&
                 sgn_pole, &
                 area_add, arc_rel_lat) /= 0 )then
             info = 1
-            call errret('', PRCNAM, MODNAM)
+            call errret(mod=MODNAM, prc=PRCNAM)
             if( debug ) call logret(PRCNAM, MODNAM)
             return
           endif
@@ -4759,8 +4726,8 @@ integer(4) function area_sphere_intersection_polygon_polygon(&
         ! Case: ERROR
         case default
           info = 1
-          call errret(msg_invalid_value('styp('//str(sn_)//')', styp(sn_)), &
-                      PRCNAM, MODNAM)
+          call errret(ERROR_CODE__VALUE, 'styp('//str(sn_)//') == '//str(styp(sn_)), &
+                      MODNAM, PRCNAM)
           if( debug ) call logret(PRCNAM, MODNAM)
           return
         endselect
@@ -4813,7 +4780,7 @@ integer(4) function area_sphere_intersection_polygon_polygon(&
                 sgn_pole, &
                 area_add, arc_rel_lat) /= 0 )then
             info = 1
-            call errret('', PRCNAM, MODNAM)
+            call errret(mod=MODNAM, prc=PRCNAM)
             if( debug ) call logret(PRCNAM, MODNAM)
             return
           endif
@@ -4828,7 +4795,7 @@ integer(4) function area_sphere_intersection_polygon_polygon(&
                 sgn_pole, &
                 area_add, arc_rel_lat) /= 0 )then
             info = 1
-            call errret('', PRCNAM, MODNAM)
+            call errret(mod=MODNAM, prc=PRCNAM)
             if( debug ) call logret(PRCNAM, MODNAM)
             return
           endif
@@ -4842,8 +4809,8 @@ integer(4) function area_sphere_intersection_polygon_polygon(&
         ! Case: ERROR
         case default
           info = 1
-          call errret(msg_invalid_value('ttyp('//str(tn_)//')', ttyp(tn_)), &
-                      PRCNAM, MODNAM)
+          call errret(ERROR_CODE__VALUE, 'ttyp('//str(tn_)//') == '//str(ttyp(tn_)), &
+                      MODNAM, PRCNAM)
           if( debug ) call logret(PRCNAM, MODNAM)
           return
         endselect
@@ -4889,7 +4856,7 @@ integer(4) function area_sphere_intersection_polygon_polygon(&
                 sgn_pole, &
                 area_add, arc_rel_lat) /= 0 )then
             info = 1
-            call errret('', PRCNAM, MODNAM)
+            call errret(mod=MODNAM, prc=PRCNAM)
             if( debug ) call logret(PRCNAM, MODNAM)
             return
           endif
@@ -4904,7 +4871,7 @@ integer(4) function area_sphere_intersection_polygon_polygon(&
                 sgn_pole, &
                 area_add, arc_rel_lat) /= 0 )then
             info = 1
-            call errret('', PRCNAM, MODNAM)
+            call errret(mod=MODNAM, prc=PRCNAM)
             if( debug ) call logret(PRCNAM, MODNAM)
             return
           endif
@@ -4918,8 +4885,8 @@ integer(4) function area_sphere_intersection_polygon_polygon(&
         ! Case: ERROR
         case default
           info = 1
-          call errret(msg_invalid_value('ttyp('//str(tn_)//')', ttyp(tn_)), &
-                      PRCNAM, MODNAM)
+          call errret(ERROR_CODE__VALUE, 'ttyp('//str(tn_)//') == '//str(ttyp(tn_)), &
+                      MODNAM, PRCNAM)
           if( debug ) call logret(PRCNAM, MODNAM)
           return
         endselect
@@ -4975,7 +4942,7 @@ integer(4) function area_sphere_intersection_polygon_polygon(&
                 sgn_pole, &
                 area_add, arc_rel_lat) /= 0 )then
             info = 1
-            call errret('', PRCNAM, MODNAM)
+            call errret(mod=MODNAM, prc=PRCNAM)
             if( debug ) call logret(PRCNAM, MODNAM)
             return
           endif
@@ -4990,7 +4957,7 @@ integer(4) function area_sphere_intersection_polygon_polygon(&
                 sgn_pole, &
                 area_add, arc_rel_lat) /= 0 )then
             info = 1
-            call errret('', PRCNAM, MODNAM)
+            call errret(mod=MODNAM, prc=PRCNAM)
             if( debug ) call logret(PRCNAM, MODNAM)
             return
           endif
@@ -5004,8 +4971,8 @@ integer(4) function area_sphere_intersection_polygon_polygon(&
         ! Case: ERROR
         case default
           info = 1
-          call errret(msg_invalid_value('styp('//str(sn_)//')', styp(sn_)), &
-                      PRCNAM, MODNAM)
+          call errret(ERROR_CODE__VALUE, 'styp('//str(sn_)//') == '//str(styp(sn_)), &
+                      MODNAM, PRCNAM)
           if( debug ) call logret(PRCNAM, MODNAM)
           return
         endselect
@@ -5051,7 +5018,7 @@ integer(4) function area_sphere_intersection_polygon_polygon(&
                 sgn_pole, &
                 area_add, arc_rel_lat) /= 0 )then
             info = 1
-            call errret('', PRCNAM, MODNAM)
+            call errret(mod=MODNAM, prc=PRCNAM)
             if( debug ) call logret(PRCNAM, MODNAM)
             return
           endif
@@ -5066,7 +5033,7 @@ integer(4) function area_sphere_intersection_polygon_polygon(&
                 sgn_pole, &
                 area_add, arc_rel_lat) /= 0 )then
             info = 1
-            call errret('', PRCNAM, MODNAM)
+            call errret(mod=MODNAM, prc=PRCNAM)
             if( debug ) call logret(PRCNAM, MODNAM)
             return
           endif
@@ -5080,8 +5047,8 @@ integer(4) function area_sphere_intersection_polygon_polygon(&
         ! Case: ERROR
         case default
           info = 1
-          call errret(msg_invalid_value('styp('//str(sn_)//')', styp(sn_)), &
-                      PRCNAM, MODNAM)
+          call errret(ERROR_CODE__VALUE, 'styp('//str(sn_)//') == '//str(styp(sn_)), &
+                      MODNAM, PRCNAM)
           if( debug ) call logret(PRCNAM, MODNAM)
           return
         endselect
@@ -5134,7 +5101,7 @@ integer(4) function area_sphere_intersection_polygon_polygon(&
                 sgn_pole, &
                 area_add, arc_rel_lat) /= 0 )then
             info = 1
-            call errret('', PRCNAM, MODNAM)
+            call errret(mod=MODNAM, prc=PRCNAM)
             if( debug ) call logret(PRCNAM, MODNAM)
             return
           endif
@@ -5149,7 +5116,7 @@ integer(4) function area_sphere_intersection_polygon_polygon(&
                 sgn_pole, &
                 area_add, arc_rel_lat) /= 0 )then
             info = 1
-            call errret('', PRCNAM, MODNAM)
+            call errret(mod=MODNAM, prc=PRCNAM)
             if( debug ) call logret(PRCNAM, MODNAM)
             return
           endif
@@ -5163,8 +5130,8 @@ integer(4) function area_sphere_intersection_polygon_polygon(&
         ! Case: ERROR
         case default
           info = 1
-          call errret(msg_invalid_value('ttyp('//str(tn_)//')', ttyp(tn_)), &
-                      PRCNAM, MODNAM)
+          call errret(ERROR_CODE__VALUE, 'ttyp('//str(tn_)//') == '//str(ttyp(tn_)), &
+                      MODNAM, PRCNAM)
           if( debug ) call logret(PRCNAM, MODNAM)
           return
         endselect
@@ -5210,7 +5177,7 @@ integer(4) function area_sphere_intersection_polygon_polygon(&
                 sgn_pole, &
                 area_add, arc_rel_lat) /= 0 )then
             info = 1
-            call errret('', PRCNAM, MODNAM)
+            call errret(mod=MODNAM, prc=PRCNAM)
             if( debug ) call logret(PRCNAM, MODNAM)
             return
           endif
@@ -5225,7 +5192,7 @@ integer(4) function area_sphere_intersection_polygon_polygon(&
                 sgn_pole, &
                 area_add, arc_rel_lat) /= 0 )then
             info = 1
-            call errret('', PRCNAM, MODNAM)
+            call errret(mod=MODNAM, prc=PRCNAM)
             if( debug ) call logret(PRCNAM, MODNAM)
             return
           endif
@@ -5239,8 +5206,8 @@ integer(4) function area_sphere_intersection_polygon_polygon(&
         ! Case: ERROR
         case default
           info = 1
-          call errret(msg_invalid_value('ttyp('//str(tn_)//')', ttyp(tn_)), &
-                      PRCNAM, MODNAM)
+          call errret(ERROR_CODE__VALUE, 'ttyp('//str(tn_)//') == '//str(ttyp(tn_)), &
+                      MODNAM, PRCNAM)
           if( debug ) call logret(PRCNAM, MODNAM)
           return
         endselect
@@ -5345,7 +5312,7 @@ integer(4) function area_sphere_intersection_latlon_polygon(&
             sgn_pole, &
             area_add_south, arc_rel_lat) /= 0 )then
           info = 1
-          call errret('', PRCNAM, MODNAM)
+          call errret(mod=MODNAM, prc=PRCNAM)
           if( debug ) call logret(PRCNAM, MODNAM)
           return
         endif
@@ -5353,7 +5320,7 @@ integer(4) function area_sphere_intersection_latlon_polygon(&
       if( update_rel_lat_polygons_para_norm(&
             arc_rel_lat, is_s_below_t, is_s_above_t) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -5373,7 +5340,7 @@ integer(4) function area_sphere_intersection_latlon_polygon(&
             sgn_pole, &
             area_add_north, arc_rel_lat) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -5381,7 +5348,7 @@ integer(4) function area_sphere_intersection_latlon_polygon(&
       if( update_rel_lat_polygons_para_norm(&
             arc_rel_lat, is_s_below_t, is_s_above_t) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -5398,7 +5365,7 @@ integer(4) function area_sphere_intersection_latlon_polygon(&
             sgn_pole, &
             area_add_south, arc_rel_lat) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -5406,7 +5373,7 @@ integer(4) function area_sphere_intersection_latlon_polygon(&
       if( update_rel_lat_polygons_para_para(&
             arc_rel_lat, is_s_below_t, is_s_above_t) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -5417,7 +5384,7 @@ integer(4) function area_sphere_intersection_latlon_polygon(&
             sgn_pole, &
             area_add_north, arc_rel_lat) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -5425,7 +5392,7 @@ integer(4) function area_sphere_intersection_latlon_polygon(&
       if( update_rel_lat_polygons_para_para(&
             arc_rel_lat, is_s_below_t, is_s_above_t) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -5439,8 +5406,8 @@ integer(4) function area_sphere_intersection_latlon_polygon(&
     ! Case: ERROR
     case default
       info = 1
-      call errret(msg_invalid_value('ttyp('//str(tn_)//')', ttyp(tn_)), &
-                  PRCNAM, MODNAM)
+      call errret(ERROR_CODE__VALUE, 'ttyp('//str(tn_)//') == '//str(ttyp(tn_)), &
+                  MODNAM, PRCNAM)
       if( debug ) call logret(PRCNAM, MODNAM)
       return
     endselect
@@ -5577,7 +5544,7 @@ integer(4) function area_sphere_intersection_latlon_polygon(&
             sgn_pole, &
             area_add_south, arc_rel_lat) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -5588,7 +5555,7 @@ integer(4) function area_sphere_intersection_latlon_polygon(&
             sgn_pole, &
             area_add_north, arc_rel_lat) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -5641,7 +5608,7 @@ integer(4) function area_sphere_intersection_latlon_polygon(&
             sgn_pole, &
             area_add_south, arc_rel_lat) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -5652,7 +5619,7 @@ integer(4) function area_sphere_intersection_latlon_polygon(&
             sgn_pole, &
             area_add_north, arc_rel_lat) /= 0 )then
         info = 1
-        call errret('', PRCNAM, MODNAM)
+        call errret(mod=MODNAM, prc=PRCNAM)
         if( debug ) call logret(PRCNAM, MODNAM)
         return
       endif
@@ -5680,7 +5647,7 @@ integer(4) function area_sphere_intersection_latlon_polygon(&
   ! Case: ERROR
   case default
     info = 1
-    call errret(msg_invalid_value('sgn_pole', sgn_pole))
+    call errret(ERROR_CODE__VALUE, 'sgn_pole == '//str(sgn_pole))
     if( debug ) call logret(PRCNAM, MODNAM)
     return
   endselect
@@ -5718,8 +5685,8 @@ integer(4) function update_rel_lat_polygons_norm_norm(&
     is_former_above_latter = .false.
   case default
     info = 1
-    call errret(msg_invalid_value('arc_rel_lat_norm_norm', arc_rel_lat_norm_norm), &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__VALUE, 'arc_rel_lat_norm_norm == '//str(arc_rel_lat_norm_norm), &
+                MODNAM, PRCNAM)
     return
   endselect
 end function update_rel_lat_polygons_norm_norm
@@ -5750,8 +5717,8 @@ integer(4) function update_rel_lat_polygons_para_norm(&
     is_former_above_latter = .false.
   case default
     info = 1
-    call errret(msg_invalid_value('arc_rel_lat_para_norm', arc_rel_lat_para_norm), &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__VALUE, 'arc_rel_lat_para_norm == '//str(arc_rel_lat_para_norm), &
+                MODNAM, PRCNAM)
     return
   endselect
 end function update_rel_lat_polygons_para_norm
@@ -5782,8 +5749,8 @@ integer(4) function update_rel_lat_polygons_norm_para(&
     is_former_above_latter = .false.
   case default
     info = 1
-    call errret(msg_invalid_value('arc_rel_lat_norm_para', arc_rel_lat_norm_para), &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__VALUE, 'arc_rel_lat_norm_para == '//str(arc_rel_lat_norm_para), &
+                MODNAM, PRCNAM)
     return
   endselect
 end function update_rel_lat_polygons_norm_para
@@ -5808,8 +5775,8 @@ integer(4) function update_rel_lat_polygons_para_para(&
     is_former_below_latter = .false.
   case default
     info = 1
-    call errret(msg_invalid_value('arc_rel_lat_para_para', arc_rel_lat_para_para), &
-                PRCNAM, MODNAM)
+    call errret(ERROR_CODE__VALUE, 'arc_rel_lat_para_para == '//str(arc_rel_lat_para_para), &
+                MODNAM, PRCNAM)
     return
   endselect
 end function update_rel_lat_polygons_para_para

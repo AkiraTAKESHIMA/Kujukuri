@@ -170,7 +170,7 @@ subroutine read_map__int4(&
   read(un,*) c_, ngx
   read(un,*) c_, ngy
   if( size(dat,1) /= ngx .or. size(dat,2) /= ngy )then
-    call errend('Incorrect shape of array.')
+    call errend(ERROR_CODE__ARGUMENT, 'Incorrect shape of array.')
   endif
   read(un,*)
   read(un,*)
@@ -214,7 +214,7 @@ subroutine read_map__real(&
   read(un,*) c_, ngx
   read(un,*) c_, ngy
   if( size(dat,1) /= ngx .or. size(dat,2) /= ngy )then
-    call errend('Incorrect shape of array.')
+    call errend(ERROR_CODE__ARGUMENT, 'Incorrect shape of array.')
   endif
   read(un,*)
   read(un,*)

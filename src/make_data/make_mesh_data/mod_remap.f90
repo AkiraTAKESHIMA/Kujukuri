@@ -69,7 +69,7 @@ subroutine makeRemappingTables(&
   case( 'J-FlwDir' )
     call make_rt_from_jflw(resl, resl_src, overwrite)
   case default
-    call errend('Invalid value in `name_src`: '//str(name_src))
+    call errend(ERROR_CODE__VALUE, 'name_src == '//str(name_src))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -422,7 +422,7 @@ subroutine remap(&
     call remap_jflw(resl, resl_src, var, overwrite)
 
   case default
-    call errend(msg_invalid_value('name_src', name_src))
+    call errend(ERROR_CODE__VALUE, 'name_src == '//str(name_src))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -507,7 +507,7 @@ subroutine remap_nlni(&
     srcmissi1 = NLNI_LANDUSE_MISS
     tgtmissi1 = LANDUSE_MISS
   case default
-    call errend(msg_invalid_value('var', var))
+    call errend(ERROR_CODE__VALUE, 'var == '//str(var))
   endselect
   !-------------------------------------------------------------
   !
@@ -744,7 +744,7 @@ subroutine remap_jflw(resl, resl_src, var, overwrite)
     dtype = DTYPE_REAL
     miss = ELV_MISS
   case default
-    call errend(msg_invalid_value('var', var))
+    call errend(ERROR_CODE__VALUE, 'var == '//str(var))
   endselect
   !-------------------------------------------------------------
   !

@@ -67,13 +67,14 @@ integer(4) function set_gs__polygon(ap) result(info)
       ijs = g%ij_debug
       ije = g%ij_debug
     else
-      call logwrn('Grid index data has not been prepared.')
+      call logwrn(ERROR_CODE__CONDITION, 'Grid index data has not been prepared.')
       if( 1 <= ap%idx_debug .and. ap%idx_debug <= ap%nij )then
         ijs = g%ij_debug
         ije = g%ij_debug
       else
         info = 1
-        call errret('$ap%idx_debug = '//str(ap%idx_debug)//' is out of range.')
+        call errret(ERROR_CODE__CONDITION, &
+          'The value `'//str(ap%idx_debug)//'` ap%idx_debug is out of range.')
         return
       endif
     endif
@@ -378,7 +379,7 @@ integer(4) function read_data_plainbinary(ap) result(info)
   ! Case: ERROR
   case default
     info = 1
-    call errret(msg_invalid_value('ap%coord_sys', ap%coord_sys))
+    call errret(ERROR_CODE__VALUE, 'ap%coord_sys == '//str(ap%coord_sys))
     return
   endselect
 
@@ -460,7 +461,7 @@ integer(4) function modify_coords(ap) result(info)
       continue
     case default
       info = 1
-      call errret(msg_invalid_value('ap%coord_unit', ap%coord_unit))
+      call errret(ERROR_CODE__VALUE, 'ap%coord_unit == '//str(ap%coord_unit))
       return
     endselect
 
@@ -504,7 +505,7 @@ integer(4) function modify_coords(ap) result(info)
       enddo  ! ij/
     case default
       info = 1
-      call errret(msg_invalid_value('ap%coord_unit', ap%coord_unit))
+      call errret(ERROR_CODE__VALUE, 'ap%coord_unit == '//str(ap%coord_unit))
       return
     endselect
 
@@ -528,7 +529,7 @@ integer(4) function modify_coords(ap) result(info)
   ! Case: ERROR
   case default
     info = 1
-    call errret(msg_invalid_value('ap%coord_sys', ap%coord_sys))
+    call errret(ERROR_CODE__VALUE, 'ap%coord_sys == '//str(ap%coord_sys))
     return
   endselect
   !-------------------------------------------------------------
@@ -631,8 +632,8 @@ integer(4) function count_vertices(ap) result(info)
       if( lat1 == ap%coord_miss_s )then
         if( lon1 /= ap%coord_miss_s )then
           info = 1
-          call errret(msg_unexpected_condition()//&
-                    '\nlat. is missing value but lon. is not missing value')
+          call errret(ERROR_CODE__CONDITION, &
+            'Latitude is missing value but longitude is not missing value')
           return
         endif
         cycle
@@ -649,11 +650,11 @@ integer(4) function count_vertices(ap) result(info)
           !          '('//str(str_coords_lonlat((/lon1,lat1/),ap%coord_miss_s))//')')
         else
           info = 1
-          call errret(msg_unexpected_condition()//&
-                    '\nDuplicated vertices were found.'//&
-                    '\npolygon('//str(ij,dgt(ap%ije))//') '//&
-                      '('//str(n)//') == ('//str(next_cyclic(n,int(ap%np,4)))//') '//&
-                      '('//str(str_coords_lonlat((/lon1,lat1/),ap%coord_miss_s))//')')
+          call errret(ERROR_CODE__CONDITION, &
+            'Duplicated vertices were found.'//&
+          '\npolygon('//str(ij,dgt(ap%ije))//') '//&
+            '('//str(n)//') == ('//str(next_cyclic(n,int(ap%np,4)))//') '//&
+            '('//str(str_coords_lonlat((/lon1,lat1/),ap%coord_miss_s))//')')
           return
         endif
         cycle
@@ -675,9 +676,9 @@ integer(4) function count_vertices(ap) result(info)
       continue
     case default
       info = 1
-      call errret(msg_unexpected_condition()//&
-                '\n  ij: '//str(ij)//&
-                '\n  p%n: '//str(p%n))
+      call errret(ERROR_CODE__CONDITION, &
+        'p%n == '//str(p%n)//&
+      '\n  ij: '//str(ij))
       return
     endselect
 
@@ -715,14 +716,15 @@ integer(4) function count_vertices(ap) result(info)
     enddo  ! n/
 
     if( p%n > 0 .and. p%n < 3 )then
-      call logwrn('The number of vertices with valid coordinates is less than 3.'//&
-          '\n  ij: '//str(ij)//&
-          '\n  n: '//str(n)//&
-          '\n  lon: '//str(p%lon*r2d,'es20.13',', ')//' (deg)'//&
-          '\n  lat: '//str(p%lat*r2d,'es20.13',', ')//' (deg)'//&
-          '\n  x  : '//str(p%x,'es20.13',', ')//' (m)'//&
-          '\n  y  : '//str(p%y,'es20.13',', ')//' (m)'//&
-          '\n  z  : '//str(p%z,'es20.13',', ')//' (m)')
+      call logwrn(ERROR_CODE__CONDITION, &
+        'The number of vertices with valid coordinates is less than 3.'//&
+      '\n  ij: '//str(ij)//&
+      '\n  n: '//str(n)//&
+      '\n  lon: '//str(p%lon*r2d,'es20.13',', ')//' (deg)'//&
+      '\n  lat: '//str(p%lat*r2d,'es20.13',', ')//' (deg)'//&
+      '\n  x  : '//str(p%x,'es20.13',', ')//' (m)'//&
+      '\n  y  : '//str(p%y,'es20.13',', ')//' (m)'//&
+      '\n  z  : '//str(p%z,'es20.13',', ')//' (m)')
     endif
 
     call realloc(p%x, p%n, clear=.false.)
@@ -801,11 +803,11 @@ integer(4) function find_polar_vertices(ap) result(info)
       if( abs(p%lat(n)) == rad_90deg )then
         if( p%n_pole /= 0 )then
           is_ok = .false.
-          call erradd(msg_unexpected_condition()//&
-                    '\n  p%n_pole /= 0'//&
-                    '\n  ij: '//str(ij)//&
-                    '\n  lon: '//str_coords(p%lon, r2d, ap%coord_miss_s, WFMT_LONLAT, n1max=p%n)//&
-                    '\n  lat: '//str_coords(p%lat, r2d, ap%coord_miss_s, WFMT_LONLAT, n1max=p%n))
+          call errnew(ERROR_CODE__CONDITION, &
+            'p%n_pole /= 0'//&
+          '\n  ij: '//str(ij)//&
+          '\n  lon: '//str_coords(p%lon, r2d, ap%coord_miss_s, WFMT_LONLAT, n1max=p%n)//&
+          '\n  lat: '//str_coords(p%lat, r2d, ap%coord_miss_s, WFMT_LONLAT, n1max=p%n))
           exit
         endif
         p%n_pole = int(n,4)
@@ -898,9 +900,9 @@ integer(4) function judge_type_of_grids(ap) result(info)
         call add(counter_lon0)
       case default
         info = 1
-        call errret(msg_invalid_value('p%arcpos(n)', p%arcpos(n))//&
-                  '\n  ij: '//str(ij)//&
-                  '\n  n : '//str(n))
+        call errret(ERROR_CODE__VALUE, 'p%arcpos(n) == '//str(p%arcpos(n))//&
+        '\n  ij: '//str(ij)//&
+        '\n  n : '//str(n))
         return
       endselect
     enddo  ! n/
@@ -967,9 +969,9 @@ integer(4) function calc_coefs_of_arcs(ap) result(info)
         endif
       case default
         info = 1
-        call errret(msg_invalid_value('p%arctyp(n)', p%arctyp(n))//&
-                  '\n  ij: '//str(ij)//&
-                  '\n  n : '//str(n))
+        call errret(ERROR_CODE__VALUE, 'p%arctyp(n) == '//str(p%arctyp(n))//&
+        '\n  ij: '//str(ij)//&
+        '\n  n : '//str(n))
         return
       endselect
     enddo  ! n/
@@ -1072,7 +1074,7 @@ integer(4) function calc_range_of_longit(ap) result(info)
     ! Case: ERROR
     case default
       info = 1
-      call errret(msg_invalid_value('p%pos', p%pos))
+      call errret(ERROR_CODE__VALUE, 'p%pos == '//str(p%pos))
       return
     endselect
   enddo  ! ij/
@@ -1144,9 +1146,9 @@ integer(4) function calc_range_of_latit(ap) result(info)
 
         case default
           info = 1
-          call errret(msg_invalid_value('p%arctyp(n)', p%arctyp(n))//&
-                    '\n  ij: '//str(ij)//&
-                    '\n  n : '//str(n))
+          call errret(ERROR_CODE__VALUE, 'p%arctyp(n) == '//str(p%arctyp(n))//&
+          '\n  ij: '//str(ij)//&
+          '\n  n : '//str(n))
           return
         endselect
       enddo  ! n/
@@ -1183,9 +1185,9 @@ integer(4) function calc_range_of_latit(ap) result(info)
 
         case default
           info = 1
-          call errret(msg_invalid_value('p%arctyp(n)', p%arctyp(n))//&
-                    '\n  ij: '//str(ij)//&
-                    '\n  n : '//str(n))
+          call errret(ERROR_CODE__VALUE, 'p%arctyp(n) == '//str(p%arctyp(n))//&
+          '\n  ij: '//str(ij)//&
+          '\n  n : '//str(n))
           return
         endselect
       enddo  ! n/
@@ -1193,8 +1195,8 @@ integer(4) function calc_range_of_latit(ap) result(info)
     ! Case: ERROR
     case default
       info = 1
-      call errret(msg_invalid_value('p%pos', p%pos)//&
-                '\n  ij: '//str(ij))
+      call errret(ERROR_CODE__VALUE, 'p%pos == '//str(p%pos)//&
+      '\n  ij: '//str(ij))
       return
     endselect
   enddo  ! ij/
@@ -1275,7 +1277,7 @@ integer(4) function modify_loop_directions(ap) result(info)
     ! Case: ERROR
     case default
       info = 1
-      call errret(msg_invalid_value('p%pos', p%pos))
+      call errret(ERROR_CODE__VALUE, 'p%pos == '//str(p%pos))
       return
     endselect
     !-----------------------------------------------------------
@@ -1358,14 +1360,14 @@ integer(4) function get_n_next_lon_is_unequal(&
       if( .not. is_found )then
         info = 1
         call logbgn(PRCNAM, MODNAM, '-p')
-        call errret(msg_unexpected_condition()//&
-                  '\nPoints with unequal longitudes were not found. ij: '//str(ij))
+        call errret(ERROR_CODE__CONDITION, &
+          'Points with unequal longitudes were not found. ij: '//str(ij))
         return
       else
         info = 1
         call logbgn(PRCNAM, MODNAM, '-p')
-        call errret(msg_internal_error()//&
-                  '\nFailed to find points with unequal longitudes.')
+        call errret(ERROR_CODE__INTERNAL, &
+          'Failed to find points with unequal longitudes.')
         return
       endif
     endif
@@ -1395,8 +1397,8 @@ subroutine print_info(ap)
     case( 3: )
       call add(mij_valid)
     case default
-      call errend(msg_internal_error()//&
-                '\np%n /= 0 .and. p%n < 3 @ ij = '//str(ij))
+      call errend(ERROR_CODE__INTERNAL, &
+        'p%n /= 0 .and. p%n < 3 @ ij = '//str(ij))
     endselect
   enddo
 

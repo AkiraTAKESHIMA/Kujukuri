@@ -34,7 +34,7 @@ program main
   logical :: calc_vrf  = .true.
   logical :: output    = .true.
 
-  call logbgn('program remap', '', '+tr')
+  call logbgn('', 'program remap', '+tr')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
@@ -55,11 +55,10 @@ program main
     call traperr( read_rt_main(rt%main) )
 
   case( RT_STATUS__NONE )
-    call errend(msg_unexpected_condition()//&
-              '\n  rt%status == RT_STATUS__NONE')
+    call errend(ERROR_CODE__VALUE, 'rt%status == RT_STATUS__NONE')
 
   case default
-    call errend(msg_invalid_value('rt%status', rt%status))
+    call errend(ERROR_CODE__VALUE, 'rt%status == '//str(rt%status))
   endselect
 
   call remap(s, t, rt)

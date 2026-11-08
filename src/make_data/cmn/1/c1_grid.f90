@@ -49,11 +49,11 @@ integer function get_cellsize_in_sec(resl) result(n)
     if( loc == 0 ) cycle
 
     if( loc == 1 )then
-      call errend('Invalid format: '//str(resl))
+      call errend(ERROR_CODE__SYNTAX, 'Invalid format: '//str(resl))
     endif
     read(resl(:loc-1), *, iostat=ios) n
     if( ios /= 0 )then
-      call errend('Reading failed: '//str(resl))
+      call errend(ERROR_CODE__IO, 'Reading failed: '//str(resl))
     endif
 
     selectcase( unit )
@@ -67,7 +67,7 @@ integer function get_cellsize_in_sec(resl) result(n)
   enddo
 
   if( n == 0 )then
-    call errend('Failed to get size: '//str(resl))
+    call errend(ERROR_CODE__SYNTAX, 'Failed to get size: '//str(resl))
   endif
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -86,9 +86,10 @@ integer function get_cellsize_ratio(resl_in, resl_out) result(ratio)
   sz_in = get_cellsize_in_sec(resl_in)
   sz_out = get_cellsize_in_sec(resl_out)
   if( mod(sz_out, sz_in) /= 0 )then
-    call errend('Cell size of '//str(resl_out)//&
-        ' is not a multiple of that of '//str(resl_in)//'.', &
-        '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, &
+      'Cell size of '//str(resl_out)//&
+      ' is not a multiple of that of '//str(resl_in)//'.', &
+      MODNAM, PRCNAM)
   endif
   ratio = sz_out / sz_in
 end function get_cellsize_ratio
@@ -111,11 +112,11 @@ real(8) function apprx_isct_with_meridian(&
   real(8), intent(in) :: lon
 
   if( lon0 == lon1 )then
-    call errend('lon0 == lon1', &
-        '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, 'lon0 == lon1', &
+      MODNAM, PRCNAM)
   elseif( lon < min(lon0,lon1) .or. lon > max(lon0,lon1) )then
-    call errend('lon is out of range', &
-        '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, 'lon is out of range', &
+      MODNAM, PRCNAM)
   endif
 
   if( lon == lon0 )then
@@ -135,11 +136,11 @@ real(8) function apprx_isct_with_parallel(&
   real(8), intent(in) :: lat
 
   if( lat0 == lat1 )then
-    call errend('lat0 == lat1', &
-        '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, 'lat0 == lat1', &
+      MODNAM, PRCNAM)
   elseif( lat < min(lat0,lat1) .or. lat > max(lat0,lat1) )then
-    call errend('lat is out of range', &
-        '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__CONDITION, 'lat is out of range', &
+      MODNAM, PRCNAM)
   endif
 
   if( lat == lat0 )then

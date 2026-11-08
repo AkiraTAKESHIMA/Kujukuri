@@ -71,7 +71,7 @@ function sBBox(&
   case( '[' )
     b2 = ']'
   case default
-    call errend(msg_invalid_value('b', b))
+    call errend(ERROR_CODE__VALUE, 'b == '//str(b))
   endselect
 
   wfmt_lon = 'f'//str(dc_+alon_+1)//'.'//str(dc_)

@@ -13,7 +13,7 @@ program main
   type(gs_)     :: dst
   type(output_) :: output
 
-  call logbgn('program main', '', '+tr')
+  call logbgn('', 'program main', '+tr')
   !-------------------------------------------------------------
   call read_settings(org, dst, output)
 
@@ -21,5 +21,5 @@ program main
 
   call finalize(org, dst)
   !-------------------------------------------------------------
-  call logret('program main', '')
+  call logret('', 'program main')
 end program main

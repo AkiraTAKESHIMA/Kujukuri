@@ -1,4 +1,4 @@
-module lib_base_char
+module lib_base_language_eng
   use lib_const
   implicit none
   private
@@ -154,4 +154,4 @@ end function ordinal__int8
 !==============================================================
 !
 !==============================================================
-end module lib_base_char
+end module lib_base_language_eng

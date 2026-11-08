@@ -93,7 +93,7 @@ function region_idx2str(i) result(res)
   case( 5 )
     res = trim(REGION__OKINAWA)
   case default
-    call errend(msg_invalid_value('i', i))
+    call errend(ERROR_CODE__VALUE, 'i == '//str(i))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -124,7 +124,7 @@ integer function region_str2idx(s) result(res)
   case( REGION__OKINAWA )
     res = 5
   case default
-    call errend(msg_invalid_value('s', s))
+    call errend(ERROR_CODE__VALUE, 's == '//str(s))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -239,7 +239,7 @@ subroutine read_network(f, nwk)
   !
   !-------------------------------------------------------------
   if( .not. allocated(nwk%id) )then
-    call errend('ID of the network is undefined.')
+    call errend(ERROR_CODE__CONDITION, 'ID of the network is undefined.')
   endif
 
   open(newunit=un, file=f, form='unformatted', access='sequential', status='old')
@@ -489,7 +489,7 @@ character(CLEN_PATH) function get_f_stream_shp(region) result(f)
         REGION__OKINAWA )
     f = joined(DIR_ORG, str(region)//'/StrRank-'//str(region)//'_Stream.shp')
   case default
-    call errend(msg_invalid_value('region', region))
+    call errend(ERROR_CODE__VALUE, 'region == '//str(region))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -512,7 +512,7 @@ character(CLEN_PATH) function get_f_stream_dbf(region) result(f)
         REGION__OKINAWA )
     f = joined(DIR_ORG, str(region)//'/StrRank-'//str(region)//'_Stream.dbf')
   case default
-    call errend(msg_invalid_value('region', region))
+    call errend(ERROR_CODE__VALUE, 'region == '//str(region))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -535,7 +535,7 @@ character(CLEN_PATH) function get_f_rivernode_shp(region) result(f)
         REGION__OKINAWA )
     f = joined(DIR_ORG, str(region)//'/StrRank-'//str(region)//'_RiverNode.shp')
   case default
-    call errend(msg_invalid_value('region', region))
+    call errend(ERROR_CODE__VALUE, 'region == '//str(region))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -558,7 +558,7 @@ character(CLEN_PATH) function get_f_rivernode_dbf(region) result(f)
         REGION__OKINAWA )
     f = joined(DIR_ORG, str(region)//'/StrRank-'//str(region)//'_RiverNode.dbf')
   case default
-    call errend(msg_invalid_value('region', region))
+    call errend(ERROR_CODE__VALUE, 'region == '//str(region))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -635,7 +635,7 @@ character(CLEN_PATH) function get_f_tmp_network_channel(id, typ) result(f)
   case( 'sbin', 'json' )
     f = joined(DIR_PRD, 'tmp_network_channel/'//str(typ)//'/'//str(id)//'.'//str(typ))
   case default
-    call errend(msg_invalid_value('typ', typ))
+    call errend(ERROR_CODE__VALUE, 'typ == '//str(typ))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -685,7 +685,7 @@ character(CLEN_PATH) function get_f_network_channel(id, typ) result(f)
   case( 'sbin', 'json' )
     f = joined(DIR_PRD, 'network_channel/'//str(typ)//'/'//str(id)//'.'//str(typ))
   case default
-    call errend(msg_invalid_value('typ', typ))
+    call errend(ERROR_CODE__VALUE, 'typ == '//str(typ))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -727,7 +727,7 @@ character(CLEN_PATH) function get_f_network_mesh(&
   case( 'domain' )
     ext = 'txt'
   case default
-    call errend(msg_invalid_value('var', var))
+    call errend(ERROR_CODE__VALUE, 'var == '//str(var))
   endselect
 
   f = joined(DIR_PRD, 'network_mesh/'//str(resl)//'/'//str(var)//'/'//str(id)//'.'//str(ext))
@@ -848,7 +848,7 @@ character(CLEN_PATH) function get_f_isct_wsys(region) result(f)
     f = joined(DIR_PRD, 'isct_wsys/'//str(region)//'.txt')
     call traperr( mkdir(dirname(f)) )
   case default
-    call errend(msg_invalid_value('region', region))
+    call errend(ERROR_CODE__VALUE, 'region == '//str(region))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
@@ -873,7 +873,7 @@ character(CLEN_PATH) function get_f_incons_isct_wsys(region) result(f)
     f = joined(DIR_PRD, 'incons_isct_wsys/'//str(region)//'.txt')
     call traperr( mkdir(dirname(f)) )
   case default
-    call errend(msg_invalid_value('region', region))
+    call errend(ERROR_CODE__VALUE, 'region == '//str(region))
   endselect
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)

@@ -1,5 +1,6 @@
 module lib_log_proc
   use lib_const
+  use lib_base
   use lib_time , only: &
     date_and_time_values, &
     timediff
@@ -17,8 +18,8 @@ module lib_log_proc
   public :: logerr
   public :: errend
   public :: errret
+  public :: errnew
   public :: erradd
-  public :: errapd
   public :: setlog
   public :: traperr
   !-------------------------------------------------------------
@@ -100,6 +101,7 @@ module lib_log_proc
   integer, parameter :: STOP_CODE_ERROR = 1
 
   type err_
+    integer :: code
     character(:), allocatable :: mod, prc, stp
     character(:), allocatable :: msg
   end type
@@ -349,8 +351,9 @@ subroutine logbgn(prc, mod, opt)
         ios = 1
       endif
       if( ios /= 0 )then
-        call errend('Invalid format of option: '//trim(opt)//'\n', &
-                    '', PRCNAM, MODNAM)
+        call errend(ERROR_CODE__SYNTAX, &
+          'Invalid format of option: '//trim(opt), &
+          MODNAM, PRCNAM)
       endif
     endselect
   enddo
@@ -359,22 +362,14 @@ subroutine logbgn(prc, mod, opt)
   !-------------------------------------------------------------
   depth = depth + 1
 
-  call fwrd_dict(cmd%echoPrc, set%echoPrc, &
-                 depth, val_echoPrc, isRec_echoPrc)
-  call fwrd_dict(cmd%echoPcc, set%echoPcc, &
-                 depth, val_echoPcc, isRec_echoPcc)
-  call fwrd_dict(cmd%echoMsg, set%echoMsg, &
-                 depth, val_echoMsg, isRec_echoMsg)
-  call fwrd_dict(cmd%echoWrn, set%echoWrn, &
-                 depth, val_echoWrn, isRec_echoWrn)
-  call fwrd_dict(cmd%echoErr, set%echoErr, &
-                 depth, val_echoErr, isRec_echoErr)
-  call fwrd_dict(cmd%echoBar, set%echoBar, &
-                 depth, val_echoBar, isRec_echoBar)
-  call fwrd_dict(cmd%stopErr, set%stopErr, &
-                 depth, val_stopErr, isRec_stopErr)
-  call fwrd_dict(cmd%msrTime, set%msrTime, &
-                 depth, val_msrTime, isRec_msrTime)
+  call fwrd_dict(cmd%echoPrc, set%echoPrc, depth, val_echoPrc, isRec_echoPrc)
+  call fwrd_dict(cmd%echoPcc, set%echoPcc, depth, val_echoPcc, isRec_echoPcc)
+  call fwrd_dict(cmd%echoMsg, set%echoMsg, depth, val_echoMsg, isRec_echoMsg)
+  call fwrd_dict(cmd%echoWrn, set%echoWrn, depth, val_echoWrn, isRec_echoWrn)
+  call fwrd_dict(cmd%echoErr, set%echoErr, depth, val_echoErr, isRec_echoErr)
+  call fwrd_dict(cmd%echoBar, set%echoBar, depth, val_echoBar, isRec_echoBar)
+  call fwrd_dict(cmd%stopErr, set%stopErr, depth, val_stopErr, isRec_stopErr)
+  call fwrd_dict(cmd%msrTime, set%msrTime, depth, val_msrTime, isRec_msrTime)
 
   set%mod(depth) = trim(mod)
   set%prc(depth) = trim(prc)
@@ -388,8 +383,8 @@ subroutine logbgn(prc, mod, opt)
   ! Print the message
   !-------------------------------------------------------------
   if( set%echoPrc(depth) )then
-    call echo_lines('[+ '//strprc(prc, mod)//']', &
-                    STDOUT, set%indent(depth), .true.)
+    call echo_lines(STDOUT, '[+ '//strprc(mod, prc)//']', &
+                    set%indent(depth), .true.)
   endif
   !-------------------------------------------------------------
   ! Start the timer
@@ -455,12 +450,12 @@ subroutine logret(prc, mod)
       allocate(character(8) :: c_)
       write(c_,"(f8.3)") timediff(set%time_bgn(depth,:), date_and_time_values())
       allocate(character(1) :: c)
-      c = '[- '//strprc(prc_, mod_)//' ('//trim(c_)//' sec)]'
+      c = '[- '//strprc(mod_, prc_)//' ('//trim(c_)//' sec)]'
     else
       allocate(character(1) :: c)
-      c = '[- '//strprc(prc_, mod_)//']'
+      c = '[- '//strprc(mod_, prc_)//']'
     endif
-    call echo_lines(c, STDOUT, set%indent(depth), .true.)
+    call echo_lines(STDOUT, c, set%indent(depth), .true.)
 
     deallocate(mod_, prc_)
   endif
@@ -681,8 +676,9 @@ subroutine logent(stp, prc, mod, opt)
         ios = 1
       endif
       if( ios /= 0 )then
-        call errend('Invalid format of option: '//trim(opt)//'\n', &
-                    '', PRCNAM, MODNAM)
+        call errend(ERROR_CODE__SYNTAX, &
+          'Invalid format of option: '//trim(opt), &
+          MODNAM, PRCNAM)
       endif
     endselect
   enddo
@@ -691,22 +687,14 @@ subroutine logent(stp, prc, mod, opt)
   !-------------------------------------------------------------
   depth = depth + 1
 
-  call fwrd_dict(cmd%echoPrc, set%echoPrc, &
-                 depth, val_echoPrc, isRec_echoPrc)
-  call fwrd_dict(cmd%echoPcc, set%echoPcc, &
-                 depth, val_echoPcc, isRec_echoPcc)
-  call fwrd_dict(cmd%echoMsg, set%echoMsg, &
-                 depth, val_echoMsg, isRec_echoMsg)
-  call fwrd_dict(cmd%echoWrn, set%echoWrn, &
-                 depth, val_echoWrn, isRec_echoWrn)
-  call fwrd_dict(cmd%echoErr, set%echoErr, &
-                 depth, val_echoErr, isRec_echoErr)
-  call fwrd_dict(cmd%echoBar, set%echoBar, &
-                 depth, val_echoBar, isRec_echoBar)
-  call fwrd_dict(cmd%stopErr, set%stopErr, &
-                 depth, val_stopErr, isRec_stopErr)
-  call fwrd_dict(cmd%msrTime, set%msrTime, &
-                 depth, val_msrTime, isRec_msrTime)
+  call fwrd_dict(cmd%echoPrc, set%echoPrc, depth, val_echoPrc, isRec_echoPrc)
+  call fwrd_dict(cmd%echoPcc, set%echoPcc, depth, val_echoPcc, isRec_echoPcc)
+  call fwrd_dict(cmd%echoMsg, set%echoMsg, depth, val_echoMsg, isRec_echoMsg)
+  call fwrd_dict(cmd%echoWrn, set%echoWrn, depth, val_echoWrn, isRec_echoWrn)
+  call fwrd_dict(cmd%echoErr, set%echoErr, depth, val_echoErr, isRec_echoErr)
+  call fwrd_dict(cmd%echoBar, set%echoBar, depth, val_echoBar, isRec_echoBar)
+  call fwrd_dict(cmd%stopErr, set%stopErr, depth, val_stopErr, isRec_stopErr)
+  call fwrd_dict(cmd%msrTime, set%msrTime, depth, val_msrTime, isRec_msrTime)
 
   if( present(mod) )then
     set%mod(depth) = trim(mod)
@@ -728,8 +716,8 @@ subroutine logent(stp, prc, mod, opt)
   ! Print the message
   !-------------------------------------------------------------
   if( set%echoPrc(depth) )then
-    call echo_lines(trim(set%stp(depth)), &
-                    STDOUT, set%indent(depth), .true.)
+    call echo_lines(STDOUT, trim(set%stp(depth)), &
+                    set%indent(depth), .true.)
   endif
   !-------------------------------------------------------------
   ! Start the timer
@@ -847,8 +835,9 @@ subroutine logmsg(msg, un, opt)
         ios = 1
       endif
       if( ios /= 0 )then
-        call errend('Invalid format of option: '//trim(opt)//'\n', &
-                    '', PRCNAM, MODNAM)
+        call errend(ERROR_CODE__SYNTAX, &
+          'Invalid format of option: '//trim(opt), &
+          MODNAM, PRCNAM)
       endif
     endselect
   enddo
@@ -866,23 +855,24 @@ subroutine logmsg(msg, un, opt)
   ! Print message
   !-------------------------------------------------------------
   if( echoMsg )then
-    call echo_lines(msg, un_, indent, makeNewLine)
+    call echo_lines(un_, msg, indent, makeNewLine)
   endif
   !-------------------------------------------------------------
 end subroutine logmsg
 !===============================================================
 !
 !===============================================================
-subroutine logwrn(msg, stp, prc, mod, opt)
+subroutine logwrn(ec, msg, mod, prc, stp, opt)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'logwrn'
+  integer, intent(in) :: ec
   character(*), intent(in) :: msg
-  character(*), intent(in), optional :: stp
-  character(*), intent(in), optional :: prc
   character(*), intent(in), optional :: mod
+  character(*), intent(in), optional :: prc
+  character(*), intent(in), optional :: stp
   character(*), intent(in), optional :: opt
 
-  character(:), allocatable :: stp_, prc_, mod_
+  character(:), allocatable :: mod_, prc_, stp_
 
   integer :: val_echoPrc
   integer :: val_echoMsg
@@ -896,16 +886,19 @@ subroutine logwrn(msg, stp, prc, mod, opt)
   integer :: indent, indentInc
   character(CLEN_OPT) :: opt_, opt1
   integer :: ios
+
+  character(:), allocatable :: head
+  integer :: i
   !-------------------------------------------------------------
   ! Read inputs
   !-------------------------------------------------------------
-  allocate(character(1) :: stp_, prc_, mod_)
-  stp_ = trim(set%stp(depth))
-  prc_ = trim(set%prc(depth))
+  allocate(character(1) :: mod_, prc_, stp_)
   mod_ = trim(set%mod(depth))
-  if( present(stp) ) stp_ = trim(stp)
-  if( present(prc) ) prc_ = trim(prc)
+  prc_ = trim(set%prc(depth))
+  stp_ = trim(set%stp(depth))
   if( present(mod) ) mod_ = trim(mod)
+  if( present(prc) ) prc_ = trim(prc)
+  if( present(stp) ) stp_ = trim(stp)
   !-------------------------------------------------------------
   ! Read options
   !-------------------------------------------------------------
@@ -965,8 +958,9 @@ subroutine logwrn(msg, stp, prc, mod, opt)
         ios = 1
       endif
       if( ios /= 0 )then
-        call errend('Invalid format of option: '//trim(opt)//'\n', &
-                    '', PRCNAM, MODNAM)
+        call errend(ERROR_CODE__SYNTAX, &
+          'Invalid format of option: '//trim(opt), &
+          MODNAM, PRCNAM)
       endif
     endselect
   enddo
@@ -984,16 +978,18 @@ subroutine logwrn(msg, stp, prc, mod, opt)
   !
   !-------------------------------------------------------------
   if( echoBar )then
-    call echo_lines('****** WARING ******', STDOUT, set%indent(depth), .true.)
-  endif
-  if( echoPrc )then
-    call echo_lines(strstp(stp_, prc_, mod_), STDOUT, set%indent(depth), .true.)
+    allocate(character(1) :: head)
+    head = wrnHead(ec)
+    call echo_lines(STDOUT, head//strprc(mod_,prc_,stp_), set%indent(depth), .true.)
   endif
   if( echoMsg )then
-    call echo_lines(trim(msg), STDOUT, set%indent(depth), makeNewLine)
+    call echo_lines(STDOUT, trim(msg), set%indent(depth), makeNewLine)
   endif
   if( echoBar )then
-    call echo_lines('********************', STDOUT, set%indent(depth), .true.)
+    do i = 1, len_trim(head)
+      head(i:i) = '!'
+    enddo
+    call echo_lines(STDOUT, head, set%indent(depth), .true.)
   endif
   !-------------------------------------------------------------
   !
@@ -1004,13 +1000,14 @@ end subroutine logwrn
 !===============================================================
 !
 !===============================================================
-subroutine logerr(msg, stp, prc, mod, opt)
+subroutine logerr(ec, msg, mod, prc, stp, opt)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'logerr'
+  integer, intent(in) :: ec
   character(*), intent(in) :: msg
-  character(*), intent(in), optional :: stp
-  character(*), intent(in), optional :: prc
   character(*), intent(in), optional :: mod
+  character(*), intent(in), optional :: prc
+  character(*), intent(in), optional :: stp
   character(*), intent(in), optional :: opt
 
   character(:), allocatable :: stp_, prc_, mod_
@@ -1028,6 +1025,9 @@ subroutine logerr(msg, stp, prc, mod, opt)
   integer :: indent, indentInc
   character(CLEN_OPT) :: opt_, opt1
   integer :: ios
+
+  character(:), allocatable :: head
+  integer :: i
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
@@ -1092,8 +1092,9 @@ subroutine logerr(msg, stp, prc, mod, opt)
         ios = 1
       endif
       if( ios /= 0 )then
-        call errend('Invalid format of option: '//trim(opt)//'\n', &
-                    '', PRCNAM, MODNAM)
+        call errend(ERROR_CODE__SYNTAX, &
+          'Invalid format of option: '//trim(opt), &
+          MODNAM, PRCNAM)
       endif
     endselect
   enddo
@@ -1111,13 +1112,18 @@ subroutine logerr(msg, stp, prc, mod, opt)
   !
   !-------------------------------------------------------------
   if( echoBar )then
-    call echo_lines('****** ERROR ******', STDOUT, set%indent(depth), .true.)
-  endif
-  if( echoPrc )then
-    call echo_lines(strstp(stp_, prc_, mod_), STDOUT, set%indent(depth), .true.)
+    allocate(character(1) :: head)
+    head = errHead(ec)
+    call echo_lines(STDERR, head//'in '//strprc(mod_,prc_,stp_), set%indent(depth), .true.)
   endif
   if( echoMsg )then
-    call echo_lines(trim(msg), STDOUT, set%indent(depth), makeNewLine)
+    call echo_lines(STDERR, trim(msg), set%indent(depth), makeNewLine)
+  endif
+  if( echoBar )then
+    do i = 1, len_trim(head)
+      head(i:i) = '!'
+    enddo
+    call echo_lines(STDERR, head, set%indent(depth), .true.)
   endif
   !-------------------------------------------------------------
   !
@@ -1128,21 +1134,25 @@ end subroutine logerr
 !===============================================================
 !
 !===============================================================
-recursive subroutine errend(msg, stp, prc, mod, opt)
+recursive subroutine errend(ec, msg, mod, prc, stp, opt)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'errend'
+  integer, intent(in), optional :: ec
   character(*), intent(in), optional :: msg
-  character(*), intent(in), optional :: stp
-  character(*), intent(in), optional :: prc
   character(*), intent(in), optional :: mod
+  character(*), intent(in), optional :: prc
+  character(*), intent(in), optional :: stp
   character(*), intent(in), optional :: opt
 
+  integer :: ec_
   character(:), allocatable :: msg_
-  character(:), allocatable :: stp_, prc_, mod_
+  character(:), allocatable :: mod_, prc_, stp_
 
   integer :: val_stopErr
+  integer :: val_echoBar
 
   logical :: stopErr
+  logical :: echoBar
 
   character(CLEN_OPT) :: opt_, opt1
   integer :: i
@@ -1153,19 +1163,23 @@ recursive subroutine errend(msg, stp, prc, mod, opt)
   !-------------------------------------------------------------
   ! Read inputs
   !-------------------------------------------------------------
-  allocate(character(1) :: msg_, stp_, prc_, mod_)
+  ec_ = ERROR_CODE__BASE
+  if( present(ec) ) ec_ = ec
+
+  allocate(character(1) :: msg_, mod_, prc_, stp_)
   msg_ = ''
-  stp_ = trim(set%stp(depth))
-  prc_ = trim(set%prc(depth))
   mod_ = trim(set%mod(depth))
+  prc_ = trim(set%prc(depth))
+  stp_ = trim(set%stp(depth))
   if( present(msg) ) msg_ = trim(msg)
-  if( present(stp) ) stp_ = trim(stp)
-  if( present(prc) ) prc_ = trim(prc)
   if( present(mod) ) mod_ = trim(mod)
+  if( present(prc) ) prc_ = trim(prc)
+  if( present(stp) ) stp_ = trim(stp)
   !-------------------------------------------------------------
   ! Read options
   !-------------------------------------------------------------
   val_stopErr = LMISS
+  val_echoBar = LMISS
 
   opt_ = ''
   if( present(opt) ) opt_ = adjustl(opt)
@@ -1179,34 +1193,43 @@ recursive subroutine errend(msg, stp, prc, mod, opt)
       val_stopErr = LTRUE
     case( '-q' )
       val_stopErr = LFALS
+    case( '+b' )
+      val_echoBar = LTRUE
+    case( '-b' )
+      val_echoBar = LFALS
     case default
-      call errend('Invalid option: '//trim(opt)//'\n', &
-                  '', PRCNAM, MODNAM)
+      call errend(ERROR_CODE__SYNTAX, 'Invalid option: '//trim(opt), MODNAM, PRCNAM)
     endselect
   enddo
 
   stopErr = get_tf(val_stopErr, set%stopErr(depth))
+  echoBar = get_tf(val_echoBar, set%echoWrn(depth))
   !-------------------------------------------------------------
   ! Add error message
   !-------------------------------------------------------------
   if( msg_ /= '' )then
-    call erradd(msg_, stp_, prc_, mod_)
+    call errnew(ec_, msg_, mod_, prc_, stp_)
   endif
   !-------------------------------------------------------------
   ! Print messages
   !-------------------------------------------------------------
-  write(STDOUT, "(a)") '****** ERROR ******'
+  if( echoBar )then
+    call echo_lines(STDERR, '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', 0, .true.)
+  endif
+
   do i = n_err, 1, -1
-    call echo_lines(strstp(err(i)%stp, err(i)%prc, err(i)%mod), &
-                    STDOUT, 0, .true.)
-    call echo_lines(err(i)%msg, STDOUT, 2, .true.)
+    call echo_lines(STDERR, errType(err(i)%code)//' in '//strprc(err(i)%mod, err(i)%prc, err(i)%stp), 0, .true.)
+    call echo_lines(STDERR, err(i)%msg, 2, .true.)
   enddo
 
-  write(STDOUT, "(a)") '------ PROCESSES ------'
-  do i = 1, depth
-    call echo_lines(strstp(set%stp(i), set%prc(i), set%mod(i)), &
-                    STDOUT, 0, .true.)
-  enddo
+  if( echoBar )then
+    call echo_lines(STDERR, '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', 0, .true.)
+  endif
+
+!  write(STDOUT, "(a)") '------ PROCESSES ------'
+!  do i = 1, depth
+!    call echo_lines(STDERR, strprc(set%mod(i), set%prc(i), set%stp(i)), 0, .true.)
+!  enddo
   !-------------------------------------------------------------
   ! Clear stored error messages
   !-------------------------------------------------------------
@@ -1226,37 +1249,42 @@ end subroutine errend
 !===============================================================
 !
 !===============================================================
-subroutine errret(msg, prc, mod)
+subroutine errret(ec, msg, mod, prc)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'errret'
+  integer, intent(in), optional :: ec
   character(*), intent(in), optional :: msg
-  character(*), intent(in), optional :: prc
   character(*), intent(in), optional :: mod
+  character(*), intent(in), optional :: prc
 
+  integer :: ec_
   character(:), allocatable :: msg_
   character(:), allocatable :: errmsg
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
+  ec_ = ERROR_CODE__BASE
+  if( present(ec) ) ec_ = ec
+
   allocate(character(1) :: msg_)
   msg_ = ''
   if( present(msg) ) msg_ = trim(msg)
   !-------------------------------------------------------------
   ! Case: `logbgn` was not called in the upper procedure
   ! Thus, need not to call `logret` here.
-  if( present(prc) .and. present(mod) )then
-    call erradd(msg, '', prc, mod)
+  if( present(mod) .and. present(prc) )then
+    call errnew(ec_, msg_, mod, prc, '')
   !-------------------------------------------------------------
   ! Case: `logbgn` was called in the upper procedure
   ! Thus, need to call `logret` here.
-  elseif( .not. present(prc) .and. .not. present(mod) )then
+  elseif( .not. present(mod) .and. .not. present(prc) )then
     do
       if( set%stp(depth) == '' )then
-        call erradd(msg, '', set%prc(depth), set%mod(depth))
+        call errnew(ec_, msg_, set%mod(depth), set%prc(depth), '')
         call logret()
         exit
       else
-        call erradd(msg, set%stp(depth), set%prc(depth), set%mod(depth))
+        call errnew(ec_, msg_, set%mod(depth), set%prc(depth), set%stp(depth))
         call logret()
       endif
     enddo
@@ -1264,11 +1292,10 @@ subroutine errret(msg, prc, mod)
   ! Case: ERROR
   else
     allocate(character(1) :: errmsg)
-    errmsg = 'present(prc) .neqv. present(mod)'
-    if( present(prc) ) errmsg = trim(errmsg)//'\nprc: '//trim(prc)
+    errmsg = 'present(mod) .neqv. present(prc)'
     if( present(mod) ) errmsg = trim(errmsg)//'\nmod: '//trim(mod)
-    call errend(errmsg, &
-                '', PRCNAM, MODNAM)
+    if( present(prc) ) errmsg = trim(errmsg)//'\nprc: '//trim(prc)
+    call errend(ERROR_CODE__BASE, errmsg, MODNAM, PRCNAM)
   endif
   !-------------------------------------------------------------
   deallocate(msg_)
@@ -1276,38 +1303,49 @@ end subroutine errret
 !===============================================================
 !
 !===============================================================
-subroutine erradd(msg, stp, prc, mod)
+subroutine errnew(ec, msg, mod, prc, stp)
   implicit none
-  character(*), intent(in) :: msg
-  character(*), intent(in), optional :: stp
-  character(*), intent(in), optional :: prc
+  integer     , intent(in), optional :: ec
+  character(*), intent(in), optional :: msg
   character(*), intent(in), optional :: mod
+  character(*), intent(in), optional :: prc
+  character(*), intent(in), optional :: stp
 
-  character(:), allocatable :: stp_, prc_, mod_
+  integer :: ec_
+  character(:), allocatable :: msg_
+  character(:), allocatable :: mod_, prc_, stp_
 
   call initialize()
 
-  allocate(character(1) :: stp_, prc_, mod_)
-  stp_ = trim(set%stp(depth))
-  prc_ = trim(set%prc(depth))
+  ec_ = ERROR_CODE__BASE
+  if( present(ec) ) ec_ = ec
+
+  allocate(character(1) :: msg_)
+  msg_ = '(no message)'
+  if( present(msg) ) msg_ = trim(msg)
+
+  allocate(character(1) :: mod_, prc_, stp_)
   mod_ = trim(set%mod(depth))
-  if( present(stp) ) stp_ = trim(stp)
-  if( present(prc) ) prc_ = trim(prc)
+  prc_ = trim(set%prc(depth))
+  stp_ = trim(set%stp(depth))
   if( present(mod) ) mod_ = trim(mod)
+  if( present(prc) ) prc_ = trim(prc)
+  if( present(stp) ) stp_ = trim(stp)
 
   if( n_err == nmax_err ) call extend_err()
   n_err = n_err + 1
-  allocate(character(1) :: err(n_err)%stp, err(n_err)%prc, err(n_err)%mod)
+  allocate(character(1) :: err(n_err)%mod, err(n_err)%prc, err(n_err)%stp)
   allocate(character(1) :: err(n_err)%msg)
-  err(n_err)%stp = trim(stp_)
-  err(n_err)%prc = trim(prc_)
+  err(n_err)%code = ec_
   err(n_err)%mod = trim(mod_)
+  err(n_err)%prc = trim(prc_)
+  err(n_err)%stp = trim(stp_)
   err(n_err)%msg = trim(msg)
-end subroutine erradd
+end subroutine errnew
 !===============================================================
 ! Append error message
 !===============================================================
-subroutine errapd(msg, newline)
+subroutine erradd(msg, newline)
   implicit none
   character(*), intent(in) :: msg
   logical     , intent(in), optional :: newline
@@ -1322,7 +1360,7 @@ subroutine errapd(msg, newline)
   else
     err(n_err)%msg = trim(err(n_err)%msg)//trim(msg)
   endif
-end subroutine errapd
+end subroutine erradd
 !===============================================================
 !
 !===============================================================
@@ -1496,8 +1534,9 @@ subroutine setlog(opt)
         ios = 1
       endif
       if( ios /= 0 )then
-        call errend('Invalid format option: '//trim(opt_)//'\n', &
-                    '', PRCNAM, MODNAM)
+        call errend(ERROR_CODE__SYNTAX, &
+          'Invalid format option: '//trim(opt_), &
+          MODNAM, PRCNAM)
       endif
     endselect
   enddo
@@ -1536,7 +1575,7 @@ subroutine traperr(info)
   integer, intent(in) :: info
 
   if( info /= 0 )then
-    call errend()
+    call errend(ERROR_CODE__BASE)
   endif
 end subroutine traperr
 !===============================================================
@@ -1547,106 +1586,6 @@ end subroutine traperr
 !
 !
 !
-!===============================================================
-!
-!===============================================================
-subroutine echo_lines(msg, un, idt, adv)
-  implicit none
-  character(*), intent(in) :: msg
-  integer     , intent(in) :: un
-  integer     , intent(in) :: idt
-  logical     , intent(in) :: adv
-  character(len_trim(msg)) :: msg_
-  character(16) :: wfmt
-  character(4)  :: advance
-  integer :: loc
-  !-------------------------------------------------------------
-  ! Start a new line after writing the message if $adv is true
-  !-------------------------------------------------------------
-  if( adv )then
-    advance = 'yes'
-  else
-    advance = 'no'
-  endif
-  !-------------------------------------------------------------
-  ! Modify indent
-  !-------------------------------------------------------------
-  if( idt == 0 )then
-    wfmt = "(a)"
-  else
-    write(wfmt,"(a,i0,a)") '(',idt,'x,a)'
-  endif
-  !-------------------------------------------------------------
-  ! Write the message
-  !-------------------------------------------------------------
-  if( index(msg,'\n') == 0 )then
-    write(un, wfmt, advance=advance) trim(msg)
-
-  else
-    msg_ = msg
-
-    do
-      loc = index(msg_,'\n')
-
-      selectcase( loc )
-
-      case( 0 )
-        write(un, wfmt, advance=advance) trim(msg_)
-        exit
-
-      case( 1 )
-        write(un, wfmt) ''
-
-      case( 2: )
-        write(un, wfmt) trim(msg_(:loc-1))
-
-      endselect
-
-      if( loc+1 == len_trim(msg_) )then
-        exit
-      else
-        msg_ = msg_(loc+2:)
-      endif
-    enddo
-
-  endif
-end subroutine echo_lines
-!===============================================================
-!
-!===============================================================
-function strprc(prc, mod) result(s)
-  implicit none
-  character(*), intent(in) :: prc
-  character(*), intent(in) :: mod
-  character(:), allocatable :: s
-
-  allocate(character(1) :: s)
-  if( len_trim(mod) == 0 )then
-    s = trim(prc)
-  else
-    s = trim(prc)//'__MOD__'//trim(mod)
-  endif
-end function strprc
-!===============================================================
-!
-!===============================================================
-function strstp(stp, prc, mod) result(s)
-  implicit none
-  character(*), intent(in) :: stp
-  character(*), intent(in) :: prc
-  character(*), intent(in) :: mod
-  character(:), allocatable :: s
-
-  allocate(character(1) :: s)
-  if( stp == '' )then
-    s = 'MOD__'//trim(mod)//&
-        '__PROC__'//trim(prc)
-  else
-    s = 'MOD__'//trim(mod)//&
-        '__PROC__'//trim(prc)//&
-        ' step "'//trim(stp)//'"'
-  endif
-end function strstp
 !===============================================================
 !
 !===============================================================
@@ -1819,9 +1758,9 @@ recursive logical function get_tf(val, tf_def) result(tf)
     tf = tf_def
   case default
     write(c,"(i0)") val
-    call errend('!!! INTERNAL ERROR !!! '//&
-                'Invalid value in val: '//trim(c), &
-                '', PRCNAM, MODNAM)
+    call errend(ERROR_CODE__INTERNAL, &
+           'val: '//trim(c), &
+           MODNAM, PRCNAM)
   endselect
 end function get_tf
 !===============================================================
@@ -1850,6 +1789,7 @@ subroutine extend_err()
   allocate(e(nmax_err))
   do i = 1, n_err
     allocate(character(1) :: e(i)%mod, e(i)%prc, e(i)%stp, e(i)%msg)
+    e(i)%code = err(i)%code
     e(i)%mod = trim(err(i)%mod)
     e(i)%prc = trim(err(i)%prc)
     e(i)%stp = trim(err(i)%stp)
@@ -1861,6 +1801,7 @@ subroutine extend_err()
 
   do i = 1, n_err
     allocate(character(1) :: err(i)%mod, err(i)%prc, err(i)%stp, err(i)%msg)
+    err(i)%code = e(i)%code
     err(i)%mod = trim(e(i)%mod)
     err(i)%prc = trim(e(i)%prc)
     err(i)%stp = trim(e(i)%stp)

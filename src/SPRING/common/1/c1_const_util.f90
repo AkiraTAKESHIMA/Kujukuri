@@ -45,7 +45,7 @@ integer(4) function checkval_idx_condition(s, id) result(info)
     continue
   case default
     info = 1
-    call errret(msg_invalid_value(id_, s))
+    call errret(ERROR_CODE__VALUE, id_//' == '//str(s))
     return
   endselect
   !-------------------------------------------------------------
@@ -78,7 +78,7 @@ integer(4) function checkval_opt_old_files(s, id) result(info)
     continue
   case default
     info = 1
-    call errret(msg_invalid_value(id_, s))
+    call errret(ERROR_CODE__VALUE, id_//' == '//str(s))
     return
   endselect
   !-------------------------------------------------------------

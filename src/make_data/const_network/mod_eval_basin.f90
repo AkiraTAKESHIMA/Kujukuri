@@ -967,8 +967,9 @@ print*, nwk%uid, nwk%mBasin
       iBasin = nwbsn%id
 
       if( iBasin > nBasin )then
-        call logwrn('Network '//nwk%uid//' ('//str(iNwk)//&
-                    ') Basin ID: '//str(nwbsn%id)//' Frac: '//str(nwbsn%frac))
+        call logwrn(ERROR_CODE__CONDITION, &
+          'Network '//nwk%uid//' ('//str(iNwk)//&
+          ') Basin ID: '//str(nwbsn%id)//' Frac: '//str(nwbsn%frac))
         cycle
       endif
 
@@ -1054,14 +1055,13 @@ print*, nwk%uid, nwk%mBasin
       !---------------------------------------------------------
       ! Case: ERROR
       case( 0 )
-        call errend(msg_unexpected_condition()//&
-                  '\n  bsn%n == 0')
+        call errend(ERROR_CODE__CONDITION, 'bsn%n == 0')
       !---------------------------------------------------------
       ! Case: The basin intersects only this network (one-on-one)
       case( 1 )
         if( iNwk /= bsn%iNwk(1) )then
-          call errend(msg_unexpected_condition()//&
-                    '\n  bsn%n == 1 and iNwk /= bsn%iNwk(1)')
+          call errend(ERROR_CODE__CONDITION, &
+            'bsn%n == 1 and iNwk /= bsn%iNwk(1)')
         endif
 
         if( bsn%frac(1) < THRESH_FRACINBASIN_OCCUPIED )then
@@ -1072,8 +1072,8 @@ print*, nwk%uid, nwk%mBasin
       case( 2: )
         call search(iNwk, bsn%iNwk, bsn%arg_iNwk, iiNwk)
         if( iiNwk == 0 )then
-          call errend(msg_unexpected_condition()//&
-                    '\n  $iNwk was not found in $bsn%iNwk.')
+          call errend(ERROR_CODE__CONDITION, &
+            '$iNwk was not found in $bsn%iNwk.')
         endif
 
         if( bsn%iNwk(bsn%arg_iNwk(iiNwk)) /= iNwk )then
@@ -1085,7 +1085,7 @@ print*, nwk%uid, nwk%mBasin
       !---------------------------------------------------------
       ! Case: ERROR
       case default
-        call errend(msg_invalid_value('bsn%n', bsn%n))
+        call errend(ERROR_CODE__VALUE, 'bsn%n == '//str(bsn%n))
       endselect
     !-----------------------------------------------------------
     ! Case: Intersects multiple basins
@@ -1106,14 +1106,12 @@ print*, nwk%uid, nwk%mBasin
         !-------------------------------------------------------
         ! Case: ERROR
         case( 0 )
-          call errend(msg_unexpected_condition()//&
-                    '\n  bsn%n == 0')
+          call errend(ERROR_CODE__CONDITION, 'bsn%n == 0')
         !-------------------------------------------------------
         ! Case:
         case( 1 )
           if( iNwk /= bsn%iNwk(1) )then
-            call errend(msg_unexpected_condition()//&
-                      '\n  bsn%n == 1 and iNwk /= bsn%iNwk(1)')
+            call errend(ERROR_CODE__CONDITION, 'bsn%n == 1 and iNwk /= bsn%iNwk(1)')
           endif
 
           if( bsn%frac(1) < THRESH_FRACINBASIN_OCCUPIED )then
@@ -1124,27 +1122,24 @@ print*, nwk%uid, nwk%mBasin
         case( 2: )
           call search(iNwk, bsn%iNwk, bsn%arg_iNwk, iiNwk)
           if( iiNwk == 0 )then
-            call errend(msg_unexpected_condition()//&
-                      '\n  $iNwk was not found in $bsn%iNwk.')
+            call errend(ERROR_CODE__CONDITION, '$iNwk was not found in $bsn%iNwk.')
           endif
 
           if( bsn%iNwk(bsn%arg_iNwk(iiNwk)) /= iNwk )then
-            print*, 'ERROR'
-            stop
+            call errend(ERROR_CODE__CONDITION, 'bsn%iNwk /= iNwk')
           endif
 
           nwk%status = 22
-
         !-------------------------------------------------------
         ! Case: ERROR
         case default
-          call errend(msg_invalid_value('bsn%n', bsn%n))
+          call errend(ERROR_CODE__VALUE, 'bsn%n == '//str(bsn%n))
         endselect
       enddo  ! iiBasin/
     !-----------------------------------------------------------
     ! Case: ERROR
     case default
-      call errend(msg_invalid_value('nwk%mBasin', nwk%mBasin))
+      call errend(ERROR_CODE__VALUE, 'nwk%mBasin == '//str(nwk%mBasin))
     endselect
     !-----------------------------------------------------------
     ! Calc. consistency score
