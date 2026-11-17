@@ -68,11 +68,11 @@ module c2_strnk_const
   integer, parameter :: DGT_NWKID = 1 + DGT_WSCODE + DGT_NWK_SAME_WSCODE
 
   ! Mesh data
-  integer(1), parameter :: STAT_NWKMESH__ISCT        = 2_1
-  integer(1), parameter :: STAT_NWKMESH__REACH       = 1_1
-  integer(1), parameter :: STAT_NWKMESH__ISCT_OTHER  = -1_1
-  integer(1), parameter :: STAT_NWKMESH__REACH_OTHER = -2_1
-  integer(1), parameter :: STAT_NWKMESH__OUT         = -3_1
-  integer(1), parameter :: STAT_NWKMESH__OCEAN       = -9_1
-  integer(1), parameter :: STAT_NWKMESH__UNKNOWN     = -99_1
+  integer(1), parameter :: NWKMESHREL__ISCT        = 2_1
+  integer(1), parameter :: NWKMESHREL__REACH       = 1_1
+  integer(1), parameter :: NWKMESHREL__ISCT_OTHER  = -1_1
+  integer(1), parameter :: NWKMESHREL__REACH_OTHER = -2_1
+  integer(1), parameter :: NWKMESHREL__OUT         = -3_1
+  integer(1), parameter :: NWKMESHREL__OCEAN       = -9_1
+  integer(1), parameter :: NWKMESHREL__UNKNOWN     = -99_1
 end module c2_strnk_const

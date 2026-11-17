@@ -1691,9 +1691,9 @@ use c2_jflw_io, only: &
   type basin_
     integer :: n
     integer, pointer :: tx(:), ty(:)
-    integer, pointer :: xi(:), xf(:), yi(:), yf(:)
+    integer, pointer :: xs(:), xe(:), ys(:), ye(:)
     integer :: nx, ny
-    integer :: gxi, gxf, gyi, gyf
+    integer :: gxs, gxe, gys, gye
   end type
 
   type(basin_), allocatable, target :: lst_basin(:)
@@ -1735,10 +1735,10 @@ use c2_jflw_io, only: &
     basin%n = 0
     allocate(basin%tx(1))
     allocate(basin%ty(1))
-    allocate(basin%xi(1))
-    allocate(basin%xf(1))
-    allocate(basin%yi(1))
-    allocate(basin%yf(1))
+    allocate(basin%xs(1))
+    allocate(basin%xe(1))
+    allocate(basin%ys(1))
+    allocate(basin%ye(1))
   enddo
 
   allocate(bsn(MX,MY))
@@ -1798,17 +1798,17 @@ use c2_jflw_io, only: &
       if( basin%n > size(basin%tx) )then
         call realloc(basin%tx, basin%n*2, clear=.false.)
         call realloc(basin%ty, basin%n*2, clear=.false.)
-        call realloc(basin%xi, basin%n*2, clear=.false.)
-        call realloc(basin%xf, basin%n*2, clear=.false.)
-        call realloc(basin%yi, basin%n*2, clear=.false.)
-        call realloc(basin%yf, basin%n*2, clear=.false.)
+        call realloc(basin%xs, basin%n*2, clear=.false.)
+        call realloc(basin%xe, basin%n*2, clear=.false.)
+        call realloc(basin%ys, basin%n*2, clear=.false.)
+        call realloc(basin%ye, basin%n*2, clear=.false.)
       endif
       basin%tx(basin%n) = itx
       basin%ty(basin%n) = ity
-      basin%xi(basin%n) = MX
-      basin%xf(basin%n) = 1
-      basin%yi(basin%n) = MY
-      basin%yf(basin%n) = 1
+      basin%xs(basin%n) = MX
+      basin%xe(basin%n) = 1
+      basin%ys(basin%n) = MY
+      basin%ye(basin%n) = 1
     enddo
 
     bsnId_prev = BSN_MISS
@@ -1816,10 +1816,10 @@ use c2_jflw_io, only: &
     do ix = 1, MX
       if( bsn(ix,iy) == BSN_MISS ) cycle
       basin => lst_basin(bsn(ix,iy))
-      basin%xi(basin%n) = min(basin%xi(basin%n),ix)
-      basin%xf(basin%n) = max(basin%xf(basin%n),ix)
-      basin%yi(basin%n) = min(basin%yi(basin%n),iy)
-      basin%yf(basin%n) = max(basin%yf(basin%n),iy)
+      basin%xs(basin%n) = min(basin%xs(basin%n),ix)
+      basin%xe(basin%n) = max(basin%xe(basin%n),ix)
+      basin%ys(basin%n) = min(basin%ys(basin%n),iy)
+      basin%ye(basin%n) = max(basin%ye(basin%n),iy)
     enddo  ! ix/
     enddo  ! iy/
     !-----------------------------------------------------------
@@ -1833,8 +1833,8 @@ use c2_jflw_io, only: &
       basin => lst_basin(lst_bsnId(iBsn))
       write(un,"(1x,i10,4(1x,i4))") &
             lst_bsnId(iBsn), &
-            basin%xi(basin%n), basin%xf(basin%n), &
-            basin%yi(basin%n), basin%yf(basin%n)
+            basin%xs(basin%n), basin%xe(basin%n), &
+            basin%ys(basin%n), basin%ye(basin%n)
     enddo
     close(un)
     !-----------------------------------------------------------
@@ -1857,34 +1857,34 @@ use c2_jflw_io, only: &
   write(un,"(1x,i10)") bsnId_max
   do bsnId = 1, bsnId_max
     basin => lst_basin(bsnId)
-    basin%gxi = NTX*MX
-    basin%gxf = 1
-    basin%gyi = NTY*MY
-    basin%gyf = 1
+    basin%gxs = NTX*MX
+    basin%gxe = 1
+    basin%gys = NTY*MY
+    basin%gye = 1
     do i = 1, basin%n
-      call xy_to_gxy(basin%tx(i), basin%ty(i), basin%xi(i), basin%yi(i), gx, gy)
-      basin%gxi = min(basin%gxi, gx)
-      basin%gyi = min(basin%gyi, gy)
-      call xy_to_gxy(basin%tx(i), basin%ty(i), basin%xf(i), basin%yf(i), gx, gy)
-      basin%gxf = max(basin%gxf, gx)
-      basin%gyf = max(basin%gyf, gy)
+      call xy_to_gxy(basin%tx(i), basin%ty(i), basin%xs(i), basin%ys(i), gx, gy)
+      basin%gxs = min(basin%gxs, gx)
+      basin%gys = min(basin%gys, gy)
+      call xy_to_gxy(basin%tx(i), basin%ty(i), basin%xe(i), basin%ye(i), gx, gy)
+      basin%gxe = max(basin%gxe, gx)
+      basin%gye = max(basin%gye, gy)
     enddo
-    basin%nx = basin%gxf - basin%gxi + 1
-    basin%ny = basin%gyf - basin%gyi + 1
+    basin%nx = basin%gxe - basin%gxs + 1
+    basin%ny = basin%gye - basin%gys + 1
 
 
     write(un,"(1x,i10,1x,i4,2(1x,i6),4(1x,i6))") &
           bsnId, basin%n, &
           basin%nx, basin%ny, &
-          basin%gxi, basin%gxf, basin%gyi, basin%gyf
+          basin%gxs, basin%gxe, basin%gys, basin%gye
     write(un,"(1x,4(1x,f20.15))") &
-          west_of_gx(basin%gxi), east_of_gx(basin%gxf), &
-          south_of_gy(basin%gyf), north_of_gy(basin%gyi)
+          west_of_gx(basin%gxs), east_of_gx(basin%gxe), &
+          south_of_gy(basin%gye), north_of_gy(basin%gys)
     do i = 1, basin%n
       write(un,"(1x,i10,2(1x,i2),4(1x,i4))") &
             i, basin%tx(i), basin%ty(i), &
-            basin%xi(i), basin%xf(i), &
-            basin%yi(i), basin%yf(i)
+            basin%xs(i), basin%xe(i), &
+            basin%ys(i), basin%ye(i)
     enddo
   enddo  ! bsnId/
   close(un)
@@ -1915,9 +1915,9 @@ subroutine makeBasinDomainData(bsnId_min, bsnId_max)
   integer :: bsnId
   integer :: n, i
   integer :: mbx, mby
-  integer :: gxi, gxf, gyi, gyf
+  integer :: gxs, gxe, gys, gye
   integer :: tx, ty
-  integer :: xi, xf, yi, yf
+  integer :: xs, xe, ys, ye
   real(8) :: west, east, south, north
   integer :: i_
   integer :: un, un_out
@@ -1947,20 +1947,20 @@ subroutine makeBasinDomainData(bsnId_min, bsnId_max)
       call logmsg('...')
     endif
     open(newunit=un_out, file=f_domain, status='replace')
-    read(un,*) i_, n, mbx, mby, gxi, gxf, gyi, gyf
+    read(un,*) i_, n, mbx, mby, gxs, gxe, gys, gye
     read(un,*) west, east, south, north
     write(un_out,"(a)") 'nx '//str(mbx,DGT_GXY)
     write(un_out,"(a)") 'ny '//str(mby,DGT_GXY)
-    write(un_out,"(a)") 'gx '//str((/gxi,gxf/),DGT_GXY)
-    write(un_out,"(a)") 'gy '//str((/gyi,gyf/),DGT_GXY)
+    write(un_out,"(a)") 'gx '//str((/gxs,gxe/),DGT_GXY)
+    write(un_out,"(a)") 'gy '//str((/gys,gye/),DGT_GXY)
     write(un_out,"(a)") 'west  '//str(west,'f20.15')
     write(un_out,"(a)") 'east  '//str(east,'f20.15')
     write(un_out,"(a)") 'south '//str(south,'f20.15')
     write(un_out,"(a)") 'north '//str(north,'f20.15')
     write(un_out,"(1x,i0)") n
     do i = 1, n
-      read(un,*) i_, tx, ty, xi, xf, yi, yf
-      write(un_out,"(2(1x,i2),4(1x,i4))") tx, ty, xi, xf, yi, yf
+      read(un,*) i_, tx, ty, xs, xe, ys, ye
+      write(un_out,"(2(1x,i2),4(1x,i4))") tx, ty, xs, xe, ys, ye
     enddo
     close(un_out)
   enddo
@@ -1991,7 +1991,7 @@ subroutine makeLowresBasinMaps(tx, ty)
   integer, allocatable :: bsn_lres(:,:)
   integer :: nId, iId
   integer :: ixx, iyy
-  integer :: xi, xf, yi, yf
+  integer :: xs, xe, ys, ye
   integer :: ix, iy
   integer, allocatable :: lst_id(:)
   integer, allocatable :: lst_nGrid(:)
@@ -2020,16 +2020,16 @@ subroutine makeLowresBasinMaps(tx, ty)
   bsn_lres(:,:) = BSN_MISS
 
   do iyy = 1, MY/RATIO_LRES
-    yi = (iyy-1)*RATIO_LRES+1
-    yf = iyy*RATIO_LRES
+    ys = (iyy-1)*RATIO_LRES+1
+    ye = iyy*RATIO_LRES
     do ixx = 1, MX/RATIO_LRES
-      xi = (ixx-1)*RATIO_LRES+1
-      xf = ixx*RATIO_LRES
+      xs = (ixx-1)*RATIO_LRES+1
+      xe = ixx*RATIO_LRES
 
       nId = 0
       lst_nGrid(:) = 0
-      do iy = yi, yf
-        do ix = xi, xf
+      do iy = ys, ye
+        do ix = xs, xe
           if( bsn(ix,iy) == BSN_MISS ) cycle
           iId = 1
           do while( iId <= nId )
@@ -2204,7 +2204,7 @@ subroutine makeBasinTopoMap(var, bsnId)
   integer(1) :: missi1
   integer(4) :: missi4
   real(4)    :: missr4
-  integer :: gxi, gxf, gyi, gyf, igx, igy
+  integer :: nx, ny, gxs, gxe, gys, gye, igx, igy
   real(8) :: west, east, south, north
   character(CLEN_PATH) :: f
 
@@ -2214,15 +2214,15 @@ subroutine makeBasinTopoMap(var, bsnId)
   !-------------------------------------------------------------
   call read_basin_domain_from_each(&
          RESOLUTION_1SEC, strId(bsnId), &
-         gxi, gxf, gyi, gyf, &
+         nx, ny, gxs, gxe, gys, gye, &
          west, east, south, north)
 
-  allocate(bsn(gxi:gxf,gyi:gyf))
+  allocate(bsn(gxs:gxe,gys:gye))
   call read_basin_map_from_tile(&
          RESOLUTION_1SEC, strId(bsnId), &
-         'bsn', bsn, DTYPE_INT4, gxi, gyi, BSN_MISS)
-  do igy = gyi, gyf
-  do igx = gxi, gxf
+         'bsn', bsn, DTYPE_INT4, gxs, gys, BSN_MISS)
+  do igy = gys, gye
+  do igx = gxs, gxe
     if( bsn(igx,igy) /= bsnId ) bsn(igx,igy) = BSN_MISS
   enddo
   enddo
@@ -2235,10 +2235,10 @@ subroutine makeBasinTopoMap(var, bsnId)
   case( 'dir' )
     missi1 = FDR__MISS
 
-    allocate(dati1(gxi:gxf,gyi:gyf))
+    allocate(dati1(gxs:gxe,gys:gye))
     call read_basin_map_from_tile(&
            RESOLUTION_1SEC, strId(bsnId), &
-           var, dati1, DTYPE_INT1, gxi, gyi, missi1, bsn)
+           var, dati1, DTYPE_INT1, gxs, gys, missi1, bsn)
     f = get_f_map_basin(RESOLUTION_1SEC, var, strId(bsnId))
     call logmsg('Writing '//str(f))
     call traperr( mkdir(dirname(f)) )
@@ -2256,10 +2256,10 @@ subroutine makeBasinTopoMap(var, bsnId)
       call errend(ERROR_CODE__VALUE, 'var == '//str(var))
     endselect
 
-    allocate(dati4(gxi:gxf,gyi:gyf))
+    allocate(dati4(gxs:gxe,gys:gye))
     call read_basin_map_from_tile(&
            RESOLUTION_1SEC, strId(bsnId), &
-           var, dati4, DTYPE_INT4, gxi, gyi, missi4, bsn)
+           var, dati4, DTYPE_INT4, gxs, gys, missi4, bsn)
     f = get_f_map_basin(RESOLUTION_1SEC, var, strId(bsnId))
     call traperr( mkdir(dirname(f)) )
     call logmsg('Writing '//str(f))
@@ -2279,10 +2279,10 @@ subroutine makeBasinTopoMap(var, bsnId)
       call errend(ERROR_CODE__VALUE, 'var == '//str(var))
     endselect
 
-    allocate(datr4(gxi:gxf,gyi:gyf))
+    allocate(datr4(gxs:gxe,gys:gye))
     call read_basin_map_from_tile(&
            RESOLUTION_1SEC, strId(bsnId), &
-           var, datr4, DTYPE_REAL, gxi, gyi, missr4, bsn)
+           var, datr4, DTYPE_REAL, gxs, gys, missr4, bsn)
     f = get_f_map_basin(RESOLUTION_1SEC, var, strId(bsnId))
     call traperr( mkdir(dirname(f)) )
     call logmsg('Writing '//str(f))

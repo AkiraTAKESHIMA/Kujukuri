@@ -342,6 +342,7 @@ subroutine write_network(f, nwk)
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
+  call traperr( mkdir(dirname(f)) )
   open(newunit=un, file=f, form='unformatted', access='sequential', status='replace')
 
   write(un) nwk%nWsys
@@ -409,9 +410,8 @@ subroutine write_network_mesh_domain(&
   if( present(echo) ) echo_ = echo
 
   f = get_f_network_mesh(resl, 'domain', id)
-  if( echo_ ) call logmsg('Reading '//str(f))
+  if( echo_ ) call logmsg('Writing '//str(f))
   call traperr( mkdir(dirname(f)) )
-
   open(newunit=un, file=f, status='replace')
   write(un,"(a)") 'nx '//str(nx)
   write(un,"(a)") 'ny '//str(ny)
@@ -709,28 +709,45 @@ end function get_f_network_meshisct
 !
 !===============================================================
 character(CLEN_PATH) function get_f_network_mesh(&
-    resl, var, id) result(f)
+    resl, var, id, opt_var &
+) result(f)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'get_f_network_mesh'
   character(*), intent(in) :: resl
   character(*), intent(in) :: var
   character(*), intent(in) :: id
+  character(*), intent(in), optional :: opt_var
 
+  character(CLEN_PATH) :: opt_var_
+
+  logical :: is_ok
   character(3) :: ext
 
   call logbgn(PRCNAM, MODNAM, '-p')
   !-------------------------------------------------------------
+  opt_var_ = ''
+  if( present(opt_var) ) opt_var_ = opt_var
+
   selectcase( var )
-  case( 'mask', 'elv', 'dir', 'upg', 'upa', 'landuse', &
-        'elv_mod', 'dir_mod', 'upg_mod', 'upa_mod' )
-    ext = 'bin'
-  case( 'domain' )
+  case( 'domain', 'report' )
     ext = 'txt'
+  case( 'rel', 'elv', 'dir', 'upg', 'upa', 'landuse' )
+    ext = 'bin'
   case default
-    call errend(ERROR_CODE__VALUE, 'var == '//str(var))
+    is_ok = .false.
+    if( index(var,'_') > 1 )then
+      selectcase( var(:index(var,'_')-1) )
+      case( 'elv', 'dir', 'upg', 'upa' )
+        is_ok = .true.
+      endselect
+    endif
+    if( .not. is_ok )then
+      call errend(ERROR_CODE__VALUE, 'var == '//str(var))
+    endif
   endselect
 
-  f = joined(DIR_PRD, 'network_mesh/'//str(resl)//'/'//str(var)//'/'//str(id)//'.'//str(ext))
+  f = joined(DIR_PRD, 'network_mesh/'//str(resl)//'/'//&
+      str(var)//str(opt_var_)//'/'//str(id)//'.'//str(ext))
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
 end function get_f_network_mesh

@@ -58,6 +58,6 @@ program main
   ! 
   !-------------------------------------------------------------
   case default
-    call errend(msg_invalid_value('task', task))
+    call errend(ERROR_CODE__VALUE, 'task == '//str(task))
   endselect
 end program main

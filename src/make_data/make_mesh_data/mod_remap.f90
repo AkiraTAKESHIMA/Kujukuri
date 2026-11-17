@@ -7,8 +7,7 @@ module mod_remap
   use lib_math
   use lib_io
   use c1_const
-  use c1_util, only: &
-    sBBox
+  use c1_util
   implicit none
   private
   !-------------------------------------------------------------

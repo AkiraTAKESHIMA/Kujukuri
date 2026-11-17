@@ -21,6 +21,7 @@ module lib_math_sphere
 
   public :: londiff_rad
   public :: londiff_deg
+  public :: lonmean_rad
 
   public :: dir_lon
 
@@ -62,8 +63,9 @@ module lib_math_sphere
   public :: area_sphere_intersection_latlon_polygon
 
   public :: dist_sphere
+  public :: dist_sphere_1
   public :: dist_sphere_2
-  public :: dist_sphere_3
+  public :: dist_ellips_hubeny
   !-------------------------------------------------------------
   ! Interfaces
   !-------------------------------------------------------------
@@ -75,6 +77,10 @@ module lib_math_sphere
   interface londiff_deg
     module procedure londiff_deg__0d
     module procedure londiff_deg__1d
+  end interface
+
+  interface lonmean_rad
+    module procedure lonmean_rad__0d
   end interface
 
   interface spherical_to_cartesian_rad
@@ -147,7 +153,11 @@ module lib_math_sphere
   end interface
 
   interface dist_sphere
-    module procedure dist_sphere_0d
+    module procedure dist_sphere_1
+  end interface
+
+  interface dist_ellips_hubeny
+    module procedure dist_ellips_hubeny__0d
   end interface
   !-------------------------------------------------------------
   ! Private module variables
@@ -321,6 +331,27 @@ function londiff_deg__1d(lon1, lon2) result(lon)
     lon(i) = londiff_deg__0d(lon1(i), lon2(i))
   enddo
 end function londiff_deg__1d
+!===============================================================
+!
+!===============================================================
+real(8) function lonmean_rad__0d(lon1, lon2) result(clon)
+  implicit none
+  real(8), intent(in) :: lon1, lon2  ![rad]
+
+  real(8) :: wlon, elon
+
+  if( abs(lon1 - lon2) > rad_180deg )then
+    wlon = max(lon1, lon2)
+    elon = min(lon1, lon2)
+    if( rad_360deg - wlon > elon )then
+      clon = wlon + ((rad_360deg-wlon) + elon) * 0.5d0
+    else
+      clon = elon - ((rad_360deg-wlon) + elon) * 0.5d0
+    endif
+  else
+    clon = (lon1 + lon2) * 0.5d0
+  endif
+end function lonmean_rad__0d
 !===============================================================
 !
 !===============================================================
@@ -5833,24 +5864,14 @@ end subroutine pdbg_ext_arc
 !===============================================================
 !
 !===============================================================
-real(8) function dist_sphere_0d(lon1, lat1, lon2, lat2) result(dist)
-  implicit none
-  real(8), intent(in) :: lon1, lat1, lon2, lat2  ![rad]
-
-  dist = acos(min(1.d0, max(-1.d0, &
-              sin(lat1)*sin(lat2) + cos(lat1)*cos(lat2)*cos(londiff_rad(lon1, lon2))))) * 2.d0
-end function dist_sphere_0d
-!===============================================================
-!
-!===============================================================
-real(8) function dist_sphere_2(lon1, lat1, lon2, lat2) result(dist)
+real(8) function dist_sphere_1(lon1, lat1, lon2, lat2) result(dist)
   implicit none
   real(8), intent(in) :: lon1, lat1, lon2, lat2  ![rad]
 
   real(8) :: clon, dlon, clat, dlat
   real(8) :: k
 
-  clon = (lon1 + lon2) * 0.5d0
+  clon = lonmean_rad(lon1, lon2)
   dlon = londiff_rad(lon1, lon2)
 
   clat = (lat1 + lat2) * 0.5d0
@@ -5860,11 +5881,11 @@ real(8) function dist_sphere_2(lon1, lat1, lon2, lat2) result(dist)
     + (cos(clat) * cos(dlat) * sin(dlon))**2 &
     + (cos(clat) * sin(dlat))**2
   dist = 2.d0 * asin(sqrt(min(k,1.d0)))
-end function dist_sphere_2
+end function dist_sphere_1
 !===============================================================
 !
 !===============================================================
-real(8) function dist_sphere_3(lon1, lat1, lon2, lat2) result(dist)
+real(8) function dist_sphere_2(lon1, lat1, lon2, lat2) result(dist)
   implicit none
   real(8), intent(in) :: lon1, lat1, lon2, lat2  ![rad]
 
@@ -5875,7 +5896,31 @@ real(8) function dist_sphere_3(lon1, lat1, lon2, lat2) result(dist)
   dz = (sin(lat2) - sin(lat1))
   k = dx**2 + dy**2 + dz**2
   dist = 2.d0 * asin(sqrt(min(k,1.d0)) * 0.5d0)
-end function dist_sphere_3
+end function dist_sphere_2
+!===============================================================
+!
+!===============================================================
+real(8) function dist_ellips_hubeny__0d(&
+    lon1, lat1, lon2, lat2, &
+    e &
+) result(dist)
+  implicit none
+  real(8), intent(in) :: lon1, lat1, lon2, lat2  ![rad]
+  real(8), intent(in) :: e  ! eccentricity
+
+  real(8) :: dlat, dlon, clon
+  real(8) :: w, n, m
+
+  dlat = lat2 - lat1
+  dlon = londiff_rad(lon1, lon2)
+  clon = lonmean_rad(lon1, lon2)
+
+  w = sqrt(1.d0 - (e*sin(clon))**2)
+  n = 1.d0 / w
+  m = 1.d0 * (1.d0 - e**2) / w**3
+
+  dist = sqrt((dlat * m)**2 + (dlon * n * cos(clon))**2)
+end function dist_ellips_hubeny__0d
 !===============================================================
 !
 !===============================================================

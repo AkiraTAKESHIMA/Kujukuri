@@ -3,6 +3,7 @@ module c3_joint_io
   use lib_base
   use lib_log
   use lib_io
+  use c1_const
   use c3_joint_const
   implicit none
   private
@@ -22,12 +23,12 @@ module c3_joint_io
   public :: get_dir_rt_nlni2jflw
 
   ! J-FlwDir and StrRank
-  public :: get_dir_nwk
-  public :: get_f_nwk_chn_dirstat
-  public :: get_f_nwk_info
-  public :: get_f_nwk_map
-  public :: get_f_nwk_map_rri
-  public :: get_f_chn_rri
+  !public :: get_dir_nwk
+  !public :: get_f_nwk_chn_dirstat
+  !public :: get_f_nwk_info
+  !public :: get_f_nwk_map
+  !public :: get_f_nwk_map_rri
+  !public :: get_f_chn_rri
   !-------------------------------------------------------------
   ! Interfaces
   !-------------------------------------------------------------

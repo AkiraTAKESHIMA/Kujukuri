@@ -123,30 +123,42 @@ end function strId
 !
 !===============================================================
 subroutine read_basin_domain_from_all(&
-    resl, id, &
-    gxi, gxf, gyi, gyf, west, east, south, north)
+  resl, id, &
+  nx, ny, gxs, gxe, gys, gye, &
+  west, east, south, north, &
+  echo &
+)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'read_basin_domain_from_all'
   character(*), intent(in) :: resl
   character(*), intent(in) :: id
-  integer, intent(out) :: gxi, gxf, gyi, gyf
+  integer, intent(out) :: nx, ny, gxs, gxe, gys, gye
   real(8), intent(out), optional :: west, east, south, north
+  logical, intent(in), optional :: echo
 
   real(8) :: west_, east_, south_, north_
+  logical :: echo_
 
-  integer :: iid
+  integer :: iBasin
   integer :: n, i
-  character :: c_
+
+  character(CLEN_PATH) :: f
   integer :: un
+  character :: c_
 
   call logbgn(PRCNAM, MODNAM, '-p')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
+  echo_ = .false.
+  if( present(echo) ) echo_ = echo
+
+  f = get_f_lst_tile(resl, 'basin_domain')
+  if( echo_ ) call logmsg('Reading '//str(f))
   open(newunit=un, file=get_f_lst_tile(resl, 'basin_domain'), status='old')
   read(un,*)
 
-  do iid = 1, intId(id)-1
+  do iBasin = 1, intId(id)-1
     read(un,*) c_, n
     read(un,*)
     do i = 1, n
@@ -155,7 +167,10 @@ subroutine read_basin_domain_from_all(&
   enddo
 
   ! raster range in global index
-  read(un,*) c_, n, gxi, gxf, gyi, gyf
+  read(un,*) c_, n, gxs, gxe, gys, gye
+  nx = gxe - gxs + 1
+  ny = gye - gys + 1
+
   ! bbox
   read(un,*) west_, east_, south_, north_
   ! raster ranges in tiles
@@ -176,28 +191,42 @@ end subroutine read_basin_domain_from_all
 !
 !===============================================================
 subroutine read_basin_domain_from_each(&
-    resl, id, &
-    gxi, gxf, gyi, gyf, west, east, south, north)
+  resl, id, &
+  nx, ny, gxs, gxe, gys, gye, &
+  west, east, south, north, &
+  echo &
+)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'read_basin_domain_from_each'
   character(*), intent(in)  :: resl
   character(*), intent(in)  :: id
-  integer     , intent(out) :: gxi, gxf, gyi, gyf
+  integer     , intent(out) :: nx, ny, gxs, gxe, gys, gye
   real(8)     , intent(out) :: west, east, south, north
+  logical, intent(in), optional :: echo
 
+  logical :: echo_
+
+  character(CLEN_PATH) :: f
   integer :: un
   character :: c_
   integer :: n, i
 
-  call logbgn(PRCNAM, MODNAM, '-p')
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
-  open(newunit=un, file=get_f_dat_basin(resl, 'domain', id), status='old')
-  read(un,*)
-  read(un,*)
-  read(un,*) c_, gxi, gxf
-  read(un,*) c_, gyi, gyf
+  echo_ = .false.
+  if( present(echo) ) echo_ = echo
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  f = get_f_dat_basin(resl, 'domain', id)
+  if( echo_ ) call logmsg('Reading '//str(f))
+  open(newunit=un, file=f, status='old')
+  read(un,*) c_, nx
+  read(un,*) c_, ny
+  read(un,*) c_, gxs, gxe
+  read(un,*) c_, gys, gye
   read(un,*) c_, west
   read(un,*) c_, east
   read(un,*) c_, south
@@ -219,18 +248,25 @@ end subroutine read_basin_domain_from_each
 !
 !===============================================================
 subroutine write_basin_domain_for_each(&
-    resl, id, &
-    gxi, gxf, gyi, gyf, west, east, south, north)
+  resl, id, &
+  gxs, gxe, gys, gye, &
+  west, east, south, north, &
+  echo &  
+)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'write_basin_domain_for_each'
   character(*), intent(in) :: resl
   character(*), intent(in) :: id
-  integer     , intent(in) :: gxi, gxf, gyi, gyf
+  integer     , intent(in) :: gxs, gxe, gys, gye
   real(8)     , intent(in) :: west, east, south, north
+  logical, intent(in), optional :: echo
 
+  logical :: echo_
+
+  character(CLEN_PATH) :: f
   integer :: un
 
-  call logbgn(PRCNAM, MODNAM, '-p')
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
   !
   !-------------------------------------------------------------
@@ -240,11 +276,19 @@ subroutine write_basin_domain_for_each(&
     return
   endif
 
-  open(newunit=un, file=get_f_dat_basin(resl, 'domain', id), status='replace')
-  write(un,"(a)") 'nx '//str(gxf-gxi+1,DGT_GXY)
-  write(un,"(a)") 'ny '//str(gyf-gyi+1,DGT_GXY)
-  write(un,"(a)") 'gx '//str((/gxi,gxf/),DGT_GXY)
-  write(un,"(a)") 'gy '//str((/gyi,gyf/),DGT_GXY)
+  echo_ = .false.
+  if( present(echo) ) echo_ = echo
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  f = get_f_dat_basin(resl, 'domain', id)
+  if( echo_ ) call logmsg('Writing '//str(f))
+  call traperr( mkdir(dirname(f)) )
+  open(newunit=un, file=f, status='replace')
+  write(un,"(a)") 'nx '//str(gxe-gxs+1,DGT_GXY)
+  write(un,"(a)") 'ny '//str(gye-gys+1,DGT_GXY)
+  write(un,"(a)") 'gx '//str((/gxs,gxe/),DGT_GXY)
+  write(un,"(a)") 'gy '//str((/gys,gye/),DGT_GXY)
   write(un,"(a)") 'west  '//str(west ,'f20.15')
   write(un,"(a)") 'east  '//str(east ,'f20.15')
   write(un,"(a)") 'south '//str(south,'f20.15')
@@ -257,8 +301,9 @@ end subroutine write_basin_domain_for_each
 !
 !===============================================================
 subroutine read_map_from_tile__int1(&
-    resl, var, dtype, miss, gxs, gys, &
-    dat)
+  resl, var, dtype, miss, gxs, gys, &
+  dat &
+)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'read_map_from_tile__int1'
   character(*), intent(in)  :: resl
@@ -437,22 +482,22 @@ end subroutine read_map_from_tile__real
 !
 !===============================================================
 subroutine read_basin_map_from_tile__int1(&
-    resl, id, var, dat, dtype, gxi, gyi, miss, bsn)
+    resl, id, var, dat, dtype, gxs, gys, miss, bsn)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'read_basin_map_from_tile__int1'
   character(*), intent(in)  :: resl
   character(*), intent(in)  :: id
   character(*), intent(in)  :: var
   character(*), intent(in)  :: dtype
-  integer     , intent(in)  :: gxi, gyi
-  integer(1)  , intent(out) :: dat(gxi:,gyi:)
+  integer     , intent(in)  :: gxs, gys
+  integer(1)  , intent(out) :: dat(gxs:,gys:)
   integer(1)  , intent(in)  :: miss
-  integer(4)  , intent(in), optional :: bsn(gxi:,gyi:)
+  integer(4)  , intent(in), optional :: bsn(gxs:,gys:)
 
   integer(1) :: undef
   integer :: tx, ty
-  integer :: xi, xf, yi, yf
-  integer :: lgxi, lgxf, lgyi, lgyf
+  integer :: xs, xe, ys, ye
+  integer :: lgxs, lgxe, lgys, lgye
   integer :: n, i
   integer :: id_
   character :: c_
@@ -477,17 +522,17 @@ subroutine read_basin_map_from_tile__int1(&
   read(un,*) c_, n
   read(un,*)  ! bbox
   do i = 1, n
-    read(un,*) c_, tx, ty, xi, xf, yi, yf
-    call xy_to_gxy(tx, ty, xi, yi, lgxi, lgyi)
-    call xy_to_gxy(tx, ty, xf, yf, lgxf, lgyf)
+    read(un,*) c_, tx, ty, xs, xe, ys, ye
+    call xy_to_gxy(tx, ty, xs, ys, lgxs, lgys)
+    call xy_to_gxy(tx, ty, xe, ye, lgxe, lgye)
 
-    if( any(dat(lgxi:lgxf,lgyi:lgyf) /= undef) )then
+    if( any(dat(lgxs:lgxe,lgys:lgye) /= undef) )then
       call errend(ERROR_CODE__CONDITION, 'Data are overlapping.')
     endif
 
     call traperr( rbin(&
-           dat(lgxi:lgxf,lgyi:lgyf), get_f_map_tile(resl,var,tx,ty), &
-           dtype, sz=int((/MX,MY/),8), lb=int((/xi,yi/),8)) )
+           dat(lgxs:lgxe,lgys:lgye), get_f_map_tile(resl,var,tx,ty), &
+           dtype, sz=int((/MX,MY/),8), lb=int((/xs,ys/),8)) )
   enddo  ! i/
   close(un)
 
@@ -503,22 +548,22 @@ end subroutine read_basin_map_from_tile__int1
 !
 !===============================================================
 subroutine read_basin_map_from_tile__int4(&
-    resl, id, var, dat, dtype, gxi, gyi, miss, bsn)
+    resl, id, var, dat, dtype, gxs, gys, miss, bsn)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'read_basin_map_from_tile__int4'
   character(*), intent(in)  :: resl
   character(*), intent(in)  :: id
   character(*), intent(in)  :: var
   character(*), intent(in)  :: dtype
-  integer     , intent(in)  :: gxi, gyi
-  integer(4)  , intent(out) :: dat(gxi:,gyi:)
+  integer     , intent(in)  :: gxs, gys
+  integer(4)  , intent(out) :: dat(gxs:,gys:)
   integer(4)  , intent(in)  :: miss
-  integer(4)  , intent(in), optional :: bsn(gxi:,gyi:)
+  integer(4)  , intent(in), optional :: bsn(gxs:,gys:)
 
   integer(4) :: undef
   integer :: tx, ty
-  integer :: xi, xf, yi, yf
-  integer :: lgxi, lgxf, lgyi, lgyf
+  integer :: xs, xe, ys, ye
+  integer :: lgxs, lgxe, lgys, lgye
   integer :: n, i
   integer :: id_
   character :: c_
@@ -543,17 +588,17 @@ subroutine read_basin_map_from_tile__int4(&
   read(un,*) c_, n
   read(un,*)  ! bbox
   do i = 1, n
-    read(un,*) c_, tx, ty, xi, xf, yi, yf
-    call xy_to_gxy(tx, ty, xi, yi, lgxi, lgyi)
-    call xy_to_gxy(tx, ty, xf, yf, lgxf, lgyf)
+    read(un,*) c_, tx, ty, xs, xe, ys, ye
+    call xy_to_gxy(tx, ty, xs, ys, lgxs, lgys)
+    call xy_to_gxy(tx, ty, xe, ye, lgxe, lgye)
 
-    if( any(dat(lgxi:lgxf,lgyi:lgyf) /= undef) )then
+    if( any(dat(lgxs:lgxe,lgys:lgye) /= undef) )then
       call errend(ERROR_CODE__CONDITION, 'Data are overlapping.')
     endif
 
     call traperr( rbin(&
-           dat(lgxi:lgxf,lgyi:lgyf), get_f_map_tile(resl,var,tx,ty), &
-           dtype, sz=int((/MX,MY/),8), lb=int((/xi,yi/),8)) )
+           dat(lgxs:lgxe,lgys:lgye), get_f_map_tile(resl,var,tx,ty), &
+           dtype, sz=int((/MX,MY/),8), lb=int((/xs,ys/),8)) )
   enddo  ! i/
   close(un)
 
@@ -569,22 +614,22 @@ end subroutine read_basin_map_from_tile__int4
 !
 !===============================================================
 subroutine read_basin_map_from_tile__real(&
-    resl, id, var, dat, dtype, gxi, gyi, miss, bsn)
+    resl, id, var, dat, dtype, gxs, gys, miss, bsn)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'read_basin_map_from_tile__real'
   character(*), intent(in)  :: resl
   character(*), intent(in)  :: id
   character(*), intent(in)  :: var
   character(*), intent(in)  :: dtype
-  integer     , intent(in)  :: gxi, gyi
-  real(4)     , intent(out) :: dat(gxi:,gyi:)
+  integer     , intent(in)  :: gxs, gys
+  real(4)     , intent(out) :: dat(gxs:,gys:)
   real(4)     , intent(in)  :: miss
-  integer(4)  , intent(in), optional :: bsn(gxi:,gyi:)
+  integer(4)  , intent(in), optional :: bsn(gxs:,gys:)
 
   real(4) :: undef
   integer :: tx, ty
-  integer :: xi, xf, yi, yf
-  integer :: lgxi, lgxf, lgyi, lgyf
+  integer :: xs, xe, ys, ye
+  integer :: lgxs, lgxe, lgys, lgye
   integer :: n, i
   integer :: id_
   character :: c_
@@ -609,17 +654,17 @@ subroutine read_basin_map_from_tile__real(&
   read(un,*) c_, n
   read(un,*)  ! bbox
   do i = 1, n
-    read(un,*) c_, tx, ty, xi, xf, yi, yf
-    call xy_to_gxy(tx, ty, xi, yi, lgxi, lgyi)
-    call xy_to_gxy(tx, ty, xf, yf, lgxf, lgyf)
+    read(un,*) c_, tx, ty, xs, xe, ys, ye
+    call xy_to_gxy(tx, ty, xs, ys, lgxs, lgys)
+    call xy_to_gxy(tx, ty, xe, ye, lgxe, lgye)
 
-    if( any(dat(lgxi:lgxf,lgyi:lgyf) /= undef) )then
+    if( any(dat(lgxs:lgxe,lgys:lgye) /= undef) )then
       call errend(ERROR_CODE__CONDITION, 'Data are overlapping.')
     endif
 
     call traperr( rbin(&
-           dat(lgxi:lgxf,lgyi:lgyf), get_f_map_tile(resl,var,tx,ty), &
-           dtype, sz=int((/MX,MY/),8), lb=int((/xi,yi/),8)) )
+           dat(lgxs:lgxe,lgys:lgye), get_f_map_tile(resl,var,tx,ty), &
+           dtype, sz=int((/MX,MY/),8), lb=int((/xs,ys/),8)) )
   enddo  ! i/
   close(un)
 
@@ -635,22 +680,22 @@ end subroutine read_basin_map_from_tile__real
 !
 !===============================================================
 subroutine read_basin_map_from_tile__dble(&
-    resl, id, var, dat, dtype, gxi, gyi, miss, bsn)
+    resl, id, var, dat, dtype, gxs, gys, miss, bsn)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'read_basin_map_from_tile__dble'
   character(*), intent(in)  :: resl
   character(*), intent(in)  :: id
   character(*), intent(in)  :: var
   character(*), intent(in)  :: dtype
-  integer     , intent(in)  :: gxi, gyi
-  real(8)     , intent(out) :: dat(gxi:,gyi:)
+  integer     , intent(in)  :: gxs, gys
+  real(8)     , intent(out) :: dat(gxs:,gys:)
   real(8)     , intent(in)  :: miss
-  integer(4)  , intent(in), optional :: bsn(gxi:,gyi:)
+  integer(4)  , intent(in), optional :: bsn(gxs:,gys:)
 
   real(4) :: undef
   integer :: tx, ty
-  integer :: xi, xf, yi, yf
-  integer :: lgxi, lgxf, lgyi, lgyf
+  integer :: xs, xe, ys, ye
+  integer :: lgxs, lgxe, lgys, lgye
   integer :: n, i
   integer :: id_
   character :: c_
@@ -675,17 +720,17 @@ subroutine read_basin_map_from_tile__dble(&
   read(un,*) c_, n
   read(un,*)  ! bbox
   do i = 1, n
-    read(un,*) c_, tx, ty, xi, xf, yi, yf
-    call xy_to_gxy(tx, ty, xi, yi, lgxi, lgyi)
-    call xy_to_gxy(tx, ty, xf, yf, lgxf, lgyf)
+    read(un,*) c_, tx, ty, xs, xe, ys, ye
+    call xy_to_gxy(tx, ty, xs, ys, lgxs, lgys)
+    call xy_to_gxy(tx, ty, xe, ye, lgxe, lgye)
 
-    if( any(dat(lgxi:lgxf,lgyi:lgyf) /= undef) )then
+    if( any(dat(lgxs:lgxe,lgys:lgye) /= undef) )then
       call errend(ERROR_CODE__CONDITION, 'Data are overlapping.')
     endif
 
     call traperr( rbin(&
-           dat(lgxi:lgxf,lgyi:lgyf), get_f_map_tile(resl,var,tx,ty), &
-           dtype, sz=int((/MX,MY/),8), lb=int((/xi,yi/),8)) )
+           dat(lgxs:lgxe,lgys:lgye), get_f_map_tile(resl,var,tx,ty), &
+           dtype, sz=int((/MX,MY/),8), lb=int((/xs,ys/),8)) )
   enddo  ! i/
   close(un)
 
@@ -790,15 +835,24 @@ end function get_f_lst_tile
 !
 !===============================================================
 character(CLEN_PATH) function get_f_map_basin(&
-    resl, var, bsnId) result(f)
+  resl, var, bsnId, opt_var &
+) result(f)
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'get_f_map_basin'
   character(*), intent(in) :: resl
   character(*), intent(in) :: var
   character(*), intent(in) :: bsnId
+  character(*), intent(in), optional :: opt_var
 
-  f = joined(DIR_BASIN, &
-             trim(resl)//'/'//trim(var)//'/'//trim(bsnId)//'.bin')
+  character(CLEN_PATH) :: opt_var_
+
+  opt_var_ = ''
+  if( present(opt_var) ) opt_var_ = opt_var
+
+  f = joined(&
+    DIR_BASIN, &
+    trim(resl)//'/'//trim(var)//trim(opt_var_)//'/'//trim(bsnId)//'.bin' &
+  )
 end function get_f_map_basin
 !===============================================================
 !
