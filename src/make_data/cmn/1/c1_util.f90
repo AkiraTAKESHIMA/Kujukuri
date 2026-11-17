@@ -4,6 +4,7 @@ module c1_util
   use lib_time
   use lib_log
   use lib_array
+  use lib_math
   use lib_io
   use c1_const
   implicit none
@@ -11,6 +12,8 @@ module c1_util
   !-------------------------------------------------------------
   ! Public procedures
   !-------------------------------------------------------------
+  public :: dist_earth
+
   public :: slonlat
   public :: sBBox
   !-------------------------------------------------------------
@@ -19,6 +22,23 @@ module c1_util
   character(CLEN_PROC), parameter :: MODNAM = 'c1_util'
   !-------------------------------------------------------------
 contains
+!===============================================================
+!
+!===============================================================
+real(8) function dist_earth(lon1, lat1, lon2, lat2) result(d)
+  implicit none
+  real(8), intent(in) :: lon1, lat1, lon2, lat2  ![deg]
+
+  d = dist_ellips_hubeny(lon1*d2r, lat1*d2r, lon2*d2r, lat2*d2r, EARTH_E) * EARTH_R
+end function dist_earth
+!===============================================================
+!
+!===============================================================
+!
+!
+!
+!
+!
 !===============================================================
 !
 !===============================================================

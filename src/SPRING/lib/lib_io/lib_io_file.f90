@@ -44,6 +44,7 @@ module lib_io_file
 
   public :: set_opt_check_permission
   public :: init_opt_check_permission
+  public :: file_exists
   public :: check_permission
   public :: check_file_size
   public :: try_make_empty_file
@@ -1133,6 +1134,18 @@ end function init_opt_check_permission
 !===============================================================
 !
 !===============================================================
+logical function file_exists(path) result(res)
+  implicit none 
+  character(CLEN_PROC), parameter :: PRCNAM = 'file_exists'
+  character(*), intent(in) :: path
+
+  integer :: access
+
+  res = access(path, ' ') == 0
+end function file_exists
+!===============================================================
+!
+!===============================================================
 integer(4) function check_permission__file(&
     f, action, id, allow_empty) result(info)
   implicit none
@@ -1222,7 +1235,7 @@ integer(4) function check_permission__file(&
   case( action_undef )
     continue
   case( action_read )
-    if( access(f%path,' ') == 0 )then
+    if( file_exists(f%path) )then
       if( access(f%path,'r') /= 0 )then
         info = 1
         call errret(ERROR_CODE__CONDITION, &
@@ -1237,7 +1250,7 @@ integer(4) function check_permission__file(&
       return
     endif
   case( action_write )
-    if( access(f%path,' ') == 0 )then
+    if( file_exists(f%path) )then
       if( access(f%path,'w') /= 0 )then
         info = 1
         call errret(ERROR_CODE__CONDITION, &
@@ -1250,7 +1263,7 @@ integer(4) function check_permission__file(&
       endif
     endif
   case( action_readwrite )
-    if( access(f%path,' ') == 0 )then
+    if( file_exists(f%path) )then
       if( access(f%path,'r') /= 0 .or. access(f%path,'w') /= 0 )then
         info = 1
         call errret(ERROR_CODE__CONDITION, &
@@ -1327,7 +1340,7 @@ integer(4) function check_permission__path(&
 
   selectcase( action )
   case( action_read )
-    if( access(path, ' ') == 0 )then
+    if( file_exists(path) )then
       if( access(path, 'r') /= 0 )then
         info = 1
         call errret(ERROR_CODE__CONDITION, &
@@ -1345,7 +1358,7 @@ integer(4) function check_permission__path(&
       return
     endif
   case( action_write )
-    if( access(path, ' ') == 0 )then
+    if( file_exists(path) )then
       if( access(path, 'w') /= 0 )then
         info = 1
         call errret(ERROR_CODE__CONDITION, &
@@ -1369,7 +1382,7 @@ integer(4) function check_permission__path(&
       close(un, status='delete')
     endif
   case( action_readwrite )
-    if( access(path, ' ') == 0 )then
+    if( file_exists(path) )then
       if( access(path, 'r') /= 0 .or. access(path, 'w') /= 0 )then
         info = 1
         call errret(ERROR_CODE__CONDITION, &
@@ -1426,8 +1439,6 @@ integer(4) function check_file_size(&
   integer(8) :: fs
   integer(8) :: recl
 
-  integer :: access
-
   info = 0
   call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
@@ -1453,7 +1464,7 @@ integer(4) function check_file_size(&
     endif
   endif
 
-  if( access(f%path, ' ') /= 0 )then
+  if( .not. file_exists(f%path) )then
     if( allow_empty_ )then
       call logret(); return
     else
@@ -1558,8 +1569,6 @@ integer(4) function try_make_empty_file__file(f) result(info)
   integer :: un
   integer :: ios
 
-  integer :: access
-
   info = 0
   call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
@@ -1571,7 +1580,7 @@ integer(4) function try_make_empty_file__file(f) result(info)
     return
   endif
 
-  if( access(f%path,' ') == 0 )then
+  if( file_exists(f%path) )then
     info = 1
     call errret(ERROR_CODE__CONDITION, &
       'File already exists: '//str(f%path)//&
@@ -1611,8 +1620,6 @@ integer(4) function try_make_empty_file__dir(dir) result(info)
   integer :: ios
   logical :: opened, exist
 
-  integer :: access
-
   info = 0
   call logbgn(PRCNAM, MODNAM, '-p -x2')
   !-------------------------------------------------------------
@@ -1620,7 +1627,7 @@ integer(4) function try_make_empty_file__dir(dir) result(info)
   !-------------------------------------------------------------
   do i = 1, IMAX
     f = joined(dir,'spring.empty.'//str(i))
-    if( access(f,' ') == 0 ) cycle
+    if( file_exists(f) ) cycle
 
     open(newunit=un, file=f, status='new', iostat=ios)
     if( ios /= 0 ) cycle

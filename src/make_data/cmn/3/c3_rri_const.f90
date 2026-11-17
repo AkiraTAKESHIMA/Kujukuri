@@ -10,6 +10,7 @@ module c3_rri_const
     RRI_FDR__NORTHEAST  => FDR__NORTHEAST , &
     RRI_FDR__RIVERMOUTH => FDR__RIVERMOUTH, &
     RRI_FDR__MISS       => FDR__MISS, &
+!
     RRI_ACC_MISS => ACC_MISS, &
     RRI_ELV_MISS => ELV_MISS, &
     RRI_UPA_MISS => UPA_MISS, &
@@ -17,6 +18,13 @@ module c3_rri_const
     RRI_WIDTH_MISS => WIDTH_MISS, &
     RRI_HIGHT_MISS => HIGHT_MISS, &
     RRI_DEPTH_MISS => DEPTH_MISS, &
-    RRI_LEVEE_MISS => LEVEE_MISS
+    RRI_LEVEE_MISS => LEVEE_MISS, &
+!
+    RRI_FMT__LONLAT   => FMT__LONLAT  , &
+    RRI_FMT__CELLSIZE => FMT__CELLSIZE, &
+    RRI_FMT__ELV      => FMT__ELV     , &
+    RRI_FMT__FDR      => FMT__FDR     , &
+    RRI_FMT__UPG      => FMT__UPG     , &
+    RRI_FMT__UPA      => FMT__UPA
   implicit none
 end module c3_rri_const  

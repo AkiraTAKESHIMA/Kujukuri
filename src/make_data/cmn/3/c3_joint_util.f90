@@ -10,6 +10,8 @@ module c3_joint_util
   !-------------------------------------------------------------
   ! Public procedures
   !-------------------------------------------------------------
+  public :: get_varopt
+
   public :: get_miss
   !-------------------------------------------------------------
   ! Interfaces
@@ -25,6 +27,148 @@ module c3_joint_util
   character(CLEN_PROC), parameter :: MODNAM = 'c3_joint_util'
   !-------------------------------------------------------------
 contains
+!===============================================================
+!
+!===============================================================
+subroutine get_varopt(&
+  catmType, mode, task, &
+  opt_elv_in, opt_dir_in, opt_var_out &
+)
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'get_varopt'
+  character(*), intent(in) :: catmType
+  integer, intent(in) :: mode
+  character(*), intent(in) :: task
+  character(*), intent(out) :: opt_elv_in, opt_dir_in, opt_var_out
+
+  integer :: mode_
+
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  if( mode == MODE_TOPOMODIFICATION__AUTO )then
+    selectcase( catmType )
+    case( CATMTYPE__BASIN )
+      mode_ = 1
+    case( CATMTYPE__NETWORK, &
+          CATMTYPE__NETWORKSET )
+      mode_ = 2
+    case default
+      call errend(ERROR_CODE__VALUE, 'catmType == '//str(catmType))
+    endselect
+  else
+    mode_ = mode
+  endif
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  selectcase( mode_ )
+  !-------------------------------------------------------------
+  ! Case: No modification
+  case( 0 )
+    selectcase( task )
+    case( 'removeRiverChannelEffect', &
+          'fillDepressions'  )
+      call errend(ERROR_CODE__CONDITION, &
+        'Inconsistency: no modification mode was selected in the task `'//str(task)//'`')
+    case( 'calcUpperArea' )
+      opt_elv_in = ''
+      opt_dir_in = ''
+      opt_var_out = ''
+    case( 'scaleUp' )
+      opt_elv_in = ''
+      opt_dir_in = ''
+      opt_var_out = ''
+    case default
+      call errend(ERROR_CODE__VALUE, 'task == '//str(task))
+    endselect
+  !-------------------------------------------------------------
+  ! Case: For J-FlwDir catchment
+  ! - rmriv -> fildep
+  case( 1 )
+    if( catmType /= CATMTYPE__BASIN )then
+      call errend(ERROR_CODE__CONDITION, 'Modification mode '//&
+        str(mode_)//' cannot be selected when catmType == '//str(catmType))
+    endif
+
+    selectcase( task )
+    case( 'calcUpperArea' )
+      opt_elv_in = ''
+      opt_dir_in = ''
+      opt_var_out = ''
+    case( 'removeRiverChannelEffect' )
+      opt_elv_in = ''
+      opt_dir_in = ''
+      opt_var_out = '_rmriv'
+    case( 'fillDepressions' )
+      opt_elv_in = '_rmriv'
+      opt_dir_in = ''
+      opt_var_out = '_fildep'
+    case( 'scaleUp' )
+      opt_elv_in = '_fildep'
+      opt_dir_in = ''
+      opt_var_out = ''
+    case default
+      call errend(ERROR_CODE__VALUE, 'task == '//str(task))
+    endselect
+
+  !-------------------------------------------------------------
+  ! Case: For StrRank catchment
+  ! - fitdir -> rmriv -> fildep
+  case( 2 )
+    if( catmType /= CATMTYPE__NETWORK .and. &
+        catmType /= CATMTYPE__NETWORKSET )then
+      call errend(ERROR_CODE__CONDITION, 'Modification mode '//&
+        str(mode_)//' cannot be selected when catmType == '//str(catmType))
+    endif
+
+    selectcase( task )
+    case( 'fitFlwDirToRiverNetwork' )
+      opt_elv_in = ''  ! not used
+      opt_dir_in = ''
+      opt_var_out = '_fitdir'
+    case( 'calcUpperArea' )
+      opt_elv_in = '_fitdir'  ! not used
+      opt_dir_in = '_fitdir'
+      opt_var_out = '_fitdir'
+    case( 'removeRiverChannelEffect' )
+      opt_elv_in = '_fitdir'
+      opt_dir_in = '_fitdir'
+      opt_var_out = '_rmriv'
+    case( 'fillDepressions' )
+      opt_elv_in = '_rmriv'
+      opt_dir_in = '_fitdir'
+      opt_var_out = '_fildep'
+    case( 'scaleUp' )
+      opt_elv_in = '_fildep'
+      opt_dir_in = '_fitdir'
+      opt_var_out = '_fitdir'
+    case default
+      call errend(ERROR_CODE__VALUE, 'task == '//str(task))
+    endselect
+  !-------------------------------------------------------------
+  ! Case: ERROR
+  case default
+    call errend(ERROR_CODE__VALUE, 'mode == '//str(mode_))
+  endselect
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  call logmsg('modification='//str(mode_)//&
+    ' elv_in='//str(opt_elv_in)//' dir_in='//str(opt_dir_in)//&
+    ' var_out='//str(opt_var_out))
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
+end subroutine get_varopt
+!===============================================================
+!
+!===============================================================
+!
+!
+!
+!
+!
 !===============================================================
 !
 !===============================================================

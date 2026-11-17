@@ -35,7 +35,7 @@ module c3_jflw_grid
     jflw_gy_to_y => gy_to_y, &
     jflw_gxy_to_xy => gxy_to_xy, &
 !
-    jflw_mean_dist_from_center => mean_dist_from_center, &
+    jflw_standard_dist_from_center => standard_dist_from_center, &
     jflw_get_nextxy => get_nextxy, &
     jflw_get_fdr => get_fdr
   implicit none

@@ -30,15 +30,24 @@ module c1_const
   character(CLEN_KEY), parameter :: VARNAME__WTH = 'wth'
   character(CLEN_KEY), parameter :: VARNAME__LANDUSE = 'landuse'
 
+  integer, parameter :: MODE_TOPOMODIFICATION__AUTO = -1
+  !character(CLEN_KEY), parameter :: ELVOPT__RMRIV  = 'rmriv'
+  !character(CLEN_KEY), parameter :: ELVOPT__FILDEP = 'fildep'
+  !character(CLEN_KEY), parameter :: DIROPT__FITDIR = 'fitdir'
+
   ! Catchment number
   integer, parameter :: CAT_MISS = -9999
 
   ! Coordinates
   real(8), parameter :: LONLAT_MISS = -999.d0
 
+  ! Distance
+  real(8), parameter :: DIST_MISS = -9999.d0
+
   ! Eearth's shape
   character(CLEN_VAR), parameter :: EARTH_GEOSYS = EARTH_GEOSYS__WGS84
   character(CLEN_VAR), parameter :: EARTH_RTYP = EARTH_RTYP__AUTHALIC
   real(8), parameter :: EARTH_R  = EARTH_CONST__WGS84_R_AUTHALIC
   real(8), parameter :: EARTH_E2 = 0.d0
+  real(8), parameter :: EARTH_E  = sqrt(EARTH_E2)
 end module c1_const

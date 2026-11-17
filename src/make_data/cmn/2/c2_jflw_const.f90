@@ -67,9 +67,9 @@ module c2_jflw_const
   real(8)            :: GRIDSIZE_LON
   real(8)            :: GRIDSIZE_LAT
 
-  integer, parameter :: DGT_XY  = 4
-  integer, parameter :: DGT_TXY = 2
-  integer, parameter :: DGT_GXY = 6
+  integer, parameter :: DGT_LXY = 4  ! grid index in tile
+  integer, parameter :: DGT_TXY = 2  ! tile index
+  integer, parameter :: DGT_GXY = 6  ! global index of grids
   integer, parameter :: DGT_BSNID_MAX = 7
   !-------------------------------------------------------------
   ! Private module variables

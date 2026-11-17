@@ -3,6 +3,7 @@ program main
   use lib_base
   use lib_log
   use lib_io
+  use c1_const
   use c2_strnk_const, only: &
     DGT_NWKID
   use mod_remap, only: &
@@ -11,14 +12,17 @@ program main
   use mod_mesh, only: &
     calcMeshIntersections, &
     makeHiresNetworkMask , &
-    scaleUp              , &
-    scaleUpNetworkMask   , &
     trimCatm          
+  use mod_fitflwdir, only: &
+    fitFlwDirToRiverNetwork
   use mod_topo, only: &
-    modifyElv   , &
-    modifyFlwDir, &
-    calcUpperArea
+    calcUpperArea           , &
+    removeRiverChannelEffect, &
+    fillDepressions         , &
+    scaleUp              
   implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'program make_mesh_data'
+
   character(CLEN_KEY) :: task
 
   character(CLEN_KEY) :: resl
@@ -27,22 +31,33 @@ program main
   character(CLEN_KEY) :: name_src
   character(CLEN_KEY) :: resl_src
   character(CLEN_KEY) :: var
+  integer             :: modification
   character(CLEN_KEY) :: outfmt
-  logical :: modified
   logical :: overwrite
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  ! 1.a StrRank流域マスクを作成する
+  !   1. calcHiresMeshIntersections
+  !   2. makeHiresNetworkMask
+  ! 1.b 地表面データの解像度を変換する
+  !   1. makeRemappingTables
+  !   2. remap
+  ! 2. 流域を切り出す
+  !   1. trimCatm
+  ! 3. 流域地形を補正する
+  !   1.a. removeRiverChannelEffect
+  !   1.b. fitFlwDirToRiverNetwork
+  !   2.   fillDepressions
+  ! 4. 上流域面積を計算する
+  ! 5. 流域の解像度を変換する
 
-  character(CLEN_PROC), parameter :: PRCNAM = 'program make_mesh_data'
 
-
-! 1-a-1 calcHiresMeshIntersections
-!    -2 makeHiresNetworkMask
-!    -3 scaleUpNetworkMask
-!  -b-1 makeRemappingTables
-!  -b-2 remap
-! 2     trimCatm
-! 3-1   modifyFlwDir
-!  -2   modifyElv
-!  -3   calcUpperArea
+  ! 3.1.a removeRiverChannelEffect
+  !     b firFlwDirToRiverNetwork
+  !  .2   fillDepressions
+  !  .3   calcUpperArea
+  !  .4   scaleUp
   !-------------------------------------------------------------
   ! Read arguments
   !-------------------------------------------------------------
@@ -77,16 +92,6 @@ program main
     id = arg_char('-id')
 
     call makeHiresNetworkMask(id)
-
-  ! Main 1.a.3
-  !-------------------------------------------------------------
-  case( 'scaleUpNetworkMask' )
-    call addarg('resl', '', 'Target resolution')
-    call parsearg()
-
-    resl = lower(arg_char('resl'))
-
-    call scaleUpNetworkMask(resl)
 
   ! Main 1.b.1
   !-------------------------------------------------------------
@@ -142,72 +147,101 @@ program main
 
     call trimCatm(catmType, resl, id, var, outfmt, overwrite)
 
-  ! Main 3.a
+  ! Main 3.1
   !-------------------------------------------------------------
-  case( 'modifyElv' )
-    call addarg('catmType', 's', 'Catchment type {basin,network,networkset}')
-    call addarg('resl', 's', 'Mesh resolution')
-    call addarg('-id', '', '', .false., 'Catchment id')
-    call parsearg()
-
-    catmType = lower(arg_char('catmType'))
-    resl = lower(arg_char('resl'))
-    id = arg_char('-id')
-
-    call modifyElv(catmType, resl, id)
-
-  ! Main 3.b
-  !-------------------------------------------------------------
-  case( 'modifyFlwDir' )
+  case( 'fitFlwDirToRiverNetwork' )
     call addarg('networkType', 's', 'Network type {network,networkset}')
     call addarg('resl', 's', 'Mesh resolution')
+    call addarg('-m', '--modified', MODE_TOPOMODIFICATION__AUTO, .false., 'Select modification mode')
     call addarg('-id', '', '', .false., 'Network id')
+    call addarg('-w', '--overwrite', .false., .false., 'Overwrite existing output files')
     call parsearg()
 
     catmType = lower(arg_char('networkType'))
     resl = lower(arg_char('resl'))
+    modification = arg_int4('-m')
     id = arg_char('-id')
+    overwrite = arg_flag('-w')
 
-    call modifyFlwDir(catmType, resl, id)
+    call fitFlwDirToRiverNetwork(catmType, resl, modification, id, overwrite)
 
-  ! Main 4
+  ! Main 3.2
   !-------------------------------------------------------------
   case( 'calcUpperArea' )
     call addarg('catmType', 's', 'Catchment type {basin,network,networkset}')
     call addarg('resl', 's', 'Mesh resolution')
-    call addarg('-m', '--modified', .false., .false., 'Use modified topography')
+    call addarg('-m', '--modified', MODE_TOPOMODIFICATION__AUTO, .false., 'Select modification mode')
     call addarg('-id', '', '', .false., 'Catchment id')
+    call addarg('-w', '--overwrite', .false., .false., 'Overwrite existing output files')
     call parsearg()
 
     catmType = lower(arg_char('catmType'))
     resl = lower(arg_char('resl'))
-    modified = arg_flag('--modified')
+    modification = arg_int4('-m')
     id = arg_char('-id')
+    overwrite = arg_flag('-w')
 
-    call calcUpperArea(catmType, resl, modified, id)
+    call calcUpperArea(catmType, resl, modification, id, overwrite)
 
-  ! Main 5
+  ! Main 3.3
+  !-------------------------------------------------------------
+  case( 'removeRiverChannelEffect' )
+    call addarg('catmType', 's', 'Catchment type {basin,network,networkset}')
+    call addarg('resl', 's', 'Mesh resolution')
+    call addarg('-m', '--modified', MODE_TOPOMODIFICATION__AUTO, .false., 'Select modification mode')
+    call addarg('-id', '', '', .false., 'Catchment id')
+    call addarg('-w', '--overwrite', .false., .false., 'Overwrite existing output files')
+    call parsearg()
+
+    catmType = lower(arg_char('catmType'))
+    resl = lower(arg_char('resl'))
+    modification = arg_int4('-m')
+    id = arg_char('-id')
+    overwrite = arg_flag('-w')
+
+    call removeRiverChannelEffect(catmType, resl, modification, id, overwrite)
+
+  ! Main 3.4
+  !-------------------------------------------------------------
+  case( 'fillDepressions' )
+    call addarg('catmType', 's', 'Catchment type {basin,network,networkset}')
+    call addarg('resl', 's', 'Mesh resolution')
+    call addarg('-m', '--modified', MODE_TOPOMODIFICATION__AUTO, .false., 'Select modification mode')
+    call addarg('-id', '', '', .false., 'Catchment id')
+    call addarg('-w', '--overwrite', .false., .false., 'Overwrite existing output files')
+    call parsearg()
+
+    catmType = lower(arg_char('catmType'))
+    resl = lower(arg_char('resl'))
+    modification = arg_int4('-m')
+    id = arg_char('-id')
+    overwrite = arg_flag('-w')
+
+    call fillDepressions(catmType, resl, modification, id, overwrite)
+
+  ! Main 4
   !-------------------------------------------------------------
   case( 'scaleUp' )
     call addarg('catmType', 's', 'Catchment type {basin,network,networkset}')
     call addarg('resl_in', 's', 'Input mesh resolution')
     call addarg('resl_out', 's', 'Output mesh resolution')
-    call addarg('-m', '--modified', .false., .false., 'Use modified topography')
+    call addarg('-m', '--modified', MODE_TOPOMODIFICATION__AUTO, .false., 'Select modification mode')
     call addarg('-id', '', '', .false., 'Catchment id')
+    call addarg('-w', '--overwrite', .false., .false., 'Overwrite existing output files')
     call parsearg()
 
     catmType = lower(arg_char('catmType'))
     resl_src = lower(arg_char('resl_in'))
     resl = lower(arg_char('resl_out'))
-    modified = arg_flag('--modified')
+    modification = arg_int4('-m')
     id = arg_char('-id')
+    overwrite = arg_flag('-w')
 
-    call scaleUp(catmType, resl_src, resl, modified, id)
+    call scaleUp(catmType, resl_src, resl, modification, id, overwrite)
 
   !
   !-------------------------------------------------------------
   case default
     call errend(ERROR_CODE__VALUE, 'task == '//str(task))
   endselect
-  !-------------------------------------------------------------
 end program main

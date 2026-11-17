@@ -41,7 +41,7 @@ module c3_jflw_const
     JFLW_TILESIZE_LAT => TILESIZE_LAT, &
     JFLW_GRIDSIZE_LON => GRIDSIZE_LON, &
     JFLW_GRIDSIZE_LAT => GRIDSIZE_LAT, &
-    JFLW_DGT_XY  => DGT_XY , &
+    JFLW_DGT_LXY => DGT_LXY, &
     JFLW_DGT_TXY => DGT_TXY, &
     JFLW_DGT_GXY => DGT_GXY, &
 !

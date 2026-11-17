@@ -675,7 +675,7 @@ subroutine calc_channel_intersections(uid)
 
         write(un,"(3x,a,"//&
                    "2(1x,i"//str(DGT_TXY)//"),"//&
-                   "4(1x,i"//str(DGT_XY)//"),"//&
+                   "4(1x,i"//str(DGT_LXY)//"),"//&
                    "4(1x,i"//str(DGT_GXY)//"))") &
               tilename(itx,ity), &
               itx, ity, xs_this, xe_this, ys_this, ye_this, &

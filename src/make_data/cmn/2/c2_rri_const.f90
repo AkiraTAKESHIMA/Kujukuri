@@ -31,4 +31,12 @@ module c2_rri_const
   real(8), parameter :: HIGHT_MISS = -9999.d0
   real(8), parameter :: DEPTH_MISS = -9999.d0
   real(8), parameter :: LEVEE_MISS = -9999.d0
+
+  ! Format
+  character(8), parameter :: FMT__LONLAT = 'f18.13'
+  character(8), parameter :: FMT__CELLSIZE = 'f18.13'
+  character(8), parameter :: FMT__ELV = 'f11.5'
+  character(8), parameter :: FMT__FDR = 'i0'
+  character(8), parameter :: FMT__UPG = 'i0'
+  character(8), parameter :: FMT__UPA = 'f11.3'
 end module c2_rri_const

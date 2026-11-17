@@ -7,24 +7,23 @@ module mod_make_model_data
   use lib_math
   use lib_io
   use c1_const
-  use c1_util, only: &
-    slonlat, &
-    sBBox
+  use c1_util
+  use c2_nlni_const, only: &
+    DGT_WSCODE
+  use c2_strnk_const, only: &
+    DGT_NWKID
   use c2_strnk_type, only: &
     cmn_node_   , &
     cmn_channel_, &
     cmn_watsys_ , &
     cmn_nwknode_, &
     cmn_network_
-  use c2_nlni_const, only: &
-    DGT_WSCODE
-  use c2_strnk_const, only: &
-    DGT_NWKID
   implicit none
   private
   !-------------------------------------------------------------
   ! Public procedures
   !-------------------------------------------------------------
+  public :: convBin2RRI
   public :: makeModelNetworkData
   public :: makeModelCrossSectionData
   !-------------------------------------------------------------
@@ -84,34 +83,470 @@ contains
 !===============================================================
 !
 !===============================================================
-recursive subroutine makeModelNetworkData(&
-    productName, leng_standard, id_in &
+subroutine convBin2RRI(&
+  catmType, resl, id, var, overwrite &
+)
+  use c3_joint_const
+  use c3_jflw_const, &
+    jflw_set_resolution => set_resolution
+  use c3_jflw_util, only: &
+    jflw_get_id_range
+  use c3_jflw_io, only: &
+    jflw_strid                      , &
+    jflw_read_basin_domain_from_each, &
+    jflw_get_f_map_basin
+  use c3_rri_const
+  use c3_rri_io, only: &
+    rri_get_f_data
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'convBin2RRI'
+  character(*), intent(in) :: catmType
+  character(*), intent(in) :: resl
+  character(*), intent(in) :: id
+  character(*), intent(in) :: var
+  logical, intent(in) :: overwrite
+
+  character(len_trim(var)) :: var_main, var_opt
+  integer(1), pointer :: dati1(:,:)
+  integer(4), pointer :: dati4(:,:)
+  real(4)   , pointer :: datr4(:,:)
+  integer(1) :: missi1
+  integer(4) :: missi4
+  real(4)    :: missr4
+  integer :: nx, ny, gxs, gxe, gys, gye
+  real(8) :: west, east, south, north
+  logical :: is_done
+  character(32) :: id_
+  integer :: id_int, idmin_int, idmax_int
+  character(CLEN_PATH) :: f, fout
+  character(CLEN_KEY) :: dtype
+
+  call logbgn(PRCNAM, MODNAM)
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  if( index(var,'_') == 0 )then
+    var_main = var
+    var_opt = ''
+  else
+    var_main = var(:index(var,'_')-1)
+    var_opt = var(index(var,'_')+1:)
+  endif
+
+  selectcase( var_main )
+  case( 'elv' )
+    dtype = DTYPE_REAL
+    missr4 = JFLW_ELV_MISS
+  case( 'dir' )
+    dtype = DTYPE_INT1
+    missi1 = JFLW_FDR__MISS
+  case( 'upg' )
+    dtype = DTYPE_INT4
+    missi4 = JFLW_UPG_MISS
+  case( 'upa' )
+    dtype = DTYPE_REAL
+    missr4 = JFLW_UPA_MISS
+  case default
+    call errend(ERROR_CODE__VALUE, 'var_main == '//str(var_main)//&
+      '(var == '//str(var)//')')
+  endselect
+
+  call jflw_set_resolution(resl)
+
+  nullify(dati1, dati4, datr4)
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  selectcase( catmType )
+  !-------------------------------------------------------------
+  ! Case: J-FlwDir Basin
+  case( CATMTYPE__BASIN )
+    if( id == '' )then
+      call errend(ERROR_CODE__VALUE, 'Id is missing.')
+      
+    elseif( index(id, '-') /= 0 )then
+      call jflw_get_id_range(id, idmin_int, idmax_int)
+      do id_int = idmin_int, idmax_int
+        id_ = jflw_strid(id_int)
+        call prep_basin(id_, is_done)
+        if( is_done ) cycle
+        call core()
+      enddo
+
+    else
+      call prep_basin(id, is_done)
+      if( .not. is_done )then
+        call core()
+      endif
+    endif
+
+  !-------------------------------------------------------------
+  ! Case: ERROR
+  case default
+
+  endselect
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  call realloc(dati1, 0)
+  call realloc(dati4, 0)
+  call realloc(datr4, 0)
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
+!---------------------------------------------------------------
+contains
+!---------------------------------------------------------------
+!
+!---------------------------------------------------------------
+subroutine prep_basin(id, is_done)
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'prep_basin'
+  character(*), intent(in) :: id
+  logical, intent(out) :: is_done
+
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
+  !-------------------------------------------------------------
+  fout = rri_get_f_data(catmType, resl, var, id)
+
+  is_done = .not. overwrite .and. file_exists(fout)
+  if( is_done )then
+    call logmsg('Output file already exists: '//str(fout))
+    call logret(PRCNAM, MODNAM)
+    return
+  endif
+  !-------------------------------------------------------------
+  call jflw_read_basin_domain_from_each(&
+    resl, id, &
+    nx, ny, gxs, gxe, gys, gye, &
+    west, east, south, north, &
+    echo=.true. &
+  )
+
+  f = jflw_get_f_map_basin(resl, id, var)
+  call logmsg('Reading '//str(f))
+
+  selectcase( dtype )
+  case( DTYPE_INT1 )
+    call realloc(dati1, (/gxs,gys/), (/gxe,gye/))
+    call traperr( rbin(dati1, f) )
+  case( DTYPE_INT4 )
+    call realloc(dati4, (/gxs,gys/), (/gxe,gye/))
+    call traperr( rbin(dati4, f) )
+  case( DTYPE_REAL )
+    call realloc(datr4, (/gxs,gys/), (/gxe,gye/))
+    call traperr( rbin(datr4, f) )
+  case default
+    call errend(ERROR_CODE__VALUE, 'dtype == '//str(dtype))
+  endselect
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
+end subroutine prep_basin
+!---------------------------------------------------------------
+!
+!---------------------------------------------------------------
+subroutine core()
+  implicit none
+
+  selectcase( dtype )
+  !-------------------------------------------------------------
+  ! Case: int1 (fdr)
+  case( DTYPE_INT1 )
+    call convBin2RRI__core__fdr(&
+      fout, overwrite, &
+      nx, ny, west, south, JFLW_GRIDSIZE_LON, &
+      dati1, missi1 &
+    )
+  !-------------------------------------------------------------
+  ! Case: int4 (upg)
+  case( DTYPE_INT4 )
+    call convBin2RRI__core__int4(&
+      var, fout, overwrite, &
+      nx, ny, west, south, JFLW_GRIDSIZE_LON, &
+      dati4, missi4 &
+    )
+  !-------------------------------------------------------------
+  ! Case: real (elv, upa)
+  case( DTYPE_REAL )
+    call convBin2RRI__core__real(&
+      var, fout, overwrite, &
+      nx, ny, west, south, JFLW_GRIDSIZE_LON, &
+      datr4, missr4 &
+    )
+  !-------------------------------------------------------------
+  ! Case: ERROR
+  case default
+    call errend(ERROR_CODE__VALUE, 'dtype == '//str(dtype))
+  endselect
+end subroutine core
+!---------------------------------------------------------------
+!
+!---------------------------------------------------------------
+end subroutine convBin2RRI
+!===============================================================
+!
+!===============================================================
+subroutine convBin2RRI__core__fdr(&
+  f, overwrite, &
+  nx, ny, west, south, cellsize, &
+  dat, miss &
+)
+  use c3_joint_grid, only: &
+    conv_fdr_jflw2rri
+  use c3_rri_const
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'convBin2RRI__core__fdr'
+  character(*), intent(in) :: f
+  logical     , intent(in) :: overwrite
+  integer     , intent(in) :: nx, ny
+  real(8)     , intent(in) :: west, south
+  real(8)     , intent(in) :: cellsize
+  integer(1)  , intent(in) :: dat(:,:)
+  integer(1)  , intent(in) :: miss
+
+  integer(4) :: dat_rri(size(dat,1),size(dat,2))
+  integer :: iy
+  character(32) :: wfmt_val, wfmt
+  integer :: un
+
+  call logbgn(PRCNAM, MODNAM)
+  !-------------------------------------------------------------
+  if( .not. overwrite .and. file_exists(f) )then
+    call logmsg('Exists: '//str(f))
+    call logret(PRCNAM, MODNAM)
+    return
+  endif
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  wfmt_val = RRI_FMT__FDR
+  wfmt = '('//str(nx)//'(1x,'//str(wfmt_val)//'))'
+
+  call conv_fdr_jflw2rri(dat, dat_rri)
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  wfmt = '('//str(nx)//'(1x,'//str(RRI_FMT__FDR)//'))'
+
+  call logmsg('Writing '//str(f))
+  open(newunit=un, file=f, status='replace')
+
+  write(un,"(a)") 'ncols '//str(nx)
+  write(un,"(a)") 'nrows '//str(ny)
+  write(un,"(a)") 'xllcorner '//str(west,RRI_FMT__LONLAT)
+  write(un,"(a)") 'yllcorner '//str(south,RRI_FMT__LONLAT)
+  write(un,"(a)") 'cellsize '//str(cellsize,RRI_FMT__CELLSIZE)
+  write(un,"(a,1x,"//str(wfmt_val)//")") 'miss', miss
+  do iy = 1, ny
+    write(un,wfmt) dat(:,iy)
+  enddo
+
+  close(un)
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
+end subroutine convBin2RRI__core__fdr
+!===============================================================
+!
+!===============================================================
+subroutine convBin2RRI__core__int4(&
+  var, f, overwrite, &
+  nx, ny, west, south, cellsize, &
+  dat, miss &
+)
+  use c3_rri_const
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'convBin2RRI__core__int4'
+  character(*), intent(in) :: var
+  character(*), intent(in) :: f
+  logical     , intent(in) :: overwrite
+  integer     , intent(in) :: nx, ny
+  real(8)     , intent(in) :: west, south
+  real(8)     , intent(in) :: cellsize
+  integer(4)  , intent(in) :: dat(:,:)
+  integer(4)  , intent(in) :: miss
+
+  integer :: iy
+  character(32) :: wfmt_val, wfmt
+  integer :: un
+
+  call logbgn(PRCNAM, MODNAM)
+  !-------------------------------------------------------------
+  if( .not. overwrite .and. file_exists(f) )then
+    call logmsg('Exists: '//str(f))
+    call logret(PRCNAM, MODNAM)
+    return
+  endif
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  selectcase( var )
+  case( 'upg' )
+    wfmt_val = RRI_FMT__UPG
+  case default
+    call errend(ERROR_CODE__VALUE, 'var == '//str(var))
+  endselect
+
+  wfmt = '('//str(nx)//'(1x,'//str(wfmt_val)//'))'
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  call logmsg('Writing '//str(f))
+  open(newunit=un, file=f, status='replace')
+
+  write(un,"(a)") 'ncols '//str(nx)
+  write(un,"(a)") 'nrows '//str(ny)
+  write(un,"(a)") 'xllcorner '//str(west,RRI_FMT__LONLAT)
+  write(un,"(a)") 'yllcorner '//str(south,RRI_FMT__LONLAT)
+  write(un,"(a)") 'cellsize '//str(cellsize,RRI_FMT__CELLSIZE)
+  write(un,"(a,1x,"//str(wfmt_val)//")") 'miss', miss
+  do iy = 1, ny
+    write(un,wfmt) dat(:,iy)
+  enddo
+
+  close(un)
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
+end subroutine convBin2RRI__core__int4
+!===============================================================
+!
+!===============================================================
+subroutine convBin2RRI__core__real(&
+  var, f, overwrite, &
+  nx, ny, west, south, cellsize, &
+  dat, miss &
+)
+  use c3_rri_const
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'convBin2RRI__core__real'
+  character(*), intent(in) :: var
+  character(*), intent(in) :: f
+  logical     , intent(in) :: overwrite
+  integer     , intent(in) :: nx, ny
+  real(8)     , intent(in) :: west, south
+  real(8)     , intent(in) :: cellsize
+  real(4)     , intent(in) :: dat(:,:)
+  real(4)     , intent(in) :: miss
+
+  integer :: iy
+  character(32) :: wfmt_val, wfmt
+  integer :: un
+
+  call logbgn(PRCNAM, MODNAM)
+  !-------------------------------------------------------------
+  if( .not. overwrite .and. file_exists(f) )then
+    call logmsg('Exists: '//str(f))
+    call logret(PRCNAM, MODNAM)
+    return
+  endif
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  selectcase( var )
+  case( 'elv' )
+    wfmt_val = RRI_FMT__ELV
+  case( 'upa' )
+    wfmt_val = RRI_FMT__UPA
+  case default
+    call errend(ERROR_CODE__VALUE, 'var == '//str(var))
+  endselect
+
+  wfmt = '('//str(nx)//'(1x,'//str(wfmt_val)//'))'
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  call logmsg('Writing '//str(f))
+  open(newunit=un, file=f, status='replace')
+
+  write(un,"(a)") 'ncols '//str(nx)
+  write(un,"(a)") 'nrows '//str(ny)
+  write(un,"(a)") 'xllcorner '//str(west,RRI_FMT__LONLAT)
+  write(un,"(a)") 'yllcorner '//str(south,RRI_FMT__LONLAT)
+  write(un,"(a)") 'cellsize '//str(cellsize,RRI_FMT__CELLSIZE)
+  write(un,"(a,1x,"//str(wfmt_val)//")") 'miss', miss
+  do iy = 1, ny
+    write(un,wfmt) dat(:,iy)
+  enddo
+
+  close(un)
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
+end subroutine convBin2RRI__core__real
+!===============================================================
+!
+!===============================================================
+!
+!
+!
+!
+!
+!===============================================================
+!
+!===============================================================
+subroutine makeModelNetworkData(&
+  productName, leng_standard, id &
+)
+  use c2_strnk_io, only: &
+    get_f_lst_networks_channel
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'makeModelNetworkData'
+  character(*), intent(in) :: productName
+  real(8)     , intent(in) :: leng_standard  ! [m]
+  character(*), intent(in) :: id
+
+  character(DGT_NWKID) :: id_
+  integer :: nNwk, jNwk
+  character(CLEN_PATH) :: f
+  character :: c_
+  integer :: un
+
+  call logbgn(PRCNAM, MODNAM)
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  if( id == '' )then
+    f = get_f_lst_networks_channel()
+    call logmsg('Reading '//str(f))
+    open(newunit=un, file=f, status='old')
+    read(un,*) c_, nNwk
+    read(un,*)
+    do jNwk = 1, nNwk
+      read(un,*) c_, id_
+      call makeModelNetworkData__core(productName, leng_standard, id_)
+    enddo  ! jNwk/
+    close(un)
+  else
+    call makeModelNetworkData__core(productName, leng_standard, id)
+  endif
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
+end subroutine makeModelNetworkData
+!===============================================================
+!
+!===============================================================
+subroutine makeModelNetworkData__core(&
+  productName, leng_standard, id &
 )
   use c2_strnk_const
   use c2_strnk_io, only: &
-    read_network              , &
-    get_f_lst_networks_channel, &
-    get_f_network_channel     , &
+    read_network         , &
+    get_f_network_channel, &
     get_f_model_network
   use c2_strnk_util, only: &
     clear_cmn_network
   implicit none
-  character(CLEN_PROC), parameter :: PRCNAM = 'makeModelNetworkData'
+  character(CLEN_PROC), parameter :: PRCNAM = 'makeModelNetworkData__core'
   character(*), intent(in) :: productName
   real(8), intent(in) :: leng_standard  ! [m]
-  character(*), intent(in) :: id_in
+  character(*), intent(in) :: id
 
   type(cmn_network_) :: cmnnwk
   type(network_) :: nwk
   type(channel_), pointer :: ch
   type(section_), pointer :: sec
   type(edge_), pointer :: edge
-  character(DGT_NWKID) :: id_
   integer :: iSec
   real(8) :: leng, leng_next, leng_prev, leng_acc, leng_section
   real(8) :: pos, pos_prev
   real(8) :: downleng
-  integer :: nNwk, jNwk
   integer :: jCh
   integer :: iCh
   integer :: jPt, jPt0, jjPt
@@ -119,43 +554,20 @@ recursive subroutine makeModelNetworkData(&
 
   character(CLEN_PATH) :: f
   integer :: un
-  character :: c_
 
   real(8), parameter :: LENG_NEXT_LLIM = 1d-8
   real(8), parameter :: THRESH_DIST_BTW_POINTS = 1.d-3
 
 logical :: debug_this
 
-  call logbgn(PRCNAM, MODNAM)
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
+  call logmsg('Network '//str(id))
   !-------------------------------------------------------------
-  !
+  ! Load network data
   !-------------------------------------------------------------
-  if( id_in == '' )then
-    f = get_f_lst_networks_channel()
+  call logent('Loading network data')
 
-    open(newunit=un, file=f, status='old')
-
-    read(un,*) c_, nNwk
-    read(un,*)
-
-    do jNwk = 1, nNwk
-      read(un,*) c_, id_
-      call makeModelNetworkData(productName, leng_standard, id_)
-    enddo  ! jNwk/
-
-    close(un)
-
-    call logret(PRCNAM, MODNAM)
-    return
-  endif
-
-  call logmsg('Network '//str(id_in))
-  !-------------------------------------------------------------
-  ! Prepare network data
-  !-------------------------------------------------------------
-  call logent('Preparing network data')
-
-  cmnnwk%id = id_in
+  cmnnwk%id = id
 
   f = get_f_network_channel(cmnnwk%id, 'sbin')
   call logmsg('Reading '//str(f))
@@ -194,17 +606,13 @@ logical :: debug_this
 
     ch%leng = 0.d0
     do jPt = 1, ch%n-1
-      call add(ch%leng, dist_sphere(&
-        ch%lon(jPt)*d2r, ch%lat(jPt)*d2r, ch%lon(jPt+1)*d2r, ch%lat(jPt+1)*d2r &
-      ) * EARTH_R )
+      call add(ch%leng, dist_earth(ch%lon(jPt), ch%lat(jPt), ch%lon(jPt+1), ch%lat(jPt+1)))
     enddo
 
     if( ch%leng < THRESH_DIST_BTW_POINTS )then
       !call erradd('ch%leng < THRESH (ch #'//str(jCh)//')')
       !do jPt = 1, ch%n-1
-      !  leng = dist_sphere(&
-      !    ch%lon(jPt)*d2r, ch%lat(jPt)*d2r, ch%lon(jPt+1)*d2r, ch%lat(jPt+1)*d2r &
-      !  ) * EARTH_R
+      !  leng = dist_earth(ch%lon(jPt), ch%lat(jPt), ch%lon(jPt+1), ch%lat(jPt+1))
       !  call errapd(str(jPt,dgt(ch%n))//' '//slonlat(ch%lon(jPt),ch%lat(jPt))//' - '//&
       !    slonlat(ch%lon(jPt+1),ch%lat(jPt+1))//' '//str(leng))
       !enddo
@@ -216,9 +624,7 @@ logical :: debug_this
 
     jPt = 1
     do while( jPt < ch%n )
-      leng = dist_sphere(&
-        ch%lon(jPt)*d2r, ch%lat(jPt)*d2r, ch%lon(jPt+1)*d2r, ch%lat(jPt+1)*d2r &
-      ) * EARTH_R
+      leng = dist_earth(ch%lon(jPt), ch%lat(jPt), ch%lon(jPt+1), ch%lat(jPt+1))
 
       if( leng < THRESH_DIST_BTW_POINTS )then
         jPt0 = jPt  ! remove point #jPt
@@ -242,9 +648,7 @@ logical :: debug_this
 
     ch%leng = 0.d0
     do jPt = 1, ch%n-1
-      call add(ch%leng, dist_sphere(&
-        ch%lon(jPt)*d2r, ch%lat(jPt)*d2r, ch%lon(jPt+1)*d2r, ch%lat(jPt+1)*d2r &
-      ) * EARTH_R)
+      call add(ch%leng, dist_earth(ch%lon(jPt), ch%lat(jPt), ch%lon(jPt+1), ch%lat(jPt+1)))
     enddo
   enddo  ! jCh/
 
@@ -282,9 +686,7 @@ logical :: debug_this
       leng_acc = 0.d0
       call logmsg('ch #'//str(jCh)//' nPt '//str(ch%n))
       do jPt = 1, ch%n-1
-        leng = dist_sphere(&
-          ch%lon(jPt)*d2r, ch%lat(jPt)*d2r, ch%lon(jPt+1)*d2r, ch%lat(jPt+1)*d2r &
-        ) * EARTH_R
+        leng = dist_earth(ch%lon(jPt), ch%lat(jPt), ch%lon(jPt+1), ch%lat(jPt+1))
         call add(leng_acc, leng)
         call logmsg(str(jPt,dgt(ch%n))//' '//slonlat(ch%lon(jPt),ch%lat(jPt))//' - '//&
           str(jPt+1,dgt(ch%n))//' '//slonlat(ch%lon(jPt+1),ch%lat(jPt+1))//' '//str(leng))
@@ -319,9 +721,7 @@ logical :: debug_this
       sec%leng = 0.d0
 
       do while( jPt < ch%n )
-        leng_next = dist_sphere(&
-          ch%lon(jPt)*d2r, ch%lat(jPt)*d2r, ch%lon(jPt+1)*d2r, ch%lat(jPt+1)*d2r &
-        ) * EARTH_R
+        leng_next = dist_earth(ch%lon(jPt), ch%lat(jPt), ch%lon(jPt+1), ch%lat(jPt+1))
 
         if( debug_this )then
           call logmsg(str(jPt)//' pos '//str(pos,'f5.3')//&
@@ -379,8 +779,9 @@ logical :: debug_this
       endif
 
       if( jPt < ch%n .and. iSec == ch%nSec )then
-        call errend('jPt < ch%n and iSec == ch%nSec'//&
-          '\n  channel #'//str(jCh))
+        call errend(ERROR_CODE__CONDITION, &
+          'jPt < ch%n and iSec == ch%nSec'//&
+        '\n  channel #'//str(jCh))
       endif
     enddo  ! jPt, iSec/
     !-----------------------------------------------------------
@@ -431,10 +832,9 @@ logical :: debug_this
 
       sec%leng = 0.d0
       do jjPt = 1, sec%n-1
-        call add(sec%leng, dist_sphere(&
-          sec%lon(jjPt)*d2r, sec%lat(jjPt)*d2r, &
-          sec%lon(jjPt+1)*d2r, sec%lat(jjPt+1)*d2r &
-        ) * EARTH_R)
+        call add(sec%leng, dist_earth(&
+          sec%lon(jjPt), sec%lat(jjPt), sec%lon(jjPt+1), sec%lat(jjPt+1) &
+        ))
       enddo
 
       if( debug_this )then
@@ -514,7 +914,7 @@ logical :: debug_this
   close(un)
   !-------------------------------------------------------------
   call logret(PRCNAM, MODNAM)
-end subroutine makeModelNetworkData
+end subroutine makeModelNetworkData__core
 !===============================================================
 !
 !===============================================================
@@ -620,7 +1020,7 @@ subroutine makeModelCrossSectionData(&
   !-------------------------------------------------------------
   ! Output
   !-------------------------------------------------------------
-  call logent('Outputting')
+  call logent('Saving')
 
   f = get_f_model_crosssection(name_network, name_crosssection, 'width', id_in)
   call logmsg('Writing '//str(f))

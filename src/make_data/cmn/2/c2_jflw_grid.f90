@@ -49,11 +49,15 @@ module c2_jflw_grid
   public :: gxy_to_xy
 
   ! Others
-  public :: mean_dist_from_center
+  public :: standard_dist_from_center
 
+  public :: is_fdr_land
+  public :: is_fdr_direction
+  public :: is_fdr_outlet
   public :: get_nextxy
   public :: get_fdr
   public :: get_angle_fdr
+  public :: all_sources_reach_outlet
 
   public :: calc_lineleng_in_pixels
   !-------------------------------------------------------------
@@ -393,29 +397,26 @@ end subroutine gxy_to_xy
 !===============================================================
 !
 !===============================================================
-real(8) function mean_dist_from_center(gx, gy) result(d)
+real(8) function standard_dist_from_center(gy) result(dist)
   implicit none
-  integer, intent(in) :: gx, gy
+  integer, intent(in) :: gy
 
-  real(8) :: rwest, reast, rsouth, rnorth
-  real(8) :: rclon, rclat
+  real(8) :: clon, west, east
+  real(8) :: clat, north, south
+  real(8) :: d1, d2, d3
 
-  rwest  = west_of_gx(gx) * d2r
-  reast  = east_of_gx(gx) * d2r
-  rnorth = south_of_gy(gy) * d2r
-  rsouth = north_of_gy(gy) * d2r
-  rclon  = (rwest + reast)*0.5d0
-  rclat  = (rsouth + rnorth)*0.5d0
-  d = &
-    (dist_sphere(rclon, rclat, rwest, rnorth) + &
-     dist_sphere(rclon, rclat, rclon, rnorth) + &
-     dist_sphere(rclon, rclat, reast, rnorth) + &
-     dist_sphere(rclon, rclat, reast, rclat ) + &
-     dist_sphere(rclon, rclat, reast, rsouth) + &
-     dist_sphere(rclon, rclat, rclon, rsouth) + &
-     dist_sphere(rclon, rclat, rwest, rsouth) + &
-     dist_sphere(rclon, rclat, rwest, rclat )) / 8.d0
-end function mean_dist_from_center
+  north = north_of_gy(gy) * d2r
+  south = south_of_gy(gy) * d2r
+  clat = (south + north) * 0.5d0
+  west = 0.d0 * d2r
+  east = GRIDSIZE_LON * d2r
+  clon = (west + east) * 0.5d0
+
+  d1 = dist_ellips_hubeny(west, clat, east, clat, EARTH_E)
+  d2 = dist_ellips_hubeny(clon, north, clon, south, EARTH_E)
+  d3 = dist_ellips_hubeny(west, north, east, south, EARTH_E)
+  dist = (d1 + d2 + d3*2) / 8
+end function standard_dist_from_center
 !===============================================================
 !
 !===============================================================
@@ -424,6 +425,66 @@ end function mean_dist_from_center
 !
 !
 !
+!===============================================================
+!
+!===============================================================
+logical function is_fdr_land(fdr) result(res)
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'is_fdr_land'
+  integer(1), intent(in) :: fdr
+
+  selectcase( fdr )
+  case( 1_8:, &
+        FDR__RIVERMOUTH, &
+        FDR__INLAND )
+    res = .true.
+  case( FDR__MISS )
+    res = .false.
+  case default
+    call errend(ERROR_CODE__VALUE, 'fdr == '//str(fdr), &
+      MODNAM, PRCNAM)
+  endselect
+end function is_fdr_land
+!===============================================================
+!
+!===============================================================
+logical function is_fdr_direction(fdr) result(res)
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'is_fdr_direction'
+  integer(1), intent(in) :: fdr
+
+  selectcase( fdr )
+  case( 1_8: )
+    res = .true.
+  case( FDR__RIVERMOUTH, &
+        FDR__INLAND, &
+        FDR__MISS )
+    res = .false.
+  case default
+    call errend(ERROR_CODE__VALUE, 'fdr == '//str(fdr), &
+      MODNAM, PRCNAM)
+  endselect
+end function is_fdr_direction
+!===============================================================
+!
+!===============================================================
+logical function is_fdr_outlet(fdr) result(res)
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'is_fdr_outlet'
+  integer(1), intent(in) :: fdr
+
+  selectcase( fdr )
+  case( FDR__RIVERMOUTH, &
+        FDR__INLAND )
+    res = .true.
+  case( 1_8:, &
+        FDR__MISS )
+    res = .false.
+  case default
+    call errend(ERROR_CODE__VALUE, 'fdr == '//str(fdr), &
+      MODNAM, PRCNAM)
+  endselect
+end function is_fdr_outlet
 !===============================================================
 !
 !===============================================================
@@ -573,6 +634,347 @@ end function get_angle_fdr
 !===============================================================
 !
 !===============================================================
+integer function all_sources_reach_outlet(&
+  fdr, &
+  un_report &
+) result(res)
+  use c2_jflw_const
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'all_sources_reach_outlet'
+  integer(1), intent(in) :: fdr(:,:)
+  integer, intent(in), optional :: un_report
+
+  logical :: report
+
+  integer(1), allocatable :: reach(:,:)
+  logical(1), allocatable :: passed(:,:)
+  integer :: nx, ny, ix, iy, x, y, xx, yy, x_, y_
+  integer, pointer :: lst_x(:), lst_y(:)
+  integer :: n, i
+  integer :: nSource, iSource
+
+  integer :: dgt_xy
+
+  integer(1), parameter :: REACH__OUTLET = 1
+  integer(1), parameter :: REACH__OCEAN = 2
+  integer(1), parameter :: REACH__SOURCE = 11
+  integer(1), parameter :: REACH__UNKNOWN = 12
+  integer(1), parameter :: REACH__MISS = -9
+
+  integer, parameter :: RES__SUCCESS = 0
+  integer, parameter :: RES__OCEAN = 1
+  integer, parameter :: RES__CYCLIC = 2
+
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  report = present(un_report)
+
+  nx = size(fdr,1)
+  ny = size(fdr,2)
+  dgt_xy = dgt(max(nx,ny))
+  allocate(reach(nx,ny))
+  allocate(passed(nx,ny))
+
+  reach(:,:) = REACH__SOURCE
+  passed(:,:) = .false.
+
+  do iy = 1, ny
+  do ix = 1, nx
+    if( .not. is_fdr_direction(fdr(ix,iy)) ) cycle
+    call get_nextxy(ix, iy, fdr(ix,iy), xx, yy)
+
+    if( fdr(xx,yy) == FDR__MISS )then
+      reach(ix,iy) = REACH__OCEAN
+
+    ! do not overwrite status `ocean`
+    elseif( reach(xx,yy) /= REACH__OCEAN )then
+      reach(xx,yy) = REACH__UNKNOWN
+
+    endif
+  enddo
+  enddo
+
+  do iy = 1, ny
+  do ix = 1, nx
+    selectcase( fdr(ix,iy) )
+    case( 1_8: )
+      continue
+    case( FDR__RIVERMOUTH, FDR__INLAND )
+      reach(ix,iy) = REACH__OUTLET
+    case( FDR__MISS )
+      reach(ix,iy) = REACH__MISS
+    case default
+      call errend(ERROR_CODE__VALUE, 'fdr=='//str(fdr(ix,iy)))
+    endselect
+  enddo
+  enddo
+
+  nSource = count(reach == REACH__SOURCE)
+
+  allocate(lst_x(nx+ny))
+  allocate(lst_y(nx+ny))
+  res = RES__SUCCESS
+
+  iSource = 0
+  loop_outer:&
+  do iy = 1, ny
+  do ix = 1, nx
+    if( reach(ix,iy) /= REACH__SOURCE ) cycle
+
+    call add(iSource)
+    !call logmsg('source '//str(iSource)//' ('//str((/ix,iy/),dgt_xy,',')//')')
+
+    x = ix
+    y = iy
+    n = 0
+    do 
+      passed(x,y) = .true.
+
+      call get_nextxy(x, y, fdr(x,y), xx, yy)
+      x = xx
+      y = yy
+      !call logmsg('  -> ('//str((/x,y/),dgt_xy,',')//') reach '//str(reach(x,y)))
+
+      if( n == size(lst_x) )then
+        call realloc(lst_x, n*2, clear=.false.)
+        call realloc(lst_y, n*2, clear=.false.)
+      endif
+      call add(n)
+      lst_x(n) = x
+      lst_y(n) = y
+
+      if( passed(x,y) )then
+        res = RES__CYCLIC
+        if( report )then
+          write(un_report,"(a)") 'source #'//str(iSource)//&
+            ' cyclic '
+        endif
+        exit
+      endif
+
+      selectcase( reach(x,y) )
+      !---------------------------------------------------------
+      ! Case:  Reaches outlet
+      case( REACH__OUTLET )
+        exit
+      !---------------------------------------------------------
+      ! Case: Directly flows into ocean
+      case( REACH__OCEAN )
+        res = RES__OCEAN
+        if( report )then
+          x_ = lst_x(n-1)
+          y_ = lst_y(n-1)
+          call logmsg('source #'//str(iSource)//' directly flows into ocean.'//&
+          '\n('//str((/x_,y_/),',')//') fdr: '//str(fdr(x_,y_))//' reach: '//str(reach(x_,y_))//&
+          '\n('//str((/x,y/),',')//') fdr: '//str(fdr(x,y))//' reach: '//str(reach(x,y)), &
+            un_report)
+        endif
+        exit
+      !---------------------------------------------------------
+      ! Case: Ongoing
+      case( REACH__UNKNOWN )
+        continue
+      !---------------------------------------------------------
+      ! Case: ERROR (miss, source)
+      case( REACH__MISS, &
+            REACH__SOURCE )
+        call errnew(ERROR_CODE__CONDITION, 'source #'//str(iSource)//&
+          ' ('//str((/ix,iy/),',')//') stopped at ('//&
+          str((/x,y/),',')//') reach: '//str(reach(x,y)))
+        if( n > 1 )then
+          call erradd('up ('//str((/lst_x(n-1),lst_y(n-1)/),',')//&
+            ') fdr: '//str(fdr(lst_x(n-1),lst_y(n-1)))//&
+            ' reach: '//str(reach(lst_x(n-1),lst_y(n-1))))
+        endif
+        call errend()
+      !---------------------------------------------------------
+      ! Case: ERROR
+      case default
+        call errend(ERROR_CODE__VALUE, 'reach=='//str(reach(x,y)))
+      endselect
+    enddo
+
+    if( res /= RES__SUCCESS )then
+      exit loop_outer
+    endif
+
+    do i = 1, n
+      reach(lst_x(i),lst_y(i)) = reach(x,y)
+      passed(lst_x(i),lst_y(i)) = .false.
+    enddo
+  enddo  ! ix
+  enddo& ! iy
+  loop_outer
+  !-------------------------------------------------------------
+  call logret(PRCNAM, MODNAM)
+end function all_sources_reach_outlet
+!===============================================================
+!
+!===============================================================
+integer function all_sources_reach_outlet_(&
+  fdr, &
+  un_report &
+) result(res)
+  use c2_jflw_const
+  implicit none
+  character(CLEN_PROC), parameter :: PRCNAM = 'all_sources_reach_outlet'
+  integer(1), intent(in) :: fdr(:,:)
+  integer, intent(in), optional :: un_report
+
+  logical :: report
+  integer(1), allocatable :: grid(:,:)
+  logical(1), allocatable :: passed(:,:)
+  integer :: nx, ny, ix, iy, x, y, xx, yy
+  integer :: nSource, iSource
+
+  integer :: dgt_xy
+
+  integer(1), parameter :: GRID__SOURCE  = 1
+  integer(1), parameter :: GRID__REACH   = 2
+  integer(1), parameter :: GRID__UNKNOWN = 3
+  integer(1), parameter :: GRID__OCEAN   = -9
+
+  integer, parameter :: RES__SUCCESS     = 0
+  integer, parameter :: RES__OCEAN       = 1
+  integer, parameter :: RES__CIRCULATION = 2
+  integer, parameter :: RES__UNKNOWN     = 3
+
+  call logbgn(PRCNAM, MODNAM, '-p -x2')
+  !-------------------------------------------------------------
+  !
+  !-------------------------------------------------------------
+  report = present(un_report)
+
+  res = .true.
+
+  nx = size(fdr,1)
+  ny = size(fdr,2)
+  dgt_xy = dgt(max(nx,ny))
+
+  allocate(grid(nx,ny))
+  allocate(passed(nx,ny))
+
+  grid(:,:) =  GRID__SOURCE
+  do iy = 1, ny
+  do ix = 1, nx
+    selectcase( fdr(ix,iy) )
+    case( 1_8: )
+      call get_nextxy(ix, iy, fdr(ix,iy), xx, yy)
+      grid(xx,yy) = GRID__UNKNOWN
+    case( FDR__MISS )
+      grid(ix,iy) = GRID__OCEAN
+      cycle
+    case( FDR__RIVERMOUTH, FDR__INLAND )
+      grid(ix,iy) = GRID__REACH
+    case default
+      call errend(ERROR_CODE__VALUE, 'fdr=='//str(fdr(ix,iy)))
+    endselect
+  enddo
+  enddo
+
+  nSource = 0
+  do iy = 1, ny
+  do ix = 1, nx
+    if( is_fdr_outlet(fdr(ix,iy)) )then
+      grid(ix,iy) = GRID__REACH
+    endif
+    if( grid(ix,iy) == GRID__SOURCE ) call add(nSource)
+  enddo
+  enddo
+
+  iSource = 0
+  res = RES__SUCCESS
+  do iy = 1, ny
+  do ix = 1, nx
+    if( grid(ix,iy) /= GRID__SOURCE ) cycle
+    call add(iSource)
+if( iSource /= 9854115 ) cycle
+    call logmsg('source '//str(iSource)//' / '//str(nSource)//&
+      ' ('//str((/ix,iy/),dgt_xy,',')//')')
+
+    x = ix
+    y = iy
+    do while( grid(x,y) /= GRID__REACH )
+      passed(x,y) = .true.
+      if( .not. is_fdr_direction(fdr(x,y)) ) exit
+      call get_nextxy(x, y, fdr(x,y), xx, yy)
+      if( passed(xx,yy) )then
+        res = RES__CIRCULATION
+        if( report )then
+          write(un_report,"(a)") 'Source #'//str(iSource)//&
+            ': circulation was detected.'
+        endif
+        call finalize()
+        return
+      endif
+      x = xx
+      y = yy
+    enddo
+
+    if( grid(x,y) == GRID__REACH )then
+      x = ix
+      y = iy
+      do while( grid(x,y) /= GRID__REACH )
+        grid(x,y) = GRID__REACH
+        passed(x,y) = .false.
+        call get_nextxy(x, y, fdr(x,y), xx, yy)
+        x = xx
+        y = yy
+      enddo
+    elseif( fdr(x,y) == FDR__MISS )then
+      res = RES__OCEAN
+      if( report )then
+        write(un_report,"(a)") 'Source #'//str(iSource)//&
+          ': directly reached ocean'
+      endif
+      call finalize()
+      return
+    else
+      res = RES__UNKNOWN
+      if( report )then
+        write(un_report,"(a)") 'Source #'//str(iSource)//&
+          ': unknown error. (x,y)=('//str((/x,y/),',')//&
+          ') fdr='//str(fdr(x,y))//' grid='//str(grid(x,y))
+      endif
+      call finalize()
+      return
+    endif
+
+if( iSource == 1 )then
+  if( any(passed) )then
+    print*, 'passed'
+    stop
+  endif
+endif
+  enddo  ! ix
+  enddo  ! iy
+
+  call finalize()
+!---------------------------------------------------------------
+contains
+!---------------------------------------------------------------
+subroutine finalize()
+  implicit none
+
+  deallocate(grid)
+  deallocate(passed)
+  call logret(PRCNAM, MODNAM)
+end subroutine 
+!---------------------------------------------------------------
+end function all_sources_reach_outlet_
+!===============================================================
+!
+!===============================================================
+!
+!
+!
+!
+!
+!===============================================================
+!
+!===============================================================
 subroutine calc_lineleng_in_pixels(&
     lon1, lat1, lon2, lat2, &
     n, lst_gx, lst_gy, lst_leng)
@@ -580,6 +982,8 @@ subroutine calc_lineleng_in_pixels(&
         apprx_isct_with_meridian, &
         apprx_isct_with_parallel
   use c2_jflw_const
+  use lib_math, &
+    dist_sphere => dist_ellips_hubeny
   implicit none
   character(CLEN_PROC), parameter :: PRCNAM = 'calc_lineleng_in_pixels'
   real(8), intent(in) :: lon1, lat1, lon2, lat2
